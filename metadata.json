@@ -1,0 +1,6 @@
+{
+  "name": "AI Sublimation Studio Pro",
+  "description": "Professional Photoshop-style sublimation design studio & 3D mockup generator with AI tools, layer system, and real-time 3D renderer.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
