@@ -373,6 +373,15 @@ export default function App() {
   };
 
   // Apply AI Edit Tool (Background Remover, Vectorize, Upscale) to active layer
+  const parseJsonResponse = async (response: Response) => {
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Resposta inválida do servidor: ${text.substring(0, 300)}`);
+    }
+  };
+
   const handleApplyAIToolToActiveLayer = async (action: 'remove_bg' | 'vectorize' | 'upscale' | 'color_replace') => {
     const activeLayer = layers.find((l) => l.id === activeLayerId);
     if (!activeLayer || !activeLayer.content) return;
@@ -387,7 +396,7 @@ export default function App() {
         }),
       });
 
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (data.imageUrl) {
         const updated = layers.map((l) =>
           l.id === activeLayer.id ? { ...l, content: data.imageUrl } : l

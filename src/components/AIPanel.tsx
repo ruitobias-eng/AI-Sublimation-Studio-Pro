@@ -82,6 +82,15 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     return canvas.toDataURL('image/png');
   };
 
+  const parseApiResponse = async (response: Response) => {
+    const text = await response.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error(`Resposta inválida do servidor: ${text.substring(0, 300)}`);
+    }
+  };
+
   // Call Express API `/api/gemini/generate-image`
   const handleGenerateImage = async () => {
     if (!params.prompt.trim()) {
@@ -106,7 +115,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const data = await parseApiResponse(response);
 
       if (!response.ok || data.error) {
         throw new Error(data.error || 'Erro na geração de imagem por IA');
@@ -142,7 +151,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           productType: product.name,
         }),
       });
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       if (data.result) {
         const parsed = JSON.parse(data.result);
         if (Array.isArray(parsed)) {
