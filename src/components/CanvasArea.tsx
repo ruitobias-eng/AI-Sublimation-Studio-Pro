@@ -1138,21 +1138,76 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                   </>
                 )}
 
-                {/* Color Swatch Picker */}
-                <label
-                  className="w-6 h-6 rounded-full border-2 border-white/30 cursor-pointer shadow-inner hover:scale-110 transition-transform relative overflow-hidden"
-                  style={{ backgroundColor: activeL.color || activeColor }}
-                  title="Mudar Cor do Elemento"
-                >
-                  <input
-                    type="color"
-                    value={activeL.color || activeColor}
-                    onChange={(e) =>
-                      onUpdateLayer({ ...activeL, color: e.target.value })
-                    }
-                    className="opacity-0 absolute inset-0 cursor-pointer"
-                  />
-                </label>
+                {/* Color Swatches: Preenchimento e Cor da Linha */}
+                <div className="flex items-center gap-2 bg-[#23242e] px-2 py-1 rounded-xl border border-[#383945]">
+                  {/* Fill Color */}
+                  <div className="flex items-center gap-1" title="Cor de Preenchimento / Fundo">
+                    <span className="text-[10px] text-gray-300 font-medium hidden sm:inline">Cor:</span>
+                    <label
+                      className="w-5 h-5 rounded-full border border-white/40 cursor-pointer shadow-inner hover:scale-110 transition-transform relative overflow-hidden flex-shrink-0"
+                      style={{ backgroundColor: activeL.color || activeColor }}
+                      title="Selecionar Cor de Preenchimento"
+                    >
+                      <input
+                        type="color"
+                        value={activeL.color || activeColor}
+                        onChange={(e) =>
+                          onUpdateLayer({ ...activeL, color: e.target.value })
+                        }
+                        className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="w-[1px] h-3.5 bg-white/20"></div>
+
+                  {/* Line / Stroke Color */}
+                  <div className="flex items-center gap-1" title="Cor da Linha / Contorno">
+                    <span className="text-[10px] text-purple-300 font-medium hidden sm:inline">Linha:</span>
+                    <label
+                      className="w-5 h-5 rounded-full border-2 border-purple-400 cursor-pointer shadow-inner hover:scale-110 transition-transform relative overflow-hidden flex-shrink-0 flex items-center justify-center"
+                      style={{ backgroundColor: activeL.strokeColor || activeL.color || '#000000' }}
+                      title="Selecionar Cor da Linha / Contorno"
+                    >
+                      <input
+                        type="color"
+                        value={activeL.strokeColor || activeL.color || '#000000'}
+                        onChange={(e) =>
+                          onUpdateLayer({
+                            ...activeL,
+                            strokeColor: e.target.value,
+                            strokeWidth: activeL.strokeWidth ? activeL.strokeWidth : 3,
+                          })
+                        }
+                        className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Line Thickness */}
+                  {(activeL.type === 'shape' || activeL.type === 'text') && (
+                    <>
+                      <div className="w-[1px] h-3.5 bg-white/20"></div>
+                      <div className="flex items-center gap-1" title="Espessura da Linha / Contorno">
+                        <span className="text-[10px] text-gray-400 font-medium hidden lg:inline">Grossura:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          max="50"
+                          value={activeL.strokeWidth ?? 0}
+                          onChange={(e) =>
+                            onUpdateLayer({
+                              ...activeL,
+                              strokeWidth: Math.max(0, parseInt(e.target.value) || 0),
+                            })
+                          }
+                          className="w-10 bg-[#121216] border border-[#383945] rounded px-1 py-0.5 text-center text-purple-300 font-mono text-[10px] font-bold focus:outline-none focus:border-purple-500"
+                        />
+                        <span className="text-[9px] text-gray-400 font-mono">px</span>
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 <div className="w-[1px] h-4 bg-white/20"></div>
 
