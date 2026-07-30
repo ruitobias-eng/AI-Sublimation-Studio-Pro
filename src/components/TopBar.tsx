@@ -39,6 +39,8 @@ interface TopBarProps {
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
   onNewProject?: () => void;
+  onOpenProject?: () => void;
+  onIncludeStamp?: () => void;
   onSaveLayout?: () => void;
   onOpenSettings?: () => void;
   projectName?: string;
@@ -61,6 +63,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   theme = 'dark',
   onToggleTheme,
   onNewProject,
+  onOpenProject,
+  onIncludeStamp,
   onSaveLayout,
   onOpenSettings,
   projectName = 'Arte Sublimação - Caneca 325ml',
@@ -95,11 +99,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           </span>
         </div>
 
-        {/* Main Dropdown Menu (Arquivo, Novo, Salvar, Exportar, Configurações) */}
+        {/* Main Dropdown Menu (Arquivo, Novo, Abrir, Incluir Estampa, Salvar, Exportar, Configurações) */}
         <AppMenu
           theme={theme}
           onExport={onOpenExportModal}
           onNewProject={onNewProject}
+          onOpenProject={onOpenProject}
+          onIncludeStamp={onIncludeStamp}
           onSaveLayout={onSaveLayout}
           onOpenSettings={onOpenSettings}
         />

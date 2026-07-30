@@ -192,6 +192,96 @@ export default function App() {
     setIsNewProjectModalOpen(false);
   };
 
+  // File input refs for Abrir Projeto e Incluir Estampa
+  const projectInputRef = useRef<HTMLInputElement>(null);
+  const stampInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenProjectClick = () => {
+    projectInputRef.current?.click();
+  };
+
+  const handleIncludeStampClick = () => {
+    stampInputRef.current?.click();
+  };
+
+  const handleIncludeStampFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const resultUrl = event.target?.result as string;
+      if (resultUrl) {
+        const stampName = file.name.replace(/\.[^/.]+$/, '');
+        const newId = 'layer-stamp-' + Date.now();
+        const newLayer: Layer = {
+          id: newId,
+          name: 'Estampa: ' + stampName,
+          type: 'image',
+          visible: true,
+          locked: false,
+          opacity: 100,
+          blendMode: 'normal',
+          x: 100,
+          y: 60,
+          width: 500,
+          height: 380,
+          rotation: 0,
+          content: resultUrl,
+        };
+
+        const updatedLayers = [...layers, newLayer];
+        setLayers(updatedLayers);
+        setActiveLayerId(newId);
+        pushHistoryStep('Incluiu Estampa: ' + stampName, 'Incluir Estampa', updatedLayers);
+        setCanvasVersion((v) => v + 1);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleOpenProjectFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type.startsWith('image/')) {
+      handleIncludeStampFile(e);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const data = JSON.parse(content);
+        if (data && Array.isArray(data.layers)) {
+          setLayers(data.layers);
+          if (data.projectName) setProjectName(data.projectName);
+          if (data.product) {
+            const found = PRODUCTS_LIBRARY.find((p) => p.id === data.product.id) || data.product;
+            setCurrentProduct(found);
+          }
+          if (typeof data.mirrorSublimation === 'boolean') {
+            setMirrorSublimation(data.mirrorSublimation);
+          }
+          if (data.layers.length > 0) {
+            setActiveLayerId(data.layers[data.layers.length - 1].id);
+          }
+          pushHistoryStep('Abriu Projeto ' + (data.projectName || file.name), 'Abrir', data.layers);
+          setCanvasVersion((v) => v + 1);
+        } else {
+          alert('Formato de arquivo de projeto inválido. Selecione um arquivo .sublimation ou .json válido.');
+        }
+      } catch (err) {
+        console.error('Erro ao abrir projeto:', err);
+        alert('Não foi possível ler o arquivo. Se for uma imagem de estampa (PNG/JPG), selecione a opção "Incluir Estampa".');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const handleSaveLayout = () => {
     const projectData = {
       version: '1.0',
@@ -510,6 +600,22 @@ export default function App() {
     <div className={`flex flex-col w-screen h-screen overflow-hidden select-none font-sans transition-colors ${
       theme === 'light' ? 'bg-slate-100 text-slate-900 light' : 'bg-[#141415] text-white dark'
     }`}>
+      {/* Hidden file inputs for opening projects and including stamps */}
+      <input
+        ref={projectInputRef}
+        type="file"
+        accept=".sublimation,.json,image/*"
+        onChange={handleOpenProjectFile}
+        className="hidden"
+      />
+      <input
+        ref={stampInputRef}
+        type="file"
+        accept="image/*,.svg"
+        onChange={handleIncludeStampFile}
+        className="hidden"
+      />
+
       {/* Top Bar */}
       <TopBar
         currentProduct={currentProduct}
@@ -536,6 +642,8 @@ export default function App() {
         theme={theme}
         onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
         onNewProject={() => setIsNewProjectModalOpen(true)}
+        onOpenProject={handleOpenProjectClick}
+        onIncludeStamp={handleIncludeStampClick}
         onSaveLayout={handleSaveLayout}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
         projectName={projectName}
