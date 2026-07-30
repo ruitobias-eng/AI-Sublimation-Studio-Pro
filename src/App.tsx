@@ -27,12 +27,19 @@ import {
   Box,
   ChevronRight,
   ChevronLeft,
-  X
+  X,
+  FolderPlus,
+  FileText,
+  Save,
+  Download,
+  Settings as SettingsIcon,
+  Check,
 } from 'lucide-react';
 
 export default function App() {
-  // 1. Current Sublimation Product
+  // 1. Current Sublimation Product & Project Info
   const [currentProduct, setCurrentProduct] = useState<SublimationProduct>(PRODUCTS_LIBRARY[0]);
+  const [projectName, setProjectName] = useState<string>('Arte Sublimação - Caneca 325ml');
 
   // Workspace View Mode: 'split' | 'canvas' | 'mockup'
   const [workspaceViewMode, setWorkspaceViewMode] = useState<WorkspaceViewMode>('split');
@@ -118,6 +125,91 @@ export default function App() {
   // 6. Modals Open State
   const [isProductLibraryOpen, setIsProductLibraryOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Handlers for App Menu
+  const handleConfirmNewProject = (type: 'blank' | 'sample') => {
+    let newLayers: Layer[] = [];
+
+    if (type === 'sample') {
+      newLayers = [
+        {
+          id: 'layer-bg-' + Date.now(),
+          name: 'Fundo Neutro',
+          type: 'shape',
+          shapeType: 'rectangle',
+          visible: true,
+          locked: false,
+          opacity: 100,
+          blendMode: 'normal',
+          x: 0,
+          y: 0,
+          width: currentProduct.printWidthMm ? currentProduct.printWidthMm * 5 : 1000,
+          height: currentProduct.printHeightMm ? currentProduct.printHeightMm * 5 : 500,
+          rotation: 0,
+          content: '',
+          color: '#f8fafc',
+        },
+        {
+          id: 'layer-text-' + Date.now(),
+          name: 'Texto do Projeto',
+          type: 'text',
+          visible: true,
+          locked: false,
+          opacity: 100,
+          blendMode: 'normal',
+          x: 200,
+          y: 150,
+          width: 500,
+          height: 100,
+          rotation: 0,
+          content: 'MEU NOVO PROJETO',
+          color: activeColor || '#38bdf8',
+          fontSize: 44,
+          fontFamily: 'Impact',
+          fontWeight: 'bold',
+          textAlign: 'center',
+        },
+      ];
+    }
+
+    setLayers(newLayers);
+    setActiveLayerId(newLayers.length > 0 ? newLayers[newLayers.length - 1].id : null);
+    const newName = 'Novo Projeto - ' + currentProduct.name;
+    setProjectName(newName);
+
+    const initStep: HistoryStep = {
+      id: 'hist-new-' + Date.now(),
+      description: 'Criado ' + (type === 'blank' ? 'Projeto Limpo' : 'Projeto com Modelo'),
+      toolName: 'Novo Projeto',
+      timestamp: new Date(),
+      layers: newLayers,
+    };
+    setHistorySteps([initStep]);
+    setCurrentHistoryIndex(0);
+    setCanvasVersion((v) => v + 1);
+    setIsNewProjectModalOpen(false);
+  };
+
+  const handleSaveLayout = () => {
+    const projectData = {
+      version: '1.0',
+      projectName,
+      product: currentProduct,
+      layers,
+      mirrorSublimation,
+      createdAt: new Date().toISOString(),
+    };
+
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(projectData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute('download', `${projectName.toLowerCase().replace(/\s+/g, '_')}_layout.sublimation`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
 
   // 7. Canvas element ref for 3D mapping & export
   const [renderedCanvas, setRenderedCanvas] = useState<HTMLCanvasElement | null>(null);
@@ -373,15 +465,6 @@ export default function App() {
   };
 
   // Apply AI Edit Tool (Background Remover, Vectorize, Upscale) to active layer
-  const parseJsonResponse = async (response: Response) => {
-    const text = await response.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error(`Resposta inválida do servidor: ${text.substring(0, 300)}`);
-    }
-  };
-
   const handleApplyAIToolToActiveLayer = async (action: 'remove_bg' | 'vectorize' | 'upscale' | 'color_replace') => {
     const activeLayer = layers.find((l) => l.id === activeLayerId);
     if (!activeLayer || !activeLayer.content) return;
@@ -396,7 +479,7 @@ export default function App() {
         }),
       });
 
-      const data = await parseJsonResponse(res);
+      const data = await res.json();
       if (data.imageUrl) {
         const updated = layers.map((l) =>
           l.id === activeLayer.id ? { ...l, content: data.imageUrl } : l
@@ -452,6 +535,11 @@ export default function App() {
         onChangeWorkspaceViewMode={setWorkspaceViewMode}
         theme={theme}
         onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+        onNewProject={() => setIsNewProjectModalOpen(true)}
+        onSaveLayout={handleSaveLayout}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        projectName={projectName}
+        onChangeProjectName={setProjectName}
       />
 
       {/* Main Workspace Grid (Left Toolbar | Central Canvas or 3D Stage | Right Sidepanels) */}
@@ -758,6 +846,184 @@ export default function App() {
         canvasElement={renderedCanvas}
         mirrorSublimation={mirrorSublimation}
       />
+
+      {/* Novo Projeto Modal */}
+      {isNewProjectModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl relative transition-all ${
+            theme === 'light' ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#18181b] border-[#2e2e33] text-gray-100'
+          }`}>
+            <button
+              onClick={() => setIsNewProjectModalOpen(false)}
+              className={`absolute top-4 right-4 p-1.5 rounded-lg cursor-pointer ${
+                theme === 'light' ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-gray-400'
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-purple-600/20 text-purple-600 rounded-xl">
+                <FolderPlus className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Criar Novo Projeto</h3>
+                <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                  Escolha como deseja iniciar sua nova estampa sublimática.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-6">
+              <button
+                onClick={() => handleConfirmNewProject('blank')}
+                className={`p-4 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer hover:border-purple-500 group ${
+                  theme === 'light'
+                    ? 'bg-slate-50 border-slate-200 hover:bg-purple-50'
+                    : 'bg-[#222226] border-[#303036] hover:bg-[#282338]'
+                }`}
+              >
+                <div className="p-2 rounded-lg bg-purple-600 text-white w-fit group-hover:scale-110 transition-transform">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <span className="font-semibold text-sm">Projeto em Branco</span>
+                <span className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                  Canvas completamente limpo para você criar do zero.
+                </span>
+              </button>
+
+              <button
+                onClick={() => handleConfirmNewProject('sample')}
+                className={`p-4 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer hover:border-purple-500 group ${
+                  theme === 'light'
+                    ? 'bg-slate-50 border-slate-200 hover:bg-purple-50'
+                    : 'bg-[#222226] border-[#303036] hover:bg-[#282338]'
+                }`}
+              >
+                <div className="p-2 rounded-lg bg-indigo-600 text-white w-fit group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <span className="font-semibold text-sm">Com Modelo Base</span>
+                <span className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                  Inclui fundo guia e camada de texto inicial para personalizar.
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-[#2e2e33]">
+              <button
+                onClick={() => setIsNewProjectModalOpen(false)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer ${
+                  theme === 'light' ? 'bg-slate-200 hover:bg-slate-300 text-slate-700' : 'bg-[#28282d] hover:bg-[#34343a] text-gray-300'
+                }`}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Configurações Modal */}
+      {isSettingsModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className={`w-full max-w-md rounded-2xl border p-6 shadow-2xl relative transition-all ${
+            theme === 'light' ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#18181b] border-[#2e2e33] text-gray-100'
+          }`}>
+            <button
+              onClick={() => setIsSettingsModalOpen(false)}
+              className={`absolute top-4 right-4 p-1.5 rounded-lg cursor-pointer ${
+                theme === 'light' ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-white/10 text-gray-400'
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-3 bg-purple-600/20 text-purple-600 rounded-xl">
+                <SettingsIcon className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Configurações do Estúdio</h3>
+                <p className={`text-xs ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                  Ajuste as preferências de trabalho e visualização.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 my-4">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-[#2e2e33]">
+                <div>
+                  <div className="font-semibold text-xs">Espelhamento Sublimático</div>
+                  <div className={`text-[11px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Inverter horizontalmente para transferência em papel
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={mirrorSublimation}
+                  onChange={(e) => setMirrorSublimation(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-[#2e2e33]">
+                <div>
+                  <div className="font-semibold text-xs">Exibir Grade de Alinhamento</div>
+                  <div className={`text-[11px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Linhas de auxílio no canvas 2D
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={showGrid}
+                  onChange={(e) => setShowGrid(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-[#2e2e33]">
+                <div>
+                  <div className="font-semibold text-xs">Exibir Réguas em Milímetros</div>
+                  <div className={`text-[11px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Réguas graduadas nas bordas do editor
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={showRulers}
+                  onChange={(e) => setShowRulers(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600 cursor-pointer"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 dark:border-[#2e2e33]">
+                <div>
+                  <div className="font-semibold text-xs">Tema da Interface</div>
+                  <div className={`text-[11px] ${theme === 'light' ? 'text-slate-500' : 'text-gray-400'}`}>
+                    Alternar entre modo escuro e claro
+                  </div>
+                </div>
+                <button
+                  onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold bg-purple-600 text-white cursor-pointer hover:bg-purple-500"
+                >
+                  {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-3 border-t border-slate-200 dark:border-[#2e2e33]">
+              <button
+                onClick={() => setIsSettingsModalOpen(false)}
+                className="px-5 py-2 rounded-xl text-xs font-semibold bg-purple-600 text-white cursor-pointer hover:bg-purple-500"
+              >
+                Concluído
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

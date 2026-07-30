@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   RotateCcw,
@@ -15,6 +15,7 @@ import {
   Moon,
 } from 'lucide-react';
 import { SublimationProduct, WorkspaceViewMode } from '../types';
+import { AppMenu } from './AppMenu';
 
 interface TopBarProps {
   currentProduct: SublimationProduct;
@@ -37,6 +38,11 @@ interface TopBarProps {
   onChangeWorkspaceViewMode: (mode: WorkspaceViewMode) => void;
   theme?: 'dark' | 'light';
   onToggleTheme?: () => void;
+  onNewProject?: () => void;
+  onSaveLayout?: () => void;
+  onOpenSettings?: () => void;
+  projectName?: string;
+  onChangeProjectName?: (name: string) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -54,8 +60,24 @@ export const TopBar: React.FC<TopBarProps> = ({
   onChangeWorkspaceViewMode,
   theme = 'dark',
   onToggleTheme,
+  onNewProject,
+  onSaveLayout,
+  onOpenSettings,
+  projectName = 'Arte Sublimação - Caneca 325ml',
+  onChangeProjectName,
 }) => {
-  const [projectName, setProjectName] = useState<string>('Arte Sublimação - Caneca 325ml');
+  const [internalProjectName, setInternalProjectName] = useState<string>(projectName);
+
+  useEffect(() => {
+    setInternalProjectName(projectName);
+  }, [projectName]);
+
+  const handleNameChange = (newName: string) => {
+    setInternalProjectName(newName);
+    if (onChangeProjectName) {
+      onChangeProjectName(newName);
+    }
+  };
 
   return (
     <header className={`h-12 border-b flex items-center justify-between px-3 select-none text-xs z-40 shadow-md transition-colors ${
@@ -72,6 +94,15 @@ export const TopBar: React.FC<TopBarProps> = ({
             CANVA STUDIO
           </span>
         </div>
+
+        {/* Main Dropdown Menu (Arquivo, Novo, Salvar, Exportar, Configurações) */}
+        <AppMenu
+          theme={theme}
+          onExport={onOpenExportModal}
+          onNewProject={onNewProject}
+          onSaveLayout={onSaveLayout}
+          onOpenSettings={onOpenSettings}
+        />
 
         {/* Undo / Redo */}
         <div className={`flex items-center rounded-xl p-0.5 border ${
@@ -112,8 +143,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Project Name Editable Input */}
         <input
           type="text"
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
+          value={internalProjectName}
+          onChange={(e) => handleNameChange(e.target.value)}
           className={`bg-transparent px-2 py-1 rounded-lg text-xs font-semibold border border-transparent focus:border-purple-500 focus:outline-none transition-all max-w-[180px] sm:max-w-[240px] truncate ${
             theme === 'light'
               ? 'text-slate-900 hover:bg-slate-100 hover:border-slate-300 focus:bg-white'
