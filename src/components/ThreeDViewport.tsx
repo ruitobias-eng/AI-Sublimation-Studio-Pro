@@ -349,7 +349,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
         mugMesh.userData.isPrintArea = true;
         mugMesh.castShadow = true;
         mugMesh.receiveShadow = true;
-        mugMesh.rotation.y = Math.PI / 2;
+        mugMesh.rotation.y = Math.PI; // Aligns center of 2D canvas (u=0.5) to the front (+Z)
         group.add(mugMesh);
 
         // 2. Inner Ceramic Cavity
@@ -372,12 +372,12 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
         bottomMesh.position.y = -0.975;
         group.add(bottomMesh);
 
-        // 5. Ergonomic Ceramic C-Handle
+        // 5. Ergonomic Ceramic C-Handle positioned at the back seam (-Z)
         const handleCurve = new THREE.CubicBezierCurve3(
-          new THREE.Vector3(-0.80, 0.58, 0),
-          new THREE.Vector3(-1.52, 0.70, 0),
-          new THREE.Vector3(-1.52, -0.70, 0),
-          new THREE.Vector3(-0.80, -0.58, 0)
+          new THREE.Vector3(0, 0.58, -0.80),
+          new THREE.Vector3(0, 0.72, -1.52),
+          new THREE.Vector3(0, -0.72, -1.52),
+          new THREE.Vector3(0, -0.58, -0.80)
         );
         const handleGeo = new THREE.TubeGeometry(handleCurve, 36, 0.095, 16, false);
         const handleMesh = new THREE.Mesh(handleGeo, accentMaterial);
@@ -536,6 +536,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
     }
 
     group.position.y = -0.1;
+    group.rotation.y = -0.35; // Slight initial angle to showcase front design + handle silhouette
     productMeshGroupRef.current = group;
     sceneRef.current.add(group);
     if (textureRef.current) {
@@ -577,6 +578,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
 
     switch (view) {
       case 'front':
+        productMeshGroupRef.current.rotation.y = -0.35;
         cameraRef.current.position.set(0, 0.2, 3.8);
         break;
       case 'back':
@@ -584,15 +586,16 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
         cameraRef.current.position.set(0, 0.2, 3.8);
         break;
       case 'side':
-        productMeshGroupRef.current.rotation.y = Math.PI / 2;
+        productMeshGroupRef.current.rotation.y = -Math.PI / 2;
         cameraRef.current.position.set(0, 0.2, 3.8);
         break;
       case 'top':
+        productMeshGroupRef.current.rotation.y = -0.35;
         cameraRef.current.position.set(0, 3.8, 0.1);
         break;
       case 'iso':
-        productMeshGroupRef.current.rotation.y = Math.PI / 4;
-        productMeshGroupRef.current.rotation.x = Math.PI / 12;
+        productMeshGroupRef.current.rotation.y = -0.55;
+        productMeshGroupRef.current.rotation.x = 0.2;
         cameraRef.current.position.set(0, 0.2, 3.8);
         break;
     }
