@@ -152,10 +152,25 @@ export function drawVectorShape(
   strokeColor?: string,
   strokeWidth?: number
 ) {
+  const isLineType =
+    shapeType === 'line' ||
+    shapeType.includes('line_') ||
+    shapeType.includes('curve') ||
+    shapeType.includes('scribble') ||
+    shapeType.includes('connector') ||
+    shapeType.includes('elbow_');
+
+  const actualStrokeWidth =
+    strokeWidth !== undefined && strokeWidth !== null
+      ? strokeWidth
+      : isLineType
+      ? 4
+      : 0;
+
   ctx.save();
   ctx.fillStyle = fillColor;
   ctx.strokeStyle = strokeColor || fillColor;
-  ctx.lineWidth = strokeWidth ?? 0;
+  ctx.lineWidth = actualStrokeWidth > 0 ? actualStrokeWidth : (isLineType ? 4 : 1);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
@@ -975,7 +990,7 @@ export function drawVectorShape(
   }
 
   ctx.fill();
-  if (strokeWidth && strokeWidth > 0) {
+  if (actualStrokeWidth > 0) {
     ctx.stroke();
   }
 

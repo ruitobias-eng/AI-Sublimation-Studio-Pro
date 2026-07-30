@@ -16,7 +16,8 @@ import {
   Box,
   CornerUpRight,
   Trash2,
-  Copy
+  Copy,
+  Shapes
 } from 'lucide-react';
 
 interface RightPropertiesPanelProps {
@@ -500,7 +501,153 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
         </div>
       )}
 
-      {/* Colors & Fill */}
+      {/* SHAPES, LINES & VECTOR ELEMENTS PROPERTIES (Formas, Linhas, Números) */}
+      {activeLayer.type === 'shape' && (
+        <div className="flex flex-col gap-3 bg-[#18181a] p-3 rounded-lg border border-purple-500/30">
+          <div className="flex items-center justify-between pb-1 border-b border-[#2d2d30]">
+            <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+              <Shapes className="w-3.5 h-3.5 text-purple-400" />
+              Propriedades da Forma & Linha
+            </span>
+            <span className="text-[10px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-mono font-bold border border-purple-500/30">
+              {activeLayer.shapeType || 'Forma'}
+            </span>
+          </div>
+
+          {/* Preenchimento / Cor da Forma */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-gray-300 font-medium">Cor de Preenchimento:</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={activeLayer.color || '#38bdf8'}
+                  onChange={(e) => onUpdateLayer({ ...activeLayer, color: e.target.value })}
+                  className="w-6 h-6 rounded cursor-pointer border border-[#38383c]"
+                />
+                <span className="font-mono text-[10px] text-gray-400 uppercase">
+                  {activeLayer.color || '#38bdf8'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Color Palette */}
+            <div className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-0.5">
+              {['#000000', '#ffffff', '#ef4444', '#3b82f6', '#eab308', '#10b981', '#a855f7', '#f97316', '#ec4899', '#06b6d4'].map((presetColor) => (
+                <button
+                  key={'fill-' + presetColor}
+                  onClick={() => onUpdateLayer({ ...activeLayer, color: presetColor })}
+                  className={`w-4 h-4 rounded-full border transition-transform hover:scale-125 cursor-pointer flex-shrink-0 ${
+                    activeLayer.color === presetColor ? 'ring-2 ring-purple-400 border-white' : 'border-[#38383c]'
+                  }`}
+                  style={{ backgroundColor: presetColor }}
+                  title={`Usar cor ${presetColor}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Cor do Contorno / Linha */}
+          <div className="flex flex-col gap-1.5 pt-2.5 border-t border-[#2d2d30]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-gray-300 font-medium">Cor do Contorno / Linha:</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={activeLayer.strokeColor || activeLayer.color || '#000000'}
+                  onChange={(e) => onUpdateLayer({ ...activeLayer, strokeColor: e.target.value })}
+                  className="w-6 h-6 rounded cursor-pointer border border-[#38383c]"
+                />
+                <span className="font-mono text-[10px] text-gray-400 uppercase">
+                  {activeLayer.strokeColor || activeLayer.color || '#000000'}
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Stroke Color Palette */}
+            <div className="flex items-center gap-1.5 pt-1 overflow-x-auto pb-0.5">
+              {['#000000', '#ffffff', '#ef4444', '#3b82f6', '#eab308', '#10b981', '#a855f7', '#f97316', '#ec4899', '#06b6d4'].map((presetColor) => (
+                <button
+                  key={'stroke-' + presetColor}
+                  onClick={() => onUpdateLayer({ ...activeLayer, strokeColor: presetColor })}
+                  className={`w-4 h-4 rounded-full border transition-transform hover:scale-125 cursor-pointer flex-shrink-0 ${
+                    activeLayer.strokeColor === presetColor ? 'ring-2 ring-purple-400 border-white' : 'border-[#38383c]'
+                  }`}
+                  style={{ backgroundColor: presetColor }}
+                  title={`Usar contorno ${presetColor}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Grossura e Espessura da Forma / Linha */}
+          <div className="flex flex-col gap-2 pt-2.5 border-t border-[#2d2d30]">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-gray-200 font-bold flex items-center gap-1">
+                <span>Grossura / Espessura:</span>
+              </span>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={activeLayer.strokeWidth ?? 0}
+                  onChange={(e) =>
+                    onUpdateLayer({
+                      ...activeLayer,
+                      strokeWidth: Math.max(0, parseInt(e.target.value) || 0),
+                    })
+                  }
+                  className="w-12 bg-[#121214] border border-[#38383c] rounded px-1.5 py-0.5 text-right text-purple-300 font-mono text-xs font-bold focus:outline-none focus:border-purple-500"
+                />
+                <span className="text-[10px] text-gray-400 font-mono">px</span>
+              </div>
+            </div>
+
+            {/* Range Slider */}
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={activeLayer.strokeWidth ?? 0}
+              onChange={(e) =>
+                onUpdateLayer({ ...activeLayer, strokeWidth: parseInt(e.target.value) || 0 })
+              }
+              className="w-full accent-purple-500 cursor-pointer h-1.5 bg-[#252528] rounded-lg"
+            />
+
+            {/* Quick Thickness Presets */}
+            <div className="flex flex-wrap gap-1 mt-1">
+              {[
+                { label: '0px', value: 0, title: 'Sem Contorno' },
+                { label: '2px', value: 2, title: 'Fina' },
+                { label: '5px', value: 5, title: 'Média' },
+                { label: '10px', value: 10, title: 'Grossa' },
+                { label: '20px (Maior)', value: 20, title: 'Espessura Maior' },
+                { label: '35px', value: 35, title: 'Extra Grossa' },
+              ].map((preset) => {
+                const isActive = (activeLayer.strokeWidth ?? 0) === preset.value;
+                return (
+                  <button
+                    key={'preset-thick-' + preset.value}
+                    onClick={() => onUpdateLayer({ ...activeLayer, strokeWidth: preset.value })}
+                    className={`px-2 py-1 text-[10px] font-bold rounded-md border transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-purple-600 text-white border-purple-400 shadow-sm scale-105'
+                        : 'bg-[#202127] text-gray-300 hover:text-white border-[#30313a] hover:border-purple-500/50'
+                    }`}
+                    title={preset.title}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Colors & Fill (General) */}
       <div className="flex flex-col gap-2 bg-[#18181a] p-2.5 rounded-lg border border-[#2d2d30]">
         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
           <Palette className="w-3 h-3 text-purple-400" />

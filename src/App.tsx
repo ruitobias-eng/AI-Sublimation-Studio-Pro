@@ -389,6 +389,13 @@ export default function App() {
         'ribbon',
       ].includes(defaultTextWarpStyle);
 
+    const isLineType =
+      shapeToUse?.includes('line') ||
+      shapeToUse?.includes('curve') ||
+      shapeToUse?.includes('scribble') ||
+      shapeToUse?.includes('connector') ||
+      shapeToUse?.includes('elbow');
+
     const newLayer: Layer = {
       id: newId,
       name:
@@ -410,7 +417,9 @@ export default function App() {
       height: type === 'text' ? (isSpaciousStyle ? 260 : 120) : 200,
       rotation: 0,
       content: type === 'text' ? 'SUBLIMAÇÃO' : '',
-      color: activeColor,
+      color: activeColor || '#38bdf8',
+      strokeColor: activeColor || '#38bdf8',
+      strokeWidth: type === 'shape' ? (isLineType ? 6 : 2) : 0,
       shapeType: shapeToUse,
       fontSize: 36,
       fontFamily: customFontFamily || 'Impact',
