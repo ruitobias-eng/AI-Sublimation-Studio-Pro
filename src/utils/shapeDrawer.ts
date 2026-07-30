@@ -10,6 +10,7 @@ export const SHAPE_CATEGORIES = [
   { id: 'lines', name: 'Linhas' },
   { id: 'rectangles', name: 'Retângulos' },
   { id: 'basics', name: 'Formas Básicas' },
+  { id: 'numbers', name: 'Números 0-9' },
   { id: 'arrows', name: 'Setas Largas' },
   { id: 'equation', name: 'Formas de Equação' },
   { id: 'flowchart', name: 'Fluxograma' },
@@ -66,6 +67,18 @@ export const ALL_VECTOR_SHAPES: VectorShapeDef[] = [
   { id: 'left_bracket', name: 'Chave / Parêntese Esquerdo', category: 'basics', categoryName: 'Formas Básicas' },
   { id: 'right_bracket', name: 'Chave / Parêntese Direito', category: 'basics', categoryName: 'Formas Básicas' },
   { id: 'frame', name: 'Moldura Vazada', category: 'basics', categoryName: 'Formas Básicas' },
+
+  // --- NÚMEROS (0 a 9) ---
+  { id: 'num_0', name: 'Número 0', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_1', name: 'Número 1', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_2', name: 'Número 2', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_3', name: 'Número 3', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_4', name: 'Número 4', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_5', name: 'Número 5', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_6', name: 'Número 6', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_7', name: 'Número 7', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_8', name: 'Número 8', category: 'numbers', categoryName: 'Números 0-9' },
+  { id: 'num_9', name: 'Número 9', category: 'numbers', categoryName: 'Números 0-9' },
 
   // --- SETAS LARGAS ---
   { id: 'arrow_right', name: 'Seta Direita', category: 'arrows', categoryName: 'Setas Largas' },
@@ -152,6 +165,32 @@ export function drawVectorShape(
   ctx.beginPath();
 
   switch (shapeType) {
+    // --- NÚMEROS (0 a 9) ---
+    case 'num_0':
+    case 'num_1':
+    case 'num_2':
+    case 'num_3':
+    case 'num_4':
+    case 'num_5':
+    case 'num_6':
+    case 'num_7':
+    case 'num_8':
+    case 'num_9': {
+      const digit = shapeType.replace('num_', '');
+      ctx.font = `bold ${Math.round(Math.min(w, h) * 0.9)}px "Impact", "Arial Black", "Trebuchet MS", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = fillColor;
+      ctx.fillText(digit, w / 2, h / 2);
+      if (strokeColor && strokeWidth && strokeWidth > 0) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeWidth;
+        ctx.strokeText(digit, w / 2, h / 2);
+      }
+      ctx.restore();
+      return;
+    }
+
     // --- LINHAS ---
     case 'line':
       ctx.moveTo(0, h / 2);

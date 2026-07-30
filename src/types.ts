@@ -21,7 +21,7 @@ export type ToolType =
   | 'generative_fill'
   | 'object_replace';
 
-export type ShapeType = 'rectangle' | 'circle' | 'polygon' | 'star' | 'badge' | 'heart';
+export type ShapeType = string;
 
 export type BlendMode = 
   | 'normal'

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { SublimationProduct, Environment3DConfig } from '../types';
-import { Maximize2, RotateCw, Box, Sun } from 'lucide-react';
+import { Maximize2, RotateCw, RotateCcw, Play, Pause, Box, Sun } from 'lucide-react';
 
 interface ThreeDViewportProps {
   product: SublimationProduct;
@@ -44,6 +44,12 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
   const [activePresetView, setActivePresetView] = useState<'front' | 'back' | 'side' | 'top' | 'iso'>('front');
 
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Sync autoRotate state in a ref so animate() loop reads the latest value without stale closure
+  const autoRotateRef = useRef(envConfig.autoRotate);
+  useEffect(() => {
+    autoRotateRef.current = envConfig.autoRotate;
+  }, [envConfig.autoRotate]);
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -105,7 +111,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
     const animate = () => {
       animFrameIdRef.current = requestAnimationFrame(animate);
 
-      if (productMeshGroupRef.current && envConfig.autoRotate && !isDraggingRef.current) {
+      if (productMeshGroupRef.current && autoRotateRef.current && !isDraggingRef.current) {
         productMeshGroupRef.current.rotation.y += 0.006;
       }
 
@@ -569,9 +575,47 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
     isDraggingRef.current = false;
   };
 
+  // Touch support for mobile / touchpads
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      isDraggingRef.current = true;
+      previousMousePositionRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingRef.current || !productMeshGroupRef.current || e.touches.length !== 1) return;
+
+    const deltaX = e.touches[0].clientX - previousMousePositionRef.current.x;
+    const deltaY = e.touches[0].clientY - previousMousePositionRef.current.y;
+
+    productMeshGroupRef.current.rotation.y += deltaX * 0.01;
+    productMeshGroupRef.current.rotation.x += deltaY * 0.01;
+
+    productMeshGroupRef.current.rotation.x = Math.max(
+      -Math.PI / 6,
+      Math.min(Math.PI / 6, productMeshGroupRef.current.rotation.x)
+    );
+
+    previousMousePositionRef.current = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY,
+    };
+  };
+
+  const handleTouchEnd = () => {
+    isDraggingRef.current = false;
+  };
+
   // Preset Views Reset
   const setPresetView = (view: 'front' | 'back' | 'side' | 'top' | 'iso') => {
     setActivePresetView(view);
+    // Pause auto rotation when user clicks a specific view angle
+    setEnvConfig((prev) => ({ ...prev, autoRotate: false }));
+
     if (!productMeshGroupRef.current || !cameraRef.current) return;
 
     productMeshGroupRef.current.rotation.set(0, 0, 0);
@@ -616,51 +660,88 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
       }`}
     >
       {/* Viewport Header Toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[#1e1e20] border-b border-[#2d2d30] text-xs text-gray-300">
+      <div className="flex items-center justify-between px-3 py-2 bg-[#1e1e20] border-b border-[#2d2d30] text-xs text-gray-300 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Box className="w-4 h-4 text-sky-400" />
-          <span className="font-semibold tracking-wide text-white">PRO 3D MOCKUP STAGER</span>
+          <span className="font-semibold tracking-wide text-white">MOCKUP 3D REALISTA</span>
           <span className="px-2 py-0.5 text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full font-mono">
             {product.name}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {/* Quick Preset Views */}
           <div className="flex items-center bg-[#121214] p-0.5 rounded-lg border border-[#2d2d30]">
             {(['front', 'side', 'back', 'top', 'iso'] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setPresetView(view)}
-                className={`px-2 py-1 text-[10px] font-medium rounded capitalize transition-all ${
+                className={`px-2 py-1 text-[10px] font-medium rounded transition-all cursor-pointer ${
                   activePresetView === view
                     ? 'bg-sky-600 text-white shadow'
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                {view}
+                {view === 'front' ? 'Frente' : view === 'side' ? 'Lado' : view === 'back' ? 'Verso' : view === 'top' ? 'Topo' : '3D Iso'}
               </button>
             ))}
           </div>
 
-          {/* Auto Rotate Toggle */}
+          {/* Manual Step Rotate 45° Left/Right */}
+          <button
+            onClick={() => {
+              if (productMeshGroupRef.current) {
+                productMeshGroupRef.current.rotation.y -= Math.PI / 4;
+              }
+              setEnvConfig((prev) => ({ ...prev, autoRotate: false }));
+            }}
+            className="p-1.5 rounded-md border border-[#38383c] text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer"
+            title="Girar 45° para esquerda"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-sky-400" />
+          </button>
+
+          <button
+            onClick={() => {
+              if (productMeshGroupRef.current) {
+                productMeshGroupRef.current.rotation.y += Math.PI / 4;
+              }
+              setEnvConfig((prev) => ({ ...prev, autoRotate: false }));
+            }}
+            className="p-1.5 rounded-md border border-[#38383c] text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer"
+            title="Girar 45° para direita"
+          >
+            <RotateCw className="w-3.5 h-3.5 text-sky-400" />
+          </button>
+
+          {/* Auto Rotate 360 Play/Pause Button */}
           <button
             onClick={() => setEnvConfig((prev) => ({ ...prev, autoRotate: !prev.autoRotate }))}
-            className={`p-1.5 rounded-md border transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all cursor-pointer ${
               envConfig.autoRotate
-                ? 'bg-sky-500/20 border-sky-500/40 text-sky-300'
-                : 'border-[#38383c] text-gray-400 hover:text-white'
+                ? 'bg-sky-500/20 border-sky-500/50 text-sky-300'
+                : 'bg-white/5 border-[#38383c] text-gray-400 hover:text-white'
             }`}
-            title="Auto-Rotate 360°"
+            title={envConfig.autoRotate ? 'Pausar Rotação 360°' : 'Girar 360° Automaticamente'}
           >
-            <RotateCw className={`w-3.5 h-3.5 ${envConfig.autoRotate ? 'animate-spin' : ''}`} />
+            {envConfig.autoRotate ? (
+              <>
+                <Pause className="w-3 h-3 text-sky-400 fill-sky-400" />
+                <span>Pausar</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3 h-3 text-sky-400 fill-sky-400" />
+                <span>Girar 360°</span>
+              </>
+            )}
           </button>
 
           {/* Fullscreen Toggle */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-md border border-[#38383c] text-gray-400 hover:text-white hover:bg-white/5"
-            title="Toggle Fullscreen Viewport"
+            className="p-1.5 rounded-md border border-[#38383c] text-gray-400 hover:text-white hover:bg-white/5 cursor-pointer"
+            title="Alternar Tela Cheia"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
@@ -674,8 +755,11 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
-        className="relative flex-1 w-full h-full cursor-grab active:cursor-grabbing"
+        className="relative flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none"
       >
         {/* Lighting & Material Settings Bar Overlay */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 p-2 bg-[#18181c]/80 backdrop-blur-md rounded-lg border border-white/10 text-xs text-gray-300">
