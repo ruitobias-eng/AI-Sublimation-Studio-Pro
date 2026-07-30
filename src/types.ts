@@ -36,6 +36,46 @@ export type BlendMode =
   | 'lighten'
   | 'difference';
 
+export type TextWarpCategory = 'basics' | 'curves' | 'shapes' | 'perspective' | 'effects' | 'decorative';
+
+export type TextWarpStyle =
+  // Básicos
+  | 'straight'
+  | 'arc_upper'
+  | 'arc_lower'
+  | 'circle'
+  | 'semi_circle'
+  // Curvas
+  | 'wave'
+  | 'smile'
+  | 'frown'
+  | 's_curve'
+  | 'spiral'
+  // Formas
+  | 'heart'
+  | 'star'
+  | 'oval'
+  | 'vertical_ellipse'
+  | 'diamond'
+  // Perspectiva
+  | 'trapezoid'
+  | 'perspective_left'
+  | 'perspective_right'
+  | 'perspective_center'
+  | 'arc_3d'
+  // Efeitos
+  | 'flag'
+  | 'bulge'
+  | 'pinch'
+  | 'fish_eye'
+  | 'flex_arc'
+  // Texto Decorativo
+  | 'logo_circle'
+  | 'seal'
+  | 'stamp_style'
+  | 'emblem'
+  | 'ribbon';
+
 export type LayerType = 'image' | 'text' | 'shape' | 'brush' | 'smart' | 'group';
 
 export interface LayerFilters {
@@ -68,9 +108,13 @@ export interface Layer {
   textAlign?: 'left' | 'center' | 'right';
   textCurved?: boolean;
   curveRadius?: number;
+  textWarpStyle?: TextWarpStyle;
+  warpIntensity?: number;
   shapeType?: ShapeType;
   strokeColor?: string;
   strokeWidth?: number;
+  shadowColor?: string;
+  shadowBlur?: number;
   gradient?: {
     type: 'linear' | 'radial';
     colors: string[];

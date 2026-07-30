@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { SublimationProduct, WorkspaceViewMode } from '../types';
 import { AppMenu } from './AppMenu';
+import { ProductIcon } from './ProductIcon';
 
 interface TopBarProps {
   currentProduct: SublimationProduct;
@@ -169,6 +170,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           }`}
           title="Trocar Produto / Redimensionar"
         >
+          <ProductIcon product={currentProduct} className="w-3.5 h-3.5 text-purple-600 shrink-0" />
           <span className="text-purple-600 font-bold">Redimensionar:</span>
           <span className={`font-semibold ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>{currentProduct.name}</span>
           <ChevronDown className="w-3 h-3 text-gray-400 group-hover:text-purple-600" />

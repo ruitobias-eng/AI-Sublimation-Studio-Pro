@@ -25,8 +25,13 @@ import {
   Plus,
   Upload
 } from 'lucide-react';
-import { ToolType, ShapeType, SublimationProduct, Layer } from '../types';
+import { ToolType, ShapeType, SublimationProduct, Layer, TextWarpStyle } from '../types';
 import { PRODUCTS_LIBRARY } from '../data/products';
+import { ALL_VECTOR_SHAPES, SHAPE_CATEGORIES } from '../utils/shapeDrawer';
+import { ShapePreviewCanvas } from './ShapePreviewCanvas';
+import { VECTOR_FONTS, FontDefinition } from '../data/fonts';
+import { VECTOR_TEXT_PRESETS, VectorTextPreset } from '../data/vectorTextPresets';
+import { ProductIcon } from './ProductIcon';
 
 interface LeftToolbarProps {
   activeTool: ToolType;
@@ -37,7 +42,13 @@ interface LeftToolbarProps {
   onChangeColor: (color: string) => void;
   brushSize: number;
   onChangeBrushSize: (size: number) => void;
-  onAddLayer: (type: 'text' | 'shape' | 'image', customShape?: ShapeType) => void;
+  onAddLayer: (
+    type: 'text' | 'shape' | 'image',
+    customShape?: ShapeType,
+    defaultWarpStyle?: TextWarpStyle,
+    customFontFamily?: string
+  ) => void;
+  onAddVectorTextPreset?: (preset: VectorTextPreset) => void;
   currentProduct: SublimationProduct;
   onSelectProduct: (product: SublimationProduct) => void;
   layers: Layer[];
@@ -61,6 +72,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   brushSize,
   onChangeBrushSize,
   onAddLayer,
+  onAddVectorTextPreset,
   currentProduct,
   onSelectProduct,
   layers,
@@ -77,6 +89,34 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   const [activeTab, setActiveTab] = useState<'templates' | 'elements' | 'text' | 'uploads' | 'products' | 'ai' | 'layers' | null>('templates');
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedShapeCategory, setSelectedShapeCategory] = useState<string>('all');
+  const [shapeSearchQuery, setShapeSearchQuery] = useState<string>('');
+
+  // Vector Fonts & Typography State
+  const [textSubTab, setTextSubTab] = useState<'presets' | 'fonts' | 'warp' | 'quick'>('presets');
+  const [fontSearchQuery, setFontSearchQuery] = useState<string>('');
+  const [selectedFontCategory, setSelectedFontCategory] = useState<string>('all');
+  const [presetSearchQuery, setPresetSearchQuery] = useState<string>('');
+  const [selectedPresetCategory, setSelectedPresetCategory] = useState<string>('all');
+
+  const [recentlyUsedShapes, setRecentlyUsedShapes] = useState<string[]>([
+    'line',
+    'line_arrow',
+    'rectangle',
+    'circle',
+    'rounded_rectangle',
+    'triangle',
+    'elbow_connector',
+    'arrow_right',
+    'star_5',
+    'heart',
+  ]);
+
+  const handleSelectShapeWithRecent = (shapeId: string) => {
+    onSelectShape(shapeId);
+    onAddLayer('shape', shapeId);
+    setRecentlyUsedShapes((prev) => [shapeId, ...prev.filter((id) => id !== shapeId)].slice(0, 16));
+  };
 
   // Sample Sublimation Template Presets for Mugs, Shirts, Cushions
   const templatePresets = [
@@ -230,7 +270,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
           }`}
           title="Produtos Sublimáveis"
         >
-          <Coffee className="w-5 h-5 mb-1" />
+          <ProductIcon product={currentProduct} className="w-5 h-5 mb-1" />
           <span className="text-[10px] font-medium">Produtos</span>
         </button>
 
@@ -300,7 +340,12 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
               {activeTab === 'elements' && <>📐 Elementos & Formas</>}
               {activeTab === 'text' && <>🔤 Adicionar Texto</>}
               {activeTab === 'uploads' && <>🖼️ Fotos e Uploads</>}
-              {activeTab === 'products' && <>☕ Produtos Sublimáveis</>}
+              {activeTab === 'products' && (
+                <span className="flex items-center gap-1.5">
+                  <ProductIcon product={currentProduct} className="w-4 h-4 text-purple-400" />
+                  Produtos Sublimáveis
+                </span>
+              )}
               {activeTab === 'ai' && <>✨ Estúdio IA Generativo</>}
               {activeTab === 'layers' && <>🥞 Painel de Camadas</>}
             </h2>
@@ -317,7 +362,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
           </div>
 
           {/* Search Input Box */}
-          {activeTab !== 'layers' && (
+          {activeTab !== 'layers' && activeTab !== 'elements' && activeTab !== 'text' && (
             <div className="px-4 pt-3 pb-2">
               <div className="relative">
                 <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${
@@ -382,113 +427,454 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             {/* TAB 2: ELEMENTS / SHAPES */}
             {activeTab === 'elements' && (
               <div className="space-y-4">
-                <div>
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
-                    Formas Geométricas
-                  </span>
-                  <div className="grid grid-cols-3 gap-2">
-                    {shapesList.map((shape) => (
-                      <button
-                        key={shape.id}
-                        onClick={() => {
-                          onSelectShape(shape.id);
-                          onAddLayer('shape', shape.id);
-                        }}
-                        className="flex flex-col items-center justify-center p-3 bg-[#202127] hover:bg-[#2a2b33] border border-[#30313a] hover:border-purple-500 rounded-xl transition-all cursor-pointer group text-gray-300 hover:text-white"
-                      >
-                        <div className="text-purple-400 group-hover:scale-110 transition-transform mb-1">
-                          {shape.icon}
-                        </div>
-                        <span className="text-[10px] font-medium text-center truncate w-full">
-                          {shape.label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar forma (ex: seta, balão, estrela)..."
+                    value={shapeSearchQuery}
+                    onChange={(e) => setShapeSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-1.5 bg-[#202127] border border-[#30313a] focus:border-purple-500 rounded-xl text-xs text-white placeholder-gray-500 outline-none transition-all"
+                  />
+                  {shapeSearchQuery && (
+                    <button
+                      onClick={() => setShapeSearchQuery('')}
+                      className="absolute right-2.5 top-2 text-xs text-gray-400 hover:text-white"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
 
-                {/* Sublimation Stamps & Badges */}
-                <div className="border-t border-[#26272e] pt-3">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
-                    Selos e Emblemas Sublimáticos
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
+                {/* Category Pills Filter */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar text-[10px]">
+                  <button
+                    onClick={() => setSelectedShapeCategory('all')}
+                    className={`px-2.5 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer font-medium ${
+                      selectedShapeCategory === 'all'
+                        ? 'bg-purple-600 text-white font-bold'
+                        : 'bg-[#202127] text-gray-400 hover:text-white border border-[#30313a]'
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  {SHAPE_CATEGORIES.map((cat) => (
                     <button
-                      onClick={() => onAddLayer('shape', 'badge')}
-                      className="p-3 bg-gradient-to-br from-purple-900/40 to-indigo-900/40 border border-purple-500/40 hover:border-purple-400 rounded-xl text-left flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
+                      key={cat.id}
+                      onClick={() => setSelectedShapeCategory(cat.id)}
+                      className={`px-2.5 py-1 rounded-full whitespace-nowrap transition-all cursor-pointer font-medium ${
+                        selectedShapeCategory === cat.id
+                          ? 'bg-purple-600 text-white font-bold'
+                          : 'bg-[#202127] text-gray-400 hover:text-white border border-[#30313a]'
+                      }`}
                     >
-                      <Award className="w-6 h-6 text-amber-400" />
-                      <div>
-                        <span className="font-bold text-white block text-[11px]">Selo 100% Sublimado</span>
-                        <span className="text-[9px] text-purple-300">Vetor Editável</span>
-                      </div>
+                      {cat.name}
                     </button>
+                  ))}
+                </div>
 
-                    <button
-                      onClick={() => onAddLayer('shape', 'star')}
-                      className="p-3 bg-gradient-to-br from-amber-900/40 to-orange-900/40 border border-amber-500/40 hover:border-amber-400 rounded-xl text-left flex items-center gap-2 cursor-pointer transition-all hover:scale-[1.02]"
-                    >
-                      <Star className="w-6 h-6 text-amber-400" />
-                      <div>
-                        <span className="font-bold text-white block text-[11px]">Estrela Destaque</span>
-                        <span className="text-[9px] text-amber-300">Forma Especial</span>
-                      </div>
-                    </button>
+                {/* SECTION 1: Formas Usadas Recentemente */}
+                {!shapeSearchQuery && selectedShapeCategory === 'all' && (
+                  <div className="bg-[#18191f] p-3 rounded-2xl border border-[#2d2e36]">
+                    <span className="text-[11px] font-bold text-purple-300 block mb-2 flex items-center justify-between">
+                      <span>Formas Usadas Recentemente</span>
+                      <span className="text-[9px] text-gray-500 font-normal">Auto-salvo</span>
+                    </span>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {recentlyUsedShapes.map((shapeId) => {
+                        const shapeDef = ALL_VECTOR_SHAPES.find((s) => s.id === shapeId);
+                        return (
+                          <button
+                            key={'recent-' + shapeId}
+                            onClick={() => handleSelectShapeWithRecent(shapeId)}
+                            title={shapeDef?.name || shapeId}
+                            className="flex items-center justify-center p-1.5 bg-[#202127] hover:bg-purple-900/30 border border-[#30313a] hover:border-purple-500 rounded-lg transition-all hover:scale-110 cursor-pointer group"
+                          >
+                            <ShapePreviewCanvas shapeId={shapeId} size={24} color="#c084fc" />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                )}
+
+                {/* CATEGORIZED SHAPES CATALOG */}
+                <div className="space-y-4">
+                  {SHAPE_CATEGORIES.filter(
+                    (cat) => selectedShapeCategory === 'all' || selectedShapeCategory === cat.id
+                  ).map((cat) => {
+                    const categoryShapes = ALL_VECTOR_SHAPES.filter(
+                      (s) =>
+                        s.category === cat.id &&
+                        (!shapeSearchQuery ||
+                          s.name.toLowerCase().includes(shapeSearchQuery.toLowerCase()) ||
+                          s.id.toLowerCase().includes(shapeSearchQuery.toLowerCase()))
+                    );
+
+                    if (categoryShapes.length === 0) return null;
+
+                    return (
+                      <div key={cat.id} className="space-y-2">
+                        <span className="text-[11px] font-bold text-gray-300 block uppercase tracking-wider border-b border-[#2d2e36] pb-1">
+                          {cat.name}
+                        </span>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {categoryShapes.map((shape) => (
+                            <button
+                              key={shape.id}
+                              onClick={() => handleSelectShapeWithRecent(shape.id)}
+                              title={shape.name}
+                              className="flex flex-col items-center justify-center p-2 bg-[#202127] hover:bg-[#2a2b38] border border-[#30313a] hover:border-purple-500 rounded-xl transition-all hover:scale-105 cursor-pointer group text-gray-300 hover:text-white"
+                            >
+                              <div className="group-hover:scale-110 transition-transform">
+                                <ShapePreviewCanvas shapeId={shape.id} size={28} color="#c084fc" />
+                              </div>
+                              <span className="text-[9px] font-medium text-center truncate w-full mt-1 text-gray-400 group-hover:text-purple-300">
+                                {shape.name}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {/* TAB 3: TEXT */}
+            {/* TAB 3: TEXT & VECTOR TYPOGRAPHY */}
             {activeTab === 'text' && (
               <div className="space-y-3">
-                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                  Clique para Inserir Texto
-                </span>
-
-                {/* Add Heading Button */}
-                <button
-                  onClick={() => onAddLayer('text')}
-                  className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all text-left flex items-center justify-between cursor-pointer active:scale-95"
-                >
-                  <span>Adicionar um título</span>
-                  <Plus className="w-5 h-5" />
-                </button>
-
-                {/* Add Subheading Button */}
-                <button
-                  onClick={() => onAddLayer('text')}
-                  className="w-full py-2.5 px-4 bg-[#202127] hover:bg-[#2a2b33] border border-[#30313a] text-white font-bold text-sm rounded-xl transition-all text-left flex items-center justify-between cursor-pointer"
-                >
-                  <span>Adicionar um subtítulo</span>
-                  <Plus className="w-4 h-4 text-purple-400" />
-                </button>
-
-                {/* Add Body Text */}
-                <button
-                  onClick={() => onAddLayer('text')}
-                  className="w-full py-2 px-4 bg-[#202127] hover:bg-[#2a2b33] border border-[#30313a] text-gray-300 hover:text-white font-medium text-xs rounded-xl transition-all text-left flex items-center justify-between cursor-pointer"
-                >
-                  <span>Adicionar um pouquinho de texto</span>
-                  <Plus className="w-4 h-4 text-gray-400" />
-                </button>
-
-                {/* Curved Text Preset */}
-                <div className="border-t border-[#26272e] pt-3">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-2">
-                    Texto Curvado para Caneca
-                  </span>
+                {/* Sub-tab Pills Switcher */}
+                <div className="grid grid-cols-4 gap-1 p-1 bg-[#18191f] rounded-xl border border-[#2d2e36] text-[10px] font-bold">
                   <button
-                    onClick={() => onAddLayer('text')}
-                    className="w-full p-3 bg-gradient-to-r from-purple-900/30 via-indigo-900/30 to-sky-900/30 border border-purple-500/30 hover:border-purple-400 rounded-xl text-left flex items-center justify-between cursor-pointer"
+                    onClick={() => setTextSubTab('presets')}
+                    className={`py-1.5 px-1 rounded-lg transition-all text-center cursor-pointer ${
+                      textSubTab === 'presets'
+                        ? 'bg-purple-600 text-white shadow'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
                   >
-                    <div>
-                      <span className="font-bold text-purple-300 block text-xs">Arco de Caneca (Curvado)</span>
-                      <span className="text-[10px] text-gray-400">Excelente para nomes e datas</span>
-                    </div>
-                    <Type className="w-5 h-5 text-purple-400" />
+                    Estampas
+                  </button>
+                  <button
+                    onClick={() => setTextSubTab('fonts')}
+                    className={`py-1.5 px-1 rounded-lg transition-all text-center cursor-pointer ${
+                      textSubTab === 'fonts'
+                        ? 'bg-purple-600 text-white shadow'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Fontes
+                  </button>
+                  <button
+                    onClick={() => setTextSubTab('quick')}
+                    className={`py-1.5 px-1 rounded-lg transition-all text-center cursor-pointer ${
+                      textSubTab === 'quick'
+                        ? 'bg-purple-600 text-white shadow'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Texto
+                  </button>
+                  <button
+                    onClick={() => setTextSubTab('warp')}
+                    className={`py-1.5 px-1 rounded-lg transition-all text-center cursor-pointer ${
+                      textSubTab === 'warp'
+                        ? 'bg-purple-600 text-white shadow'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Efeitos
                   </button>
                 </div>
+
+                {/* SUB-TAB 1: ESTAMPAS & FRASES VETORIAIS PRONTAS */}
+                {textSubTab === 'presets' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-purple-300 uppercase tracking-wider block">
+                        Estampas Tipográficas Vetoriais
+                      </span>
+                      <span className="text-[9px] text-gray-500 font-mono font-medium">1-Clique</span>
+                    </div>
+
+                    {/* Search & Category filter for presets */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar frase (ex: Mãe, Pai, Gamer)..."
+                        value={presetSearchQuery}
+                        onChange={(e) => setPresetSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-[#202127] border border-[#30313a] focus:border-purple-500 rounded-xl text-xs text-white placeholder-gray-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Presets List Grid */}
+                    <div className="space-y-2">
+                      {VECTOR_TEXT_PRESETS.filter(
+                        (p) =>
+                          !presetSearchQuery ||
+                          p.title.toLowerCase().includes(presetSearchQuery.toLowerCase()) ||
+                          p.content.toLowerCase().includes(presetSearchQuery.toLowerCase()) ||
+                          p.categoryLabel.toLowerCase().includes(presetSearchQuery.toLowerCase())
+                      ).map((preset) => (
+                        <button
+                          key={preset.id}
+                          onClick={() => onAddVectorTextPreset && onAddVectorTextPreset(preset)}
+                          className="w-full p-3 bg-gradient-to-r from-[#202128] to-[#282932] hover:from-[#2a2b38] hover:to-[#323445] border border-[#323440] hover:border-purple-500/60 rounded-2xl transition-all cursor-pointer text-left group flex flex-col justify-between gap-2 shadow-sm"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-purple-300 uppercase tracking-wider">
+                              {preset.categoryLabel}
+                            </span>
+                            <span className="text-[9px] bg-purple-900/50 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
+                              Vetor
+                            </span>
+                          </div>
+
+                          {/* Live Visual Typography Preview Box */}
+                          <div
+                            className="w-full h-16 bg-[#131316] rounded-xl flex items-center justify-center p-2 overflow-hidden border border-[#24252d] group-hover:border-purple-500/40 transition-all"
+                            style={{
+                              fontFamily: preset.fontFamily,
+                              color: preset.color,
+                              WebkitTextStroke: preset.strokeWidth
+                                ? `${preset.strokeWidth / 2}px ${preset.strokeColor || '#fff'}`
+                                : 'none',
+                            }}
+                          >
+                            <span
+                              className="text-lg font-bold text-center truncate max-w-full group-hover:scale-105 transition-transform"
+                              style={{
+                                filter: preset.shadowColor
+                                  ? `drop-shadow(0px 2px 4px ${preset.shadowColor})`
+                                  : 'none',
+                              }}
+                            >
+                              {preset.content}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[10px] text-gray-400">
+                            <span className="truncate font-medium">{preset.title}</span>
+                            <span className="text-purple-400 font-bold group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                              <span>Adicionar</span>
+                              <Plus className="w-3 h-3" />
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB-TAB 2: BIBLIOTECA DE FONTES VETORIAIS */}
+                {textSubTab === 'fonts' && (
+                  <div className="space-y-3">
+                    <span className="text-[11px] font-bold text-purple-300 uppercase tracking-wider block">
+                      Biblioteca de Fontes Google & Sublimação
+                    </span>
+
+                    {/* Font Search */}
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar fonte (ex: Pacifico, Bebas, Lobster)..."
+                        value={fontSearchQuery}
+                        onChange={(e) => setFontSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-[#202127] border border-[#30313a] focus:border-purple-500 rounded-xl text-xs text-white placeholder-gray-500 outline-none transition-all"
+                      />
+                    </div>
+
+                    {/* Category Filter Pills */}
+                    <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar text-[10px]">
+                      <button
+                        onClick={() => setSelectedFontCategory('all')}
+                        className={`px-2 py-0.5 rounded-full whitespace-nowrap transition-all cursor-pointer font-medium ${
+                          selectedFontCategory === 'all'
+                            ? 'bg-purple-600 text-white font-bold'
+                            : 'bg-[#202127] text-gray-400 hover:text-white border border-[#30313a]'
+                        }`}
+                      >
+                        Todas
+                      </button>
+                      {[
+                        { id: 'script', name: 'Caligrafia' },
+                        { id: 'impact', name: 'Impacto' },
+                        { id: 'vintage', name: 'Retro/Fun' },
+                        { id: 'serif', name: 'Elegante' },
+                        { id: 'clean', name: 'Clean' },
+                      ].map((cat) => (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedFontCategory(cat.id)}
+                          className={`px-2 py-0.5 rounded-full whitespace-nowrap transition-all cursor-pointer font-medium ${
+                            selectedFontCategory === cat.id
+                              ? 'bg-purple-600 text-white font-bold'
+                              : 'bg-[#202127] text-gray-400 hover:text-white border border-[#30313a]'
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Font Cards List */}
+                    <div className="space-y-2">
+                      {VECTOR_FONTS.filter(
+                        (f) =>
+                          (selectedFontCategory === 'all' || f.category === selectedFontCategory) &&
+                          (!fontSearchQuery ||
+                            f.name.toLowerCase().includes(fontSearchQuery.toLowerCase()) ||
+                            f.sampleText.toLowerCase().includes(fontSearchQuery.toLowerCase()))
+                      ).map((font) => (
+                        <div
+                          key={font.id}
+                          className="p-3 bg-[#1e1f26] border border-[#2d2e38] hover:border-purple-500/60 rounded-xl transition-all flex flex-col gap-2 group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-gray-200">{font.name}</span>
+                            <span className="text-[9px] text-gray-400 bg-[#262732] px-2 py-0.5 rounded-full border border-[#343542]">
+                              {font.categoryLabel}
+                            </span>
+                          </div>
+
+                          {/* Typography Sample Render */}
+                          <div
+                            className="text-lg text-purple-300 py-1 px-2 bg-[#14151a] rounded-lg border border-[#272832] truncate"
+                            style={{ fontFamily: font.fontFamily }}
+                          >
+                            {font.sampleText}
+                          </div>
+
+                          {/* Action Button */}
+                          <button
+                            onClick={() => onAddLayer('text', undefined, 'straight', font.fontFamily)}
+                            className="w-full py-1.5 bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-[10px] rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Inserir Texto com esta Fonte</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB-TAB 3: QUICK TEXT ADDITION */}
+                {textSubTab === 'quick' && (
+                  <div className="space-y-3">
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Inserir Bloco de Texto Simples
+                    </span>
+
+                    {/* Add Heading Button */}
+                    <button
+                      onClick={() => onAddLayer('text')}
+                      className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-lg rounded-xl shadow-lg transition-all text-left flex items-center justify-between cursor-pointer active:scale-95"
+                    >
+                      <span>Adicionar um título</span>
+                      <Plus className="w-5 h-5" />
+                    </button>
+
+                    {/* Add Subheading Button */}
+                    <button
+                      onClick={() => onAddLayer('text')}
+                      className="w-full py-2.5 px-4 bg-[#202127] hover:bg-[#2a2b33] border border-[#30313a] text-white font-bold text-sm rounded-xl transition-all text-left flex items-center justify-between cursor-pointer"
+                    >
+                      <span>Adicionar um subtítulo</span>
+                      <Plus className="w-4 h-4 text-purple-400" />
+                    </button>
+
+                    {/* Add Body Text */}
+                    <button
+                      onClick={() => onAddLayer('text')}
+                      className="w-full py-2 px-4 bg-[#202127] hover:bg-[#2a2b33] border border-[#30313a] text-gray-300 hover:text-white font-medium text-xs rounded-xl transition-all text-left flex items-center justify-between cursor-pointer"
+                    >
+                      <span>Adicionar um pouquinho de texto</span>
+                      <Plus className="w-4 h-4 text-gray-400" />
+                    </button>
+                  </div>
+                )}
+
+                {/* SUB-TAB 4: SUBLIMATION TEXT WARP & CURVED PRESETS */}
+                {textSubTab === 'warp' && (
+                  <div className="space-y-3">
+                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Estilos e Deformações Sublimáticas
+                    </span>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'arc_upper')}
+                        className="p-2.5 bg-gradient-to-r from-purple-900/30 via-indigo-900/30 to-sky-900/30 border border-purple-500/30 hover:border-purple-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-purple-300 text-[11px]">Arco de Caneca</span>
+                        <span className="text-[9px] text-gray-400">Curva Arco Superior</span>
+                      </button>
+
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'wave')}
+                        className="p-2.5 bg-gradient-to-r from-blue-900/30 via-cyan-900/30 to-teal-900/30 border border-cyan-500/30 hover:border-cyan-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-cyan-300 text-[11px]">Onda Senoidal</span>
+                        <span className="text-[9px] text-gray-400">Efeito Curva Mar</span>
+                      </button>
+
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'logo_circle')}
+                        className="p-2.5 bg-gradient-to-r from-amber-900/30 via-orange-900/30 to-yellow-900/30 border border-amber-500/30 hover:border-amber-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-amber-300 text-[11px]">Circular Logo</span>
+                        <span className="text-[9px] text-gray-400">Anel Guiado 360°</span>
+                      </button>
+
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'stamp_style')}
+                        className="p-2.5 bg-gradient-to-r from-emerald-900/30 via-teal-900/30 to-green-900/30 border border-emerald-500/30 hover:border-emerald-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-emerald-300 text-[11px]">Selo & Carimbo</span>
+                        <span className="text-[9px] text-gray-400">Moldura Vintage</span>
+                      </button>
+
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'heart')}
+                        className="p-2.5 bg-gradient-to-r from-rose-900/30 via-pink-900/30 to-purple-900/30 border border-rose-500/30 hover:border-rose-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-rose-300 text-[11px]">Forma Coração</span>
+                        <span className="text-[9px] text-gray-400">Especial Dia Mães</span>
+                      </button>
+
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'bulge')}
+                        className="p-2.5 bg-gradient-to-r from-indigo-900/30 via-purple-900/30 to-pink-900/30 border border-indigo-500/30 hover:border-indigo-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-indigo-300 text-[11px]">Inflar (Bulge)</span>
+                        <span className="text-[9px] text-gray-400">Volume 3D Centro</span>
+                      </button>
+
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'emblem')}
+                        className="p-2.5 bg-gradient-to-r from-yellow-900/30 via-amber-900/30 to-orange-900/30 border border-yellow-500/30 hover:border-yellow-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-yellow-300 text-[11px]">Emblema / Escudo</span>
+                        <span className="text-[9px] text-gray-400">Brasão de Time</span>
+                      </button>
+
+                      <button
+                        onClick={() => onAddLayer('text', undefined, 'ribbon')}
+                        className="p-2.5 bg-gradient-to-r from-teal-900/30 via-emerald-900/30 to-cyan-900/30 border border-teal-500/30 hover:border-teal-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02]"
+                      >
+                        <span className="font-bold text-teal-300 text-[11px]">Faixa Ribbon</span>
+                        <span className="text-[9px] text-gray-400">Efeito Fita Curva</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -555,7 +941,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                         }`}
                       >
                         <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold shrink-0">
-                          <Coffee className="w-5 h-5" />
+                          <ProductIcon product={prod} className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">

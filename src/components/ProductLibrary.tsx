@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SublimationProduct } from '../types';
 import { PRODUCTS_LIBRARY } from '../data/products';
 import { Search, X, Check, Box, Sparkles, Filter } from 'lucide-react';
+import { ProductIcon } from './ProductIcon';
 
 interface ProductLibraryProps {
   isOpen: boolean;
@@ -125,8 +126,11 @@ export const ProductLibrary: React.FC<ProductLibraryProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between font-bold text-sm text-white mb-1">
-                  <span>{product.name}</span>
-                  {isSelected && <Check className="w-4 h-4 text-sky-400" />}
+                  <span className="flex items-center gap-1.5 truncate">
+                    <ProductIcon product={product} className="w-4 h-4 text-sky-400 shrink-0" />
+                    {product.name}
+                  </span>
+                  {isSelected && <Check className="w-4 h-4 text-sky-400 shrink-0 ml-1" />}
                 </div>
 
                 <span className="text-[11px] text-gray-400 mb-2">{product.description}</span>

@@ -1,5 +1,7 @@
-import React from 'react';
-import { Layer, SublimationProduct } from '../types';
+import React, { useState } from 'react';
+import { Layer, SublimationProduct, TextWarpStyle, TextWarpCategory } from '../types';
+import { TEXT_WARP_CATEGORIES, TEXT_WARP_STYLES } from '../utils/textWarp';
+import { VECTOR_FONTS } from '../data/fonts';
 import {
   Sliders,
   Type,
@@ -36,6 +38,8 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
   onDuplicateLayer,
   theme = 'dark',
 }) => {
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
   if (!activeLayer) {
     return (
       <div className={`flex flex-col h-full text-xs p-4 select-none border-l transition-colors ${
@@ -253,13 +257,18 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
         )}
       </div>
 
-      {/* Typography Controls (if layer is text) */}
+      {/* Typography & Sublimation Text Warp Styles */}
       {activeLayer.type === 'text' && (
-        <div className="flex flex-col gap-2.5 bg-[#18181a] p-2.5 rounded-lg border border-[#2d2d30]">
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-            <Type className="w-3 h-3 text-emerald-400" />
-            Tipografia & Arco Sublimático
-          </span>
+        <div className="flex flex-col gap-3 bg-[#18181a] p-3 rounded-lg border border-[#2d2d30]">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+              <Type className="w-3.5 h-3.5 text-emerald-400" />
+              Tipografia & Estilos de Texto
+            </span>
+            <span className="text-[10px] text-emerald-400 font-mono font-semibold">
+              {activeLayer.textWarpStyle ? activeLayer.textWarpStyle : 'Reto'}
+            </span>
+          </div>
 
           {/* Text String Input */}
           <textarea
@@ -270,27 +279,72 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
             placeholder="Digite o texto personalizado da estampa..."
           />
 
-          {/* Font Family Selector */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[11px] text-gray-400">Fonte:</span>
-            <select
-              value={activeLayer.fontFamily || 'Arial'}
-              onChange={(e) => onUpdateLayer({ ...activeLayer, fontFamily: e.target.value })}
-              className="bg-[#121214] text-white text-xs p-1.5 rounded border border-[#38383c] focus:outline-none"
-            >
-              <option value="Arial">Arial (Padrão Clean)</option>
-              <option value="Impact">Impact (Sublimação Bold)</option>
-              <option value="'Courier New'">Courier New (Retro Typewriter)</option>
-              <option value="Georgia">Georgia (Serif Elegante)</option>
-              <option value="Comic Sans MS">Comic Sans (Infantil / Festas)</option>
-              <option value="Trebuchet MS">Trebuchet MS (Moderna)</option>
-            </select>
+          {/* Font Family & Alignment */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] text-gray-400">Fonte:</span>
+              <select
+                value={activeLayer.fontFamily || 'Arial'}
+                onChange={(e) => onUpdateLayer({ ...activeLayer, fontFamily: e.target.value })}
+                className="bg-[#121214] text-white text-xs p-1.5 rounded border border-[#38383c] focus:outline-none focus:border-purple-500"
+              >
+                <optgroup label="Fontes Populares de Sublimação">
+                  {VECTOR_FONTS.map((font) => (
+                    <option key={font.id} value={font.fontFamily}>
+                      {font.name} ({font.categoryLabel})
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Fontes do Sistema">
+                  <option value="Arial">Arial (Clean)</option>
+                  <option value="Impact">Impact (Bold)</option>
+                  <option value="'Courier New'">Courier New (Monospaced)</option>
+                  <option value="Georgia">Georgia (Serif)</option>
+                  <option value="Comic Sans MS">Comic Sans (Festas)</option>
+                  <option value="Trebuchet MS">Trebuchet MS</option>
+                  <option value="Verdana">Verdana</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] text-gray-400">Alinhamento:</span>
+              <div className="flex items-center gap-1 bg-[#121214] p-1 rounded border border-[#38383c]">
+                <button
+                  onClick={() => onUpdateLayer({ ...activeLayer, textAlign: 'left' })}
+                  className={`flex-1 py-1 rounded flex items-center justify-center transition-colors ${
+                    activeLayer.textAlign === 'left' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Alinhar à Esquerda"
+                >
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => onUpdateLayer({ ...activeLayer, textAlign: 'center' })}
+                  className={`flex-1 py-1 rounded flex items-center justify-center transition-colors ${
+                    !activeLayer.textAlign || activeLayer.textAlign === 'center' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Centralizar"
+                >
+                  <AlignCenter className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => onUpdateLayer({ ...activeLayer, textAlign: 'right' })}
+                  className={`flex-1 py-1 rounded flex items-center justify-center transition-colors ${
+                    activeLayer.textAlign === 'right' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                  title="Alinhar à Direita"
+                >
+                  <AlignRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Size & Weight */}
           <div className="flex items-center gap-2">
             <div className="flex-1 flex flex-col gap-1">
-              <span className="text-[11px] text-gray-400">Tamanho:</span>
+              <span className="text-[11px] text-gray-400">Tamanho (pt):</span>
               <input
                 type="number"
                 value={activeLayer.fontSize || 36}
@@ -314,26 +368,122 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
             </div>
           </div>
 
-          {/* Sublimation Curved Text Arc Toggle & Radius */}
+          {/* Sublimation Text Warp Styles Gallery */}
           <div className="flex flex-col gap-2 pt-2 border-t border-[#2d2d30]">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+            <span className="text-[11px] font-bold text-emerald-400 flex items-center justify-between">
+              <span className="flex items-center gap-1">
                 <CornerUpRight className="w-3.5 h-3.5" />
-                Arco de Caneca / Curvar Texto
+                Coleção de Estilos Sublimáticos
               </span>
-              <input
-                type="checkbox"
-                checked={activeLayer.textCurved || false}
-                onChange={(e) =>
-                  onUpdateLayer({ ...activeLayer, textCurved: e.target.checked })
-                }
-                className="accent-emerald-500 cursor-pointer"
-              />
+              <span className="text-[9px] text-gray-400">30 Estilos</span>
+            </span>
+
+            {/* Category Filter Pills */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1.5 no-scrollbar scroll-smooth">
+              <button
+                onClick={() => setSelectedCategory('all')}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                  selectedCategory === 'all'
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-[#202127] text-gray-400 hover:text-white'
+                }`}
+              >
+                Todos
+              </button>
+              {TEXT_WARP_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                    selectedCategory === cat.id
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-[#202127] text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
             </div>
 
-            {activeLayer.textCurved && (
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] text-gray-400">Raio da Curva:</span>
+            {/* Style Cards Grid */}
+            <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto p-1 bg-[#121214] rounded-lg border border-[#2a2b30]">
+              {TEXT_WARP_STYLES.filter(
+                (s) => selectedCategory === 'all' || s.category === selectedCategory
+              ).map((style) => {
+                const isActive =
+                  activeLayer.textWarpStyle === style.id ||
+                  (!activeLayer.textWarpStyle && style.id === 'straight');
+
+                return (
+                  <button
+                    key={style.id}
+                    onClick={() => {
+                      const isSpaciousStyle = [
+                        'circle',
+                        'logo_circle',
+                        'seal',
+                        'heart',
+                        'emblem',
+                        'spiral',
+                        'star',
+                        'diamond',
+                        'oval',
+                        'vertical_ellipse',
+                        'stamp_style',
+                        'ribbon',
+                      ].includes(style.id);
+
+                      onUpdateLayer({
+                        ...activeLayer,
+                        textWarpStyle: style.id,
+                        textCurved: style.id !== 'straight',
+                        warpIntensity: activeLayer.warpIntensity ?? style.defaultIntensity,
+                        width: isSpaciousStyle ? Math.max(activeLayer.width, 320) : activeLayer.width,
+                        height: isSpaciousStyle ? Math.max(activeLayer.height, 220) : activeLayer.height,
+                      });
+                    }}
+                    className={`p-2 rounded-lg text-left flex flex-col justify-between transition-all cursor-pointer border ${
+                      isActive
+                        ? 'bg-emerald-950/40 border-emerald-500 text-emerald-300 shadow-md'
+                        : 'bg-[#18181c] border-[#2c2c34] text-gray-300 hover:border-gray-500 hover:bg-[#202026]'
+                    }`}
+                    title={style.description}
+                  >
+                    <span className="text-[10px] font-bold block truncate">{style.name}</span>
+                    <span className="text-[8px] text-gray-400 block truncate mt-0.5">
+                      {style.categoryName}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Intensity Slider */}
+            {activeLayer.textWarpStyle && activeLayer.textWarpStyle !== 'straight' && (
+              <div className="flex flex-col gap-2 pt-2 border-t border-[#2d2d30] mt-1">
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-gray-300 font-medium">Intensidade do Efeito:</span>
+                  <span className="text-emerald-400 font-mono font-bold">
+                    {activeLayer.warpIntensity ?? 50}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={activeLayer.warpIntensity ?? 50}
+                  onChange={(e) =>
+                    onUpdateLayer({ ...activeLayer, warpIntensity: parseInt(e.target.value) })
+                  }
+                  className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-[#252528] rounded-lg"
+                />
+
+                <div className="flex items-center justify-between text-[10px] mt-1">
+                  <span className="text-gray-300 font-medium">Raio da Curvatura:</span>
+                  <span className="text-emerald-400 font-mono font-bold">
+                    {activeLayer.curveRadius || 120}px
+                  </span>
+                </div>
                 <input
                   type="range"
                   min="40"
@@ -342,7 +492,7 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
                   onChange={(e) =>
                     onUpdateLayer({ ...activeLayer, curveRadius: parseInt(e.target.value) })
                   }
-                  className="w-full accent-emerald-500 cursor-pointer"
+                  className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-[#252528] rounded-lg"
                 />
               </div>
             )}

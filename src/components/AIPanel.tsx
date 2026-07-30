@@ -82,15 +82,6 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     return canvas.toDataURL('image/png');
   };
 
-  const parseApiResponse = async (response: Response) => {
-    const text = await response.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error(`Resposta inválida do servidor: ${text.substring(0, 300)}`);
-    }
-  };
-
   // Call Express API `/api/gemini/generate-image`
   const handleGenerateImage = async () => {
     if (!params.prompt.trim()) {
@@ -115,7 +106,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         }),
       });
 
-      const data = await parseApiResponse(response);
+      const data = await response.json();
 
       if (!response.ok || data.error) {
         throw new Error(data.error || 'Erro na geração de imagem por IA');
@@ -125,16 +116,13 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       setStatusMessage('Estampa gerada com sucesso e adicionada ao canvas!');
     } catch (err: any) {
       console.error('Error generating AI image:', err);
-      const message = err?.message || 'Falha ao conectar com o servidor Gemini IA.';
-      const isQuotaError = message.includes('429') || message.includes('quota') || message.includes('Quota');
-      const isServerUnavailable = message.includes('Invalid server response') || message.includes('Failed to fetch') || message.includes('404') || message.includes('NetworkError');
-
-      if (isQuotaError || isServerUnavailable) {
-        setErrorMessage('Serviço Gemini IA indisponível ou indisponível localmente. Geramos um padrão sublimático local para você continuar.')
+      const isQuotaError = err.message && (err.message.includes('429') || err.message.includes('quota') || err.message.includes('Quota'));
+      if (isQuotaError) {
+        setErrorMessage('Cota da API Gemini excedida temporariamente (Rate Limit 429). Geramos uma arte sublimática vetorial local de alta qualidade para você continuar desenhando!');
         const fallbackUrl = generateLocalPattern(params.prompt);
         onAddAIGeneratedImageToCanvas(fallbackUrl, params.prompt.slice(0, 20) || 'Arte Sublimação');
       } else {
-        setErrorMessage(message);
+        setErrorMessage(err.message || 'Falha ao conectar com o servidor Gemini IA.');
       }
     } finally {
       setIsLoading(false);
@@ -154,7 +142,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           productType: product.name,
         }),
       });
-      const data = await parseApiResponse(res);
+      const data = await res.json();
       if (data.result) {
         const parsed = JSON.parse(data.result);
         if (Array.isArray(parsed)) {

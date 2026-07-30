@@ -6,6 +6,7 @@ import {
   SublimationProduct,
   HistoryStep,
   WorkspaceViewMode,
+  TextWarpStyle,
 } from './types';
 import { PRODUCTS_LIBRARY } from './data/products';
 import { TopBar } from './components/TopBar';
@@ -363,14 +364,38 @@ export default function App() {
     setCanvasVersion((v) => v + 1);
   };
 
-  const handleAddLayer = (type: 'text' | 'shape' | 'image', customShape?: ShapeType) => {
+  const handleAddLayer = (
+    type: 'text' | 'shape' | 'image',
+    customShape?: ShapeType,
+    defaultTextWarpStyle?: TextWarpStyle,
+    customFontFamily?: string
+  ) => {
     const shapeToUse = customShape || selectedShape;
     const newId = 'layer-' + Date.now();
+    const isSpaciousStyle =
+      defaultTextWarpStyle &&
+      [
+        'circle',
+        'logo_circle',
+        'seal',
+        'heart',
+        'emblem',
+        'spiral',
+        'star',
+        'diamond',
+        'oval',
+        'vertical_ellipse',
+        'stamp_style',
+        'ribbon',
+      ].includes(defaultTextWarpStyle);
+
     const newLayer: Layer = {
       id: newId,
       name:
         type === 'text'
-          ? 'Novo Texto'
+          ? defaultTextWarpStyle
+            ? `Texto (${defaultTextWarpStyle})`
+            : 'Novo Texto'
           : type === 'shape'
           ? `Forma ${shapeToUse}`
           : 'Nova Imagem',
@@ -381,21 +406,76 @@ export default function App() {
       blendMode: 'normal',
       x: 320,
       y: 180,
-      width: type === 'text' ? 380 : 200,
-      height: type === 'text' ? 80 : 200,
+      width: type === 'text' ? (isSpaciousStyle ? 320 : 380) : 200,
+      height: type === 'text' ? (isSpaciousStyle ? 260 : 120) : 200,
       rotation: 0,
-      content: type === 'text' ? 'SEU TEXTO AQUI' : '',
+      content: type === 'text' ? 'SUBLIMAÇÃO' : '',
       color: activeColor,
       shapeType: shapeToUse,
       fontSize: 36,
-      fontFamily: 'Impact',
+      fontFamily: customFontFamily || 'Impact',
       fontWeight: 'bold',
+      textWarpStyle: defaultTextWarpStyle || 'straight',
+      textCurved: defaultTextWarpStyle ? defaultTextWarpStyle !== 'straight' : false,
+      warpIntensity: 50,
+      curveRadius: 120,
     };
 
     const updatedLayers = [...layers, newLayer];
     setLayers(updatedLayers);
     setActiveLayerId(newId);
     pushHistoryStep(`Adicionou ${newLayer.name}`, type, updatedLayers);
+    setCanvasVersion((v) => v + 1);
+  };
+
+  const handleAddVectorTextPreset = (preset: {
+    title: string;
+    content: string;
+    fontFamily: string;
+    warpStyle: TextWarpStyle;
+    warpIntensity: number;
+    color: string;
+    strokeColor?: string;
+    strokeWidth?: number;
+    shadowColor?: string;
+    shadowBlur?: number;
+    width?: number;
+    height?: number;
+    fontSize?: number;
+  }) => {
+    const newId = 'layer-' + Date.now();
+    const newLayer: Layer = {
+      id: newId,
+      name: `Vetor: ${preset.title}`,
+      type: 'text',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      blendMode: 'normal',
+      x: 300,
+      y: 180,
+      width: preset.width || 360,
+      height: preset.height || 220,
+      rotation: 0,
+      content: preset.content,
+      color: preset.color,
+      strokeColor: preset.strokeColor,
+      strokeWidth: preset.strokeWidth || 0,
+      shadowColor: preset.shadowColor,
+      shadowBlur: preset.shadowBlur || 0,
+      fontSize: preset.fontSize || 38,
+      fontFamily: preset.fontFamily,
+      fontWeight: 'bold',
+      textWarpStyle: preset.warpStyle,
+      textCurved: preset.warpStyle !== 'straight',
+      warpIntensity: preset.warpIntensity,
+      curveRadius: 120,
+    };
+
+    const updatedLayers = [...layers, newLayer];
+    setLayers(updatedLayers);
+    setActiveLayerId(newId);
+    pushHistoryStep(`Adicionou Vetor ${preset.title}`, 'text', updatedLayers);
     setCanvasVersion((v) => v + 1);
   };
 
@@ -663,6 +743,7 @@ export default function App() {
           brushSize={brushSize}
           onChangeBrushSize={setBrushSize}
           onAddLayer={handleAddLayer}
+          onAddVectorTextPreset={handleAddVectorTextPreset}
           currentProduct={currentProduct}
           onSelectProduct={setCurrentProduct}
           layers={layers}

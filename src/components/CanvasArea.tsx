@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Layer, ToolType, ShapeType, SublimationProduct } from '../types';
+import { drawWarpedText } from '../utils/textWarp';
+import { drawVectorShape } from '../utils/shapeDrawer';
 import {
   ZoomIn,
   ZoomOut,
@@ -333,27 +335,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       // Render based on layer type
       if (layer.type === 'text') {
-        ctx.fillStyle = layer.color || activeColor;
-        ctx.font = `${layer.fontWeight || 'normal'} ${layer.fontSize || 36}px ${layer.fontFamily || 'Arial'}`;
-        ctx.textAlign = layer.textAlign || 'left';
-        ctx.textBaseline = 'top';
-
-        if (layer.textCurved && layer.curveRadius) {
-          // Curved / Arched text for mugs & hats
-          const text = layer.content;
-          const radius = layer.curveRadius || 120;
-
-          ctx.save();
-          for (let i = 0; i < text.length; i++) {
-            ctx.save();
-            ctx.rotate((i - text.length / 2) * 0.15);
-            ctx.fillText(text[i], 0, -radius);
-            ctx.restore();
-          }
-          ctx.restore();
-        } else {
-          ctx.fillText(layer.content, 0, 0);
-        }
+        drawWarpedText(ctx, layer, activeColor);
       } else if (layer.type === 'image' || layer.type === 'smart') {
         if (layer.content) {
           let img = imageCacheRef.current.get(layer.content);
@@ -390,23 +372,15 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           }
         }
       } else if (layer.type === 'shape') {
-        ctx.fillStyle = layer.color || activeColor;
-        ctx.strokeStyle = layer.strokeColor || '#000000';
-        ctx.lineWidth = layer.strokeWidth || 0;
-
-        ctx.beginPath();
-        if (layer.shapeType === 'circle') {
-          ctx.ellipse(layer.width / 2, layer.height / 2, layer.width / 2, layer.height / 2, 0, 0, 2 * Math.PI);
-        } else if (layer.shapeType === 'star') {
-          drawStar(ctx, layer.width / 2, layer.height / 2, 5, layer.width / 2, layer.width / 4);
-        } else if (layer.shapeType === 'heart') {
-          drawHeart(ctx, 0, 0, layer.width, layer.height);
-        } else {
-          // Default Rectangle
-          ctx.rect(0, 0, layer.width, layer.height);
-        }
-        ctx.fill();
-        if (layer.strokeWidth && layer.strokeWidth > 0) ctx.stroke();
+        drawVectorShape(
+          ctx,
+          layer.shapeType || 'rectangle',
+          layer.width,
+          layer.height,
+          layer.color || activeColor,
+          layer.strokeColor,
+          layer.strokeWidth
+        );
       } else if (layer.type === 'brush') {
         ctx.fillStyle = layer.color || activeColor;
         ctx.strokeStyle = layer.color || activeColor;
