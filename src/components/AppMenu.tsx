@@ -99,7 +99,7 @@ export function AppMenu({
               className="flex items-center gap-3 px-4 py-2 hover:bg-purple-600 hover:text-white transition-colors text-sm text-left w-full cursor-pointer"
             >
               <Save className="w-4 h-4 text-amber-400 group-hover:text-white" />
-              Salvar Layout
+              Salvar Projeto
             </button>
 
             <button 
