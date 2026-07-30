@@ -96,7 +96,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="flex items-center gap-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-500 px-2.5 py-1 rounded-xl shadow-md cursor-pointer hover:brightness-110 transition-all">
           <Sparkles className="w-4 h-4 text-white animate-pulse" />
           <span className="font-extrabold tracking-wide text-white text-xs">
-            CANVA STUDIO
+            SUBLIM STUDIO
           </span>
         </div>
 
