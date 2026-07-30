@@ -125,13 +125,16 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       setStatusMessage('Estampa gerada com sucesso e adicionada ao canvas!');
     } catch (err: any) {
       console.error('Error generating AI image:', err);
-      const isQuotaError = err.message && (err.message.includes('429') || err.message.includes('quota') || err.message.includes('Quota'));
-      if (isQuotaError) {
-        setErrorMessage('Cota da API Gemini excedida temporariamente (Rate Limit 429). Geramos uma arte sublimática vetorial local de alta qualidade para você continuar desenhando!');
+      const message = err?.message || 'Falha ao conectar com o servidor Gemini IA.';
+      const isQuotaError = message.includes('429') || message.includes('quota') || message.includes('Quota');
+      const isServerUnavailable = message.includes('Invalid server response') || message.includes('Failed to fetch') || message.includes('404') || message.includes('NetworkError');
+
+      if (isQuotaError || isServerUnavailable) {
+        setErrorMessage('Serviço Gemini IA indisponível ou indisponível localmente. Geramos um padrão sublimático local para você continuar.')
         const fallbackUrl = generateLocalPattern(params.prompt);
         onAddAIGeneratedImageToCanvas(fallbackUrl, params.prompt.slice(0, 20) || 'Arte Sublimação');
       } else {
-        setErrorMessage(err.message || 'Falha ao conectar com o servidor Gemini IA.');
+        setErrorMessage(message);
       }
     } finally {
       setIsLoading(false);
