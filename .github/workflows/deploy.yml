@@ -38,15 +38,16 @@ jobs:
           commit_message: 'Deploy static site from main via GitHub Actions'
 
       - name: Configure GitHub Pages source to gh-pages
+        if: ${{ secrets.GH_PAGES_TOKEN != '' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAGES_TOKEN: ${{ secrets.GH_PAGES_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
           set -e
           RESPONSE_FILE=$(mktemp)
           STATUS=$(curl -s -w '%{http_code}' -o "$RESPONSE_FILE" -X POST \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Authorization: Bearer $PAGES_TOKEN" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
             https://api.github.com/repos/$REPO/pages \
             -d '{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}')
@@ -54,7 +55,7 @@ jobs:
           if [ "$STATUS" -eq 409 ]; then
             STATUS=$(curl -s -w '%{http_code}' -o "$RESPONSE_FILE" -X PUT \
               -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Authorization: Bearer $PAGES_TOKEN" \
               -H "X-GitHub-Api-Version: 2026-03-10" \
               https://api.github.com/repos/$REPO/pages \
               -d '{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}')
@@ -66,3 +67,8 @@ jobs:
             exit 1
           fi
           cat "$RESPONSE_FILE"
+      - name: Skip GitHub Pages source configuration when token is absent
+        if: ${{ secrets.GH_PAGES_TOKEN == '' }}
+        run: |
+          echo "GH_PAGES_TOKEN secret is not configured."
+          echo "The gh-pages branch will still be published, but you must configure GitHub Pages source manually to use gh-pages/."
