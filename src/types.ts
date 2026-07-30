@@ -78,6 +78,8 @@ export interface Layer {
   };
   maskUrl?: string;
   isSmartObject?: boolean;
+  flipX?: boolean;
+  flipY?: boolean;
   children?: Layer[];
   filters?: LayerFilters;
 }

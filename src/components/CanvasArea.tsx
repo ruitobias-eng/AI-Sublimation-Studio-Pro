@@ -1,6 +1,30 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Layer, ToolType, ShapeType, SublimationProduct } from '../types';
-import { ZoomIn, ZoomOut, Maximize2, Move, Grid, FlipHorizontal, Eye, Trash2, Copy, RotateCw } from 'lucide-react';
+import {
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Move,
+  Grid,
+  FlipHorizontal,
+  FlipVertical,
+  Eye,
+  EyeOff,
+  Trash2,
+  Copy,
+  RotateCw,
+  ArrowUpToLine,
+  ArrowDownToLine,
+  ChevronUp,
+  ChevronDown,
+  Lock,
+  Unlock,
+  AlignCenter,
+  Layers,
+  Square,
+  Sparkles,
+  Maximize
+} from 'lucide-react';
 
 interface CanvasAreaProps {
   product: SublimationProduct;
@@ -10,6 +34,9 @@ interface CanvasAreaProps {
   onUpdateLayer: (updatedLayer: Layer) => void;
   onDeleteLayer?: (id: string) => void;
   onDuplicateLayer?: (id: string) => void;
+  onReorderLayers?: (reorderedLayers: Layer[]) => void;
+  onToggleLock?: (id: string) => void;
+  onToggleVisibility?: (id: string) => void;
   onChangeColor?: (color: string) => void;
   activeTool: ToolType;
   selectedShape: ShapeType;
@@ -30,6 +57,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   onUpdateLayer,
   onDeleteLayer,
   onDuplicateLayer,
+  onReorderLayers,
+  onToggleLock,
+  onToggleVisibility,
   onChangeColor,
   activeTool,
   selectedShape,
@@ -58,8 +88,175 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   // Dragging or Transforming an Active Layer
   const isDraggingLayerRef = useRef(false);
   const layerDragOffsetRef = useRef({ x: 0, y: 0 });
-  const isResizingModeRef = useRef<'br' | 'rotate' | null>(null);
-  const resizeStartRef = useRef<{ mouseX: number; mouseY: number; x: number; y: number; w: number; h: number; rot: number } | null>(null);
+  const isResizingModeRef = useRef<'tl' | 'tr' | 'bl' | 'br' | 'tc' | 'bc' | 'lc' | 'rc' | 'rotate' | null>(null);
+  const resizeStartRef = useRef<{ mouseX: number; mouseY: number; x: number; y: number; w: number; h: number; rot: number; aspect: number } | null>(null);
+
+  // Dynamic Mouse Cursor State
+  const [cursorStyle, setCursorStyle] = useState<string>('crosshair');
+
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    layerId: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (contextMenu) {
+        setContextMenu(null);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setContextMenu(null);
+      }
+    };
+
+    window.addEventListener('click', handleGlobalClick);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [contextMenu]);
+
+  // Context Menu Action Handlers
+  const handleBringToFront = (id: string) => {
+    if (!onReorderLayers) return;
+    const index = layers.findIndex((l) => l.id === id);
+    if (index === -1 || index === layers.length - 1) return;
+    const newLayers = [...layers];
+    const [removed] = newLayers.splice(index, 1);
+    newLayers.push(removed);
+    onReorderLayers(newLayers);
+    setContextMenu(null);
+  };
+
+  const handleSendToBack = (id: string) => {
+    if (!onReorderLayers) return;
+    const index = layers.findIndex((l) => l.id === id);
+    if (index === -1 || index === 0) return;
+    const newLayers = [...layers];
+    const [removed] = newLayers.splice(index, 1);
+    newLayers.unshift(removed);
+    onReorderLayers(newLayers);
+    setContextMenu(null);
+  };
+
+  const handleBringForward = (id: string) => {
+    if (!onReorderLayers) return;
+    const index = layers.findIndex((l) => l.id === id);
+    if (index === -1 || index === layers.length - 1) return;
+    const newLayers = [...layers];
+    const temp = newLayers[index];
+    newLayers[index] = newLayers[index + 1];
+    newLayers[index + 1] = temp;
+    onReorderLayers(newLayers);
+    setContextMenu(null);
+  };
+
+  const handleSendBackward = (id: string) => {
+    if (!onReorderLayers) return;
+    const index = layers.findIndex((l) => l.id === id);
+    if (index === -1 || index === 0) return;
+    const newLayers = [...layers];
+    const temp = newLayers[index];
+    newLayers[index] = newLayers[index - 1];
+    newLayers[index - 1] = temp;
+    onReorderLayers(newLayers);
+    setContextMenu(null);
+  };
+
+  const handleCenterLayer = (id: string) => {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer) return;
+    const printWidth = Math.round((product.defaultWidthCm / 2.54) * 150);
+    const printHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
+    onUpdateLayer({
+      ...layer,
+      x: Math.round((printWidth - layer.width) / 2),
+      y: Math.round((printHeight - layer.height) / 2),
+    });
+    setContextMenu(null);
+  };
+
+  const handleFlipHorizontal = (id: string) => {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer) return;
+    onUpdateLayer({
+      ...layer,
+      flipX: !layer.flipX,
+    });
+    setContextMenu(null);
+  };
+
+  const handleFlipVertical = (id: string) => {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer) return;
+    onUpdateLayer({
+      ...layer,
+      flipY: !layer.flipY,
+    });
+    setContextMenu(null);
+  };
+
+  const handleFillPrintArea = (id: string) => {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer) return;
+    const printWidth = Math.round((product.defaultWidthCm / 2.54) * 150);
+    const printHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
+    onUpdateLayer({
+      ...layer,
+      x: 0,
+      y: 0,
+      width: printWidth,
+      height: printHeight,
+    });
+    setContextMenu(null);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    const mouseY = (e.clientY - rect.top) * scaleY;
+
+    // Search top-to-bottom for layer clicked
+    const clickedLayer = [...layers].reverse().find((layer) => {
+      if (!layer.visible) return false;
+      return (
+        mouseX >= layer.x &&
+        mouseX <= layer.x + layer.width &&
+        mouseY >= layer.y &&
+        mouseY <= layer.y + layer.height
+      );
+    });
+
+    if (clickedLayer) {
+      onSelectLayer(clickedLayer.id);
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        layerId: clickedLayer.id,
+      });
+    } else {
+      setContextMenu({
+        x: e.clientX,
+        y: e.clientY,
+        layerId: activeLayerId,
+      });
+    }
+  };
 
   // Physical Printable Area Dimensions mapped to pixel canvas
   // Base high resolution canvas width/height (300 DPI target ratio)
@@ -129,6 +326,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       ctx.translate(centerX, centerY);
       ctx.rotate((layer.rotation * Math.PI) / 180);
+      if (layer.flipX || layer.flipY) {
+        ctx.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
+      }
       ctx.translate(-layer.width / 2, -layer.height / 2);
 
       // Render based on layer type
@@ -259,30 +459,104 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       ctx.strokeRect(0, 0, activeLayer.width, activeLayer.height);
 
-      // Corner handles
+      // Corner & Side handles rendering for active layer
       ctx.setLineDash([]);
-      ctx.fillStyle = '#ffffff';
-      const handleSize = 8;
-      const corners = [
-        { x: 0, y: 0 },
-        { x: activeLayer.width, y: 0 },
-        { x: 0, y: activeLayer.height },
-        { x: activeLayer.width, y: activeLayer.height },
-      ];
-      corners.forEach((c) => {
-        ctx.fillRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
-        ctx.strokeRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
-      });
+      ctx.strokeStyle = '#007acc';
+      ctx.lineWidth = 1.5;
 
-      // Rotation top handle
+      // Rotation top stem line & handle
+      ctx.beginPath();
+      ctx.moveTo(activeLayer.width / 2, 0);
+      ctx.lineTo(activeLayer.width / 2, -22);
+      ctx.stroke();
+
       ctx.fillStyle = '#007acc';
       ctx.beginPath();
-      ctx.arc(activeLayer.width / 2, -20, 6, 0, Math.PI * 2);
+      ctx.arc(activeLayer.width / 2, -22, 6, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Corner handles (Squares)
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#007acc';
+      ctx.lineWidth = 1.5;
+      const cornerSize = 10;
+      const corners = [
+        { id: 'tl', x: 0, y: 0 },
+        { id: 'tr', x: activeLayer.width, y: 0 },
+        { id: 'bl', x: 0, y: activeLayer.height },
+        { id: 'br', x: activeLayer.width, y: activeLayer.height },
+      ];
+      corners.forEach((c) => {
+        ctx.fillRect(c.x - cornerSize / 2, c.y - cornerSize / 2, cornerSize, cornerSize);
+        ctx.strokeRect(c.x - cornerSize / 2, c.y - cornerSize / 2, cornerSize, cornerSize);
+      });
+
+      // Side handles (Circles)
+      const sideHandles = [
+        { id: 'tc', x: activeLayer.width / 2, y: 0 },
+        { id: 'bc', x: activeLayer.width / 2, y: activeLayer.height },
+        { id: 'lc', x: 0, y: activeLayer.height / 2 },
+        { id: 'rc', x: activeLayer.width, y: activeLayer.height / 2 },
+      ];
+      sideHandles.forEach((s) => {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
 
       ctx.restore();
     }
   }, [layers, activeLayerId, product, mirrorSublimation, baseCanvasWidth, baseCanvasHeight]);
+
+  // Helper to detect handles at local coordinate position
+  const getHandleAtLocalPos = (
+    localX: number,
+    localY: number,
+    w: number,
+    h: number
+  ): 'tl' | 'tr' | 'bl' | 'br' | 'tc' | 'bc' | 'lc' | 'rc' | 'rotate' | null => {
+    const r = 14; // Hit tolerance
+    if (Math.hypot(localX - w / 2, localY - (-22)) <= r) return 'rotate';
+    if (Math.hypot(localX - 0, localY - 0) <= r) return 'tl';
+    if (Math.hypot(localX - w, localY - 0) <= r) return 'tr';
+    if (Math.hypot(localX - 0, localY - h) <= r) return 'bl';
+    if (Math.hypot(localX - w, localY - h) <= r) return 'br';
+
+    if (Math.hypot(localX - w / 2, localY - 0) <= r) return 'tc';
+    if (Math.hypot(localX - w / 2, localY - h) <= r) return 'bc';
+    if (Math.hypot(localX - 0, localY - h / 2) <= r) return 'lc';
+    if (Math.hypot(localX - w, localY - h / 2) <= r) return 'rc';
+
+    return null;
+  };
+
+  // Helper to map handle type to cursor CSS
+  const getCursorForHandle = (
+    handle: 'tl' | 'tr' | 'bl' | 'br' | 'tc' | 'bc' | 'lc' | 'rc' | 'rotate' | null
+  ): string => {
+    switch (handle) {
+      case 'tl':
+      case 'br':
+        return 'nwse-resize';
+      case 'tr':
+      case 'bl':
+        return 'nesw-resize';
+      case 'tc':
+      case 'bc':
+        return 'ns-resize';
+      case 'lc':
+      case 'rc':
+        return 'ew-resize';
+      case 'rotate':
+        return 'grab';
+      default:
+        return 'default';
+    }
+  };
 
   // Canvas Mouse Down
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -299,12 +573,14 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     if (activeTool === 'move' || e.spaceKey) {
       isPanningRef.current = true;
       panStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+      setCursorStyle('grabbing');
       return;
     }
 
     if (activeTool === 'brush') {
       isDrawingRef.current = true;
       currentPathRef.current = [{ x: mouseX, y: mouseY }];
+      setCursorStyle('crosshair');
       return;
     }
 
@@ -383,7 +659,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       return;
     }
 
-    // Check corner handles or top rotation handle on active layer
+    // Check corner/side handles or top rotation handle on active layer
     if (activeLayerId) {
       const activeLayer = layers.find((l) => l.id === activeLayerId);
       if (activeLayer && activeLayer.visible) {
@@ -396,10 +672,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         const localX = dx * Math.cos(rad) - dy * Math.sin(rad) + activeLayer.width / 2;
         const localY = dx * Math.sin(rad) + dy * Math.cos(rad) + activeLayer.height / 2;
 
-        // Check rotation handle (localX ~ width / 2, localY ~ -20)
-        const distRot = Math.hypot(localX - activeLayer.width / 2, localY - (-20));
-        if (distRot <= 16) {
-          isResizingModeRef.current = 'rotate';
+        const hitHandle = getHandleAtLocalPos(localX, localY, activeLayer.width, activeLayer.height);
+        if (hitHandle) {
+          isResizingModeRef.current = hitHandle;
           resizeStartRef.current = {
             mouseX,
             mouseY,
@@ -408,22 +683,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
             w: activeLayer.width,
             h: activeLayer.height,
             rot: activeLayer.rotation,
+            aspect: activeLayer.width / (activeLayer.height || 1),
           };
-          return;
-        }
-
-        // Check bottom-right corner handle (localX ~ width, localY ~ height)
-        if (Math.abs(localX - activeLayer.width) <= 16 && Math.abs(localY - activeLayer.height) <= 16) {
-          isResizingModeRef.current = 'br';
-          resizeStartRef.current = {
-            mouseX,
-            mouseY,
-            x: activeLayer.x,
-            y: activeLayer.y,
-            w: activeLayer.width,
-            h: activeLayer.height,
-            rot: activeLayer.rotation,
-          };
+          setCursorStyle(getCursorForHandle(hitHandle));
           return;
         }
       }
@@ -446,8 +708,10 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         x: mouseX - clickedLayer.x,
         y: mouseY - clickedLayer.y,
       };
+      setCursorStyle('move');
     } else {
       onSelectLayer(null);
+      setCursorStyle('default');
     }
   };
 
@@ -461,6 +725,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         x: e.clientX - panStartRef.current.x,
         y: e.clientY - panStartRef.current.y,
       });
+      setCursorStyle('grabbing');
       return;
     }
 
@@ -471,32 +736,116 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     const mouseX = (e.clientX - rect.left) * scaleX;
     const mouseY = (e.clientY - rect.top) * scaleY;
 
+    // Resizing or Rotating active layer
     if (isResizingModeRef.current && activeLayerId && resizeStartRef.current) {
       const activeLayer = layers.find((l) => l.id === activeLayerId);
       if (activeLayer) {
         const init = resizeStartRef.current;
         if (isResizingModeRef.current === 'rotate') {
-          const centerX = activeLayer.x + activeLayer.width / 2;
-          const centerY = activeLayer.y + activeLayer.height / 2;
+          const centerX = init.x + init.w / 2;
+          const centerY = init.y + init.h / 2;
           let angle = Math.atan2(mouseY - centerY, mouseX - centerX) * (180 / Math.PI) + 90;
           if (angle < 0) angle += 360;
           onUpdateLayer({ ...activeLayer, rotation: Math.round(angle) });
+          setCursorStyle('grabbing');
           return;
         }
-        if (isResizingModeRef.current === 'br') {
-          const deltaX = mouseX - init.mouseX;
-          const deltaY = mouseY - init.mouseY;
-          const newW = Math.max(20, Math.round(init.w + deltaX));
-          const newH = Math.max(20, Math.round(init.h + deltaY));
-          onUpdateLayer({ ...activeLayer, width: newW, height: newH });
-          return;
+
+        const handle = isResizingModeRef.current;
+        const rad = (init.rot * Math.PI) / 180;
+        const dx = mouseX - init.mouseX;
+        const dy = mouseY - init.mouseY;
+
+        // Convert mouse delta into layer's local axes
+        const localDx = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+        const localDy = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+
+        let newW = init.w;
+        let newH = init.h;
+        let localOffsetX = 0;
+        let localOffsetY = 0;
+
+        const isImage = activeLayer.type === 'image' || activeLayer.type === 'smart';
+        const keepAspect = isImage || e.shiftKey;
+
+        switch (handle) {
+          case 'br': {
+            newW = Math.max(20, Math.round(init.w + localDx));
+            newH = keepAspect
+              ? Math.max(20, Math.round(newW / init.aspect))
+              : Math.max(20, Math.round(init.h + localDy));
+            break;
+          }
+          case 'tl': {
+            newW = Math.max(20, Math.round(init.w - localDx));
+            newH = keepAspect
+              ? Math.max(20, Math.round(newW / init.aspect))
+              : Math.max(20, Math.round(init.h - localDy));
+            localOffsetX = -(newW - init.w);
+            localOffsetY = -(newH - init.h);
+            break;
+          }
+          case 'tr': {
+            newW = Math.max(20, Math.round(init.w + localDx));
+            newH = keepAspect
+              ? Math.max(20, Math.round(newW / init.aspect))
+              : Math.max(20, Math.round(init.h - localDy));
+            localOffsetX = 0;
+            localOffsetY = -(newH - init.h);
+            break;
+          }
+          case 'bl': {
+            newW = Math.max(20, Math.round(init.w - localDx));
+            newH = keepAspect
+              ? Math.max(20, Math.round(newW / init.aspect))
+              : Math.max(20, Math.round(init.h + localDy));
+            localOffsetX = -(newW - init.w);
+            localOffsetY = 0;
+            break;
+          }
+          case 'tc': {
+            newH = Math.max(20, Math.round(init.h - localDy));
+            localOffsetY = -(newH - init.h);
+            break;
+          }
+          case 'bc': {
+            newH = Math.max(20, Math.round(init.h + localDy));
+            break;
+          }
+          case 'lc': {
+            newW = Math.max(20, Math.round(init.w - localDx));
+            localOffsetX = -(newW - init.w);
+            break;
+          }
+          case 'rc': {
+            newW = Math.max(20, Math.round(init.w + localDx));
+            break;
+          }
         }
+
+        // Convert local offset back to world space
+        const worldDx = localOffsetX * Math.cos(rad) - localOffsetY * Math.sin(rad);
+        const worldDy = localOffsetX * Math.sin(rad) + localOffsetY * Math.cos(rad);
+
+        onUpdateLayer({
+          ...activeLayer,
+          x: Math.round(init.x + worldDx),
+          y: Math.round(init.y + worldDy),
+          width: newW,
+          height: newH,
+        });
+        setCursorStyle(getCursorForHandle(handle));
+        return;
       }
     }
 
     if (isDrawingRef.current && activeTool === 'brush') {
       currentPathRef.current.push({ x: mouseX, y: mouseY });
-    } else if (isDraggingLayerRef.current && activeLayerId) {
+      setCursorStyle('crosshair');
+      return;
+    }
+
+    if (isDraggingLayerRef.current && activeLayerId) {
       const activeLayer = layers.find((l) => l.id === activeLayerId);
       if (activeLayer) {
         onUpdateLayer({
@@ -504,7 +853,68 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           x: mouseX - layerDragOffsetRef.current.x,
           y: mouseY - layerDragOffsetRef.current.y,
         });
+        setCursorStyle('move');
+        return;
       }
+    }
+
+    // Hover mouse cursor calculation
+    if (activeTool === 'move') {
+      setCursorStyle('grab');
+      return;
+    }
+    if (activeTool === 'brush') {
+      setCursorStyle('crosshair');
+      return;
+    }
+    if (activeTool === 'text') {
+      setCursorStyle('text');
+      return;
+    }
+    if (activeTool === 'eyedropper') {
+      setCursorStyle('copy');
+      return;
+    }
+    if (activeTool === 'eraser') {
+      setCursorStyle('not-allowed');
+      return;
+    }
+
+    // Check handle hover on active layer
+    if (activeLayerId) {
+      const activeLayer = layers.find((l) => l.id === activeLayerId);
+      if (activeLayer && activeLayer.visible) {
+        const centerX = activeLayer.x + activeLayer.width / 2;
+        const centerY = activeLayer.y + activeLayer.height / 2;
+
+        const rad = (-activeLayer.rotation * Math.PI) / 180;
+        const dx = mouseX - centerX;
+        const dy = mouseY - centerY;
+        const localX = dx * Math.cos(rad) - dy * Math.sin(rad) + activeLayer.width / 2;
+        const localY = dx * Math.sin(rad) + dy * Math.cos(rad) + activeLayer.height / 2;
+
+        const hitHandle = getHandleAtLocalPos(localX, localY, activeLayer.width, activeLayer.height);
+        if (hitHandle) {
+          setCursorStyle(getCursorForHandle(hitHandle));
+          return;
+        }
+      }
+    }
+
+    // Check layer hover
+    const hoverLayer = [...layers].reverse().find((layer) => {
+      return (
+        mouseX >= layer.x &&
+        mouseX <= layer.x + layer.width &&
+        mouseY >= layer.y &&
+        mouseY <= layer.y + layer.height
+      );
+    });
+
+    if (hoverLayer) {
+      setCursorStyle('move');
+    } else {
+      setCursorStyle('default');
     }
   };
 
@@ -657,7 +1067,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className="cursor-crosshair shadow-2xl block"
+          onContextMenu={handleContextMenu}
+          className="shadow-2xl block"
+          style={{ cursor: cursorStyle }}
         />
       </div>
 
@@ -859,6 +1271,253 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           Ajustar Tela
         </button>
       </div>
+
+      {/* Canva Floating Right-Click Context Menu */}
+      {contextMenu && (
+        <div
+          className={`fixed z-50 w-60 rounded-2xl border shadow-2xl backdrop-blur-md text-xs py-2 flex flex-col select-none animate-in fade-in zoom-in-95 duration-150 ${
+            theme === 'light'
+              ? 'bg-white/95 border-slate-200 text-slate-800 shadow-slate-400/50'
+              : 'bg-[#1a1a1e]/95 border-[#383842] text-gray-200 shadow-black/80'
+          }`}
+          style={{
+            left: Math.min(contextMenu.x, window.innerWidth - 250),
+            top: Math.min(contextMenu.y, window.innerHeight - 420),
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {(() => {
+            const activeL = layers.find((l) => l.id === contextMenu.layerId);
+            if (activeL) {
+              const isTop = layers.length > 0 && layers[layers.length - 1].id === activeL.id;
+              const isBottom = layers.length > 0 && layers[0].id === activeL.id;
+
+              return (
+                <>
+                  {/* Layer Header */}
+                  <div className={`px-3 py-1.5 border-b text-[11px] font-semibold flex items-center justify-between ${
+                    theme === 'light' ? 'border-slate-100 text-purple-700 bg-slate-50/80' : 'border-[#2e2e36] text-sky-400 bg-[#141418]'
+                  }`}>
+                    <span className="truncate max-w-[150px]">{activeL.name}</span>
+                    <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono font-bold">
+                      {activeL.type}
+                    </span>
+                  </div>
+
+                  {/* Layer Z-Index Ordering Actions */}
+                  <div className="py-1">
+                    <div className="px-3 py-1 text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                      Ordem da Camada
+                    </div>
+                    <button
+                      disabled={isTop}
+                      onClick={() => handleBringToFront(activeL.id)}
+                      className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        isTop
+                          ? 'opacity-40 cursor-not-allowed'
+                          : theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <ArrowUpToLine className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                      <span>Trazer para o Topo (Frente)</span>
+                    </button>
+                    <button
+                      disabled={isTop}
+                      onClick={() => handleBringForward(activeL.id)}
+                      className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        isTop
+                          ? 'opacity-40 cursor-not-allowed'
+                          : theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <ChevronUp className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span>Avançar 1 Nível</span>
+                    </button>
+                    <button
+                      disabled={isBottom}
+                      onClick={() => handleSendBackward(activeL.id)}
+                      className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        isBottom
+                          ? 'opacity-40 cursor-not-allowed'
+                          : theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <ChevronDown className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span>Recuar 1 Nível</span>
+                    </button>
+                    <button
+                      disabled={isBottom}
+                      onClick={() => handleSendToBack(activeL.id)}
+                      className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        isBottom
+                          ? 'opacity-40 cursor-not-allowed'
+                          : theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <ArrowDownToLine className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                      <span>Enviar para o Fundo (Trás)</span>
+                    </button>
+                  </div>
+
+                  <div className={`my-1 border-t ${theme === 'light' ? 'border-slate-100' : 'border-[#2e2e36]'}`} />
+
+                  {/* Alignment & Transform Actions */}
+                  <div className="py-1">
+                    <div className="px-3 py-1 text-[9px] uppercase font-bold text-gray-400 tracking-wider">
+                      Alinhamento & Transformação
+                    </div>
+                    <button
+                      onClick={() => handleCenterLayer(activeL.id)}
+                      className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <AlignCenter className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span>Centralizar na Estampa</span>
+                    </button>
+                    <button
+                      onClick={() => handleFlipHorizontal(activeL.id)}
+                      className={`w-full px-3 py-1.5 text-left flex items-center justify-between transition-colors cursor-pointer ${
+                        theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FlipHorizontal className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span>Espelhar Horizontalmente</span>
+                      </div>
+                      {activeL.flipX && <span className="text-[10px] font-bold text-sky-400">ON</span>}
+                    </button>
+                    <button
+                      onClick={() => handleFlipVertical(activeL.id)}
+                      className={`w-full px-3 py-1.5 text-left flex items-center justify-between transition-colors cursor-pointer ${
+                        theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FlipVertical className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span>Espelhar Verticalmente</span>
+                      </div>
+                      {activeL.flipY && <span className="text-[10px] font-bold text-sky-400">ON</span>}
+                    </button>
+
+                    {(activeL.type === 'image' || activeL.type === 'smart') && (
+                      <button
+                        onClick={() => handleFillPrintArea(activeL.id)}
+                        className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                          theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                        }`}
+                      >
+                        <Maximize className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>Preencher Área de Estampa</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className={`my-1 border-t ${theme === 'light' ? 'border-slate-100' : 'border-[#2e2e36]'}`} />
+
+                  {/* Actions: Duplicate, Lock, Hide, Delete */}
+                  <div className="py-1">
+                    {onDuplicateLayer && (
+                      <button
+                        onClick={() => {
+                          onDuplicateLayer(activeL.id);
+                          setContextMenu(null);
+                        }}
+                        className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                          theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                        }`}
+                      >
+                        <Copy className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span>Duplicar Elemento</span>
+                      </button>
+                    )}
+
+                    {onToggleLock && (
+                      <button
+                        onClick={() => {
+                          onToggleLock(activeL.id);
+                          setContextMenu(null);
+                        }}
+                        className={`w-full px-3 py-1.5 text-left flex items-center justify-between transition-colors cursor-pointer ${
+                          theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {activeL.locked ? <Unlock className="w-3.5 h-3.5 text-amber-400 shrink-0" /> : <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                          <span>{activeL.locked ? 'Desbloquear Camada' : 'Bloquear Camada'}</span>
+                        </div>
+                      </button>
+                    )}
+
+                    {onToggleVisibility && (
+                      <button
+                        onClick={() => {
+                          onToggleVisibility(activeL.id);
+                          setContextMenu(null);
+                        }}
+                        className={`w-full px-3 py-1.5 text-left flex items-center justify-between transition-colors cursor-pointer ${
+                          theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {activeL.visible ? <EyeOff className="w-3.5 h-3.5 text-gray-400 shrink-0" /> : <Eye className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                          <span>{activeL.visible ? 'Ocultar Camada' : 'Mostrar Camada'}</span>
+                        </div>
+                      </button>
+                    )}
+
+                    {onDeleteLayer && (
+                      <button
+                        onClick={() => {
+                          onDeleteLayer(activeL.id);
+                          setContextMenu(null);
+                        }}
+                        className="w-full px-3 py-1.5 text-left flex items-center gap-2.5 text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer font-medium"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>Excluir Elemento</span>
+                      </button>
+                    )}
+                  </div>
+                </>
+              );
+            }
+
+            return (
+              <div className="py-1">
+                <div className="px-3 py-1 border-b text-[11px] font-semibold text-gray-400">
+                  Ações da Tela
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectLayer(null);
+                    setContextMenu(null);
+                  }}
+                  className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                    theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                  }`}
+                >
+                  <Square className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <span>Deselecionar Tudo</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setPan({ x: 0, y: 0 });
+                    setZoom(1.0);
+                    setContextMenu(null);
+                  }}
+                  className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                    theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                  }`}
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>Redefinir Posição / Zoom</span>
+                </button>
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 };

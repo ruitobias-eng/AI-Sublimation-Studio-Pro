@@ -198,6 +198,59 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
             </span>
           </div>
         </div>
+
+        {/* Quick Image Scale Actions */}
+        {(activeLayer.type === 'image' || activeLayer.type === 'smart') && (
+          <div className="flex flex-col gap-1.5 pt-2 border-t border-[#2d2d30] mt-1">
+            <span className="text-[10px] text-gray-400 font-semibold">Redimensionar Imagem:</span>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => {
+                  const printWidth = Math.round((product.defaultWidthCm / 2.54) * 150);
+                  const printHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
+                  onUpdateLayer({
+                    ...activeLayer,
+                    x: 0,
+                    y: 0,
+                    width: printWidth,
+                    height: printHeight,
+                  });
+                }}
+                className="px-2 py-1 bg-[#252528] hover:bg-[#323236] border border-[#38383c] text-sky-300 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                title="Redimensionar imagem para cobrir toda a área de estampa"
+              >
+                Preencher Área
+              </button>
+              <button
+                onClick={() => {
+                  const printWidth = Math.round((product.defaultWidthCm / 2.54) * 150);
+                  const printHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
+                  onUpdateLayer({
+                    ...activeLayer,
+                    x: Math.round((printWidth - activeLayer.width) / 2),
+                    y: Math.round((printHeight - activeLayer.height) / 2),
+                  });
+                }}
+                className="px-2 py-1 bg-[#252528] hover:bg-[#323236] border border-[#38383c] text-gray-200 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                title="Centralizar imagem na área imprimível"
+              >
+                Centralizar
+              </button>
+              <button
+                onClick={() => {
+                  onUpdateLayer({
+                    ...activeLayer,
+                    height: activeLayer.width,
+                  });
+                }}
+                className="col-span-2 px-2 py-1 bg-[#252528] hover:bg-[#323236] border border-[#38383c] text-purple-300 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                title="Ajustar altura para proporção 1:1"
+              >
+                Ajustar Proporção Quadrada (1:1)
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Typography Controls (if layer is text) */}

@@ -703,6 +703,12 @@ export default function App() {
                 onUpdateLayer={handleUpdateLayer}
                 onDeleteLayer={handleDeleteLayer}
                 onDuplicateLayer={handleDuplicateLayer}
+                onReorderLayers={(reordered) => {
+                  setLayers(reordered);
+                  setCanvasVersion((v) => v + 1);
+                }}
+                onToggleLock={handleToggleLock}
+                onToggleVisibility={handleToggleVisibility}
                 onChangeColor={setActiveColor}
                 activeTool={activeTool}
                 selectedShape={selectedShape}
