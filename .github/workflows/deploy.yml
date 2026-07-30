@@ -44,12 +44,22 @@ jobs:
         run: |
           set -e
           RESPONSE_FILE=$(mktemp)
-          STATUS=$(curl -s -w '%{http_code}' -o "$RESPONSE_FILE" -X PUT \
+          STATUS=$(curl -s -w '%{http_code}' -o "$RESPONSE_FILE" -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
             https://api.github.com/repos/$REPO/pages \
             -d '{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}')
+
+          if [ "$STATUS" -eq 409 ]; then
+            STATUS=$(curl -s -w '%{http_code}' -o "$RESPONSE_FILE" -X PUT \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "X-GitHub-Api-Version: 2026-03-10" \
+              https://api.github.com/repos/$REPO/pages \
+              -d '{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}')
+          fi
+
           if [ "$STATUS" -ge 300 ]; then
             echo "GitHub Pages configuration failed with status $STATUS"
             cat "$RESPONSE_FILE"
