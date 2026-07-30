@@ -10,7 +10,7 @@ import {
 } from './types';
 import { PRODUCTS_LIBRARY } from './data/products';
 import { TopBar } from './components/TopBar';
-import LeftToolbar from './components/LeftToolbar';
+import { LeftToolbar } from './components/LeftToolbar';
 import { CanvasArea } from './components/CanvasArea';
 import { ThreeDViewport } from './components/ThreeDViewport';
 import { LayerPanel } from './components/LayerPanel';
@@ -550,9 +550,39 @@ export default function App() {
     }
   };
 
+  const handleChangeColor = (newColor: string) => {
+    setActiveColor(newColor);
+    if (activeLayerId) {
+      const activeL = layers.find((l) => l.id === activeLayerId);
+      if (activeL) {
+        handleUpdateLayer({
+          ...activeL,
+          color: newColor,
+          strokeColor: activeL.type === 'shape' ? (activeL.strokeColor || newColor) : activeL.strokeColor,
+        });
+      }
+    }
+  };
+
   const handleSelectShape = (shape: ShapeType) => {
     setSelectedShape(shape);
-    handleAddLayer('shape', shape);
+    const activeL = layers.find((l) => l.id === activeLayerId);
+    if (activeL && activeL.type === 'shape') {
+      const isLineType =
+        shape?.includes('line') ||
+        shape?.includes('curve') ||
+        shape?.includes('scribble') ||
+        shape?.includes('connector') ||
+        shape?.includes('elbow');
+      handleUpdateLayer({
+        ...activeL,
+        shapeType: shape,
+        name: `Forma ${shape}`,
+        strokeWidth: isLineType ? (activeL.strokeWidth || 6) : (activeL.strokeWidth ?? 2),
+      });
+    } else {
+      handleAddLayer('shape', shape);
+    }
   };
 
   const handleDeleteLayer = (id: string) => {
@@ -748,7 +778,7 @@ export default function App() {
           selectedShape={selectedShape}
           onSelectShape={handleSelectShape}
           activeColor={activeColor}
-          onChangeColor={setActiveColor}
+          onChangeColor={handleChangeColor}
           brushSize={brushSize}
           onChangeBrushSize={setBrushSize}
           onAddLayer={handleAddLayer}
@@ -799,7 +829,7 @@ export default function App() {
                 }}
                 onToggleLock={handleToggleLock}
                 onToggleVisibility={handleToggleVisibility}
-                onChangeColor={setActiveColor}
+                onChangeColor={handleChangeColor}
                 activeTool={activeTool}
                 selectedShape={selectedShape}
                 activeColor={activeColor}

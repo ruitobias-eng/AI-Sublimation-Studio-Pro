@@ -369,6 +369,59 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
             </div>
           </div>
 
+          {/* Cor do Texto & Contorno */}
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#2d2d30]">
+            <span className="text-[11px] font-bold text-gray-300">Cor do Texto & Contorno:</span>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-400">Cor Principal:</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="color"
+                    value={activeLayer.color || '#000000'}
+                    onChange={(e) => onUpdateLayer({ ...activeLayer, color: e.target.value })}
+                    className="w-6 h-6 rounded cursor-pointer border border-[#38383c]"
+                  />
+                  <span className="font-mono text-[10px] text-gray-300">
+                    {activeLayer.color || '#000000'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-400">Cor do Contorno:</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="color"
+                    value={activeLayer.strokeColor || '#000000'}
+                    onChange={(e) => onUpdateLayer({ ...activeLayer, strokeColor: e.target.value })}
+                    className="w-6 h-6 rounded cursor-pointer border border-[#38383c]"
+                  />
+                  <span className="font-mono text-[10px] text-gray-300">
+                    {activeLayer.strokeColor || 'Nenhum'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-gray-400">Espessura do Contorno:</span>
+              <span className="text-emerald-400 font-mono font-bold">
+                {activeLayer.strokeWidth || 0}px
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              value={activeLayer.strokeWidth || 0}
+              onChange={(e) =>
+                onUpdateLayer({ ...activeLayer, strokeWidth: parseInt(e.target.value) || 0 })
+              }
+              className="w-full accent-emerald-500 cursor-pointer h-1.5 bg-[#252528] rounded-lg"
+            />
+          </div>
+
           {/* Sublimation Text Warp Styles Gallery */}
           <div className="flex flex-col gap-2 pt-2 border-t border-[#2d2d30]">
             <span className="text-[11px] font-bold text-emerald-400 flex items-center justify-between">

@@ -114,8 +114,39 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
 
   const handleSelectShapeWithRecent = (shapeId: string) => {
     onSelectShape(shapeId);
-    onAddLayer('shape', shapeId);
     setRecentlyUsedShapes((prev) => [shapeId, ...prev.filter((id) => id !== shapeId)].slice(0, 16));
+  };
+
+  const handleApplyTextWarp = (warpStyle: TextWarpStyle) => {
+    const activeL = layers.find((l) => l.id === activeLayerId);
+    if (activeL && activeL.type === 'text') {
+      const isSpaciousStyle = [
+        'circle',
+        'logo_circle',
+        'seal',
+        'heart',
+        'emblem',
+        'spiral',
+        'star',
+        'diamond',
+        'oval',
+        'vertical_ellipse',
+        'stamp_style',
+        'ribbon',
+      ].includes(warpStyle);
+
+      onUpdateLayer({
+        ...activeL,
+        textWarpStyle: warpStyle,
+        textCurved: warpStyle !== 'straight',
+        warpIntensity: activeL.warpIntensity ?? 50,
+        curveRadius: activeL.curveRadius || 120,
+        width: isSpaciousStyle ? Math.max(activeL.width, 320) : activeL.width,
+        height: isSpaciousStyle ? Math.max(activeL.height, 220) : activeL.height,
+      });
+    } else {
+      onAddLayer('text', undefined, warpStyle);
+    }
   };
 
   // Sample Sublimation Template Presets for Mugs, Shirts, Cushions
@@ -753,11 +784,22 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
 
                           {/* Action Button */}
                           <button
-                            onClick={() => onAddLayer('text', undefined, 'straight', font.fontFamily)}
+                            onClick={() => {
+                              const activeL = layers.find((l) => l.id === activeLayerId);
+                              if (activeL && activeL.type === 'text') {
+                                onUpdateLayer({ ...activeL, fontFamily: font.fontFamily });
+                              } else {
+                                onAddLayer('text', undefined, 'straight', font.fontFamily);
+                              }
+                            }}
                             className="w-full py-1.5 bg-purple-600/80 hover:bg-purple-600 text-white font-bold text-[10px] rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer"
                           >
                             <Plus className="w-3 h-3" />
-                            <span>Inserir Texto com esta Fonte</span>
+                            <span>
+                              {activeLayerId && layers.find((l) => l.id === activeLayerId)?.type === 'text'
+                                ? 'Aplicar Fonte ao Texto Selecionado'
+                                : 'Inserir Texto com esta Fonte'}
+                            </span>
                           </button>
                         </div>
                       ))}
@@ -810,7 +852,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
 
                     <div className="grid grid-cols-2 gap-2.5">
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'arc_upper')}
+                        onClick={() => handleApplyTextWarp('arc_upper')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-purple-500/40 hover:border-purple-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -830,7 +872,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'wave')}
+                        onClick={() => handleApplyTextWarp('wave')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-cyan-500/40 hover:border-cyan-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -850,7 +892,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'logo_circle')}
+                        onClick={() => handleApplyTextWarp('logo_circle')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-amber-500/40 hover:border-amber-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -870,7 +912,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'stamp_style')}
+                        onClick={() => handleApplyTextWarp('stamp_style')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-emerald-500/40 hover:border-emerald-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -890,7 +932,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'heart')}
+                        onClick={() => handleApplyTextWarp('heart')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-rose-500/40 hover:border-rose-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -910,7 +952,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'bulge')}
+                        onClick={() => handleApplyTextWarp('bulge')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-indigo-500/40 hover:border-indigo-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -930,7 +972,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'emblem')}
+                        onClick={() => handleApplyTextWarp('emblem')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-yellow-500/40 hover:border-yellow-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -950,7 +992,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                       </button>
 
                       <button
-                        onClick={() => onAddLayer('text', undefined, 'ribbon')}
+                        onClick={() => handleApplyTextWarp('ribbon')}
                         className="p-3 bg-[#181922] hover:bg-[#212330] border border-teal-500/40 hover:border-teal-400 rounded-xl text-left flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group shadow-md"
                       >
                         <div className="flex items-center justify-between mb-1">
