@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 jobs:
   deploy:
@@ -35,3 +36,15 @@ jobs:
           publish_branch: gh-pages
           keep_files: false
           commit_message: 'Deploy static site from main via GitHub Actions'
+
+      - name: Configure GitHub Pages source to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          curl -s -X PUT \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            https://api.github.com/repos/$REPO/pages \
+            -d '{"source":{"branch":"gh-pages","path":"/"},"build_type":"legacy"}'
