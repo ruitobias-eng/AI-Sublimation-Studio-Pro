@@ -10,7 +10,7 @@ import {
 } from './types';
 import { PRODUCTS_LIBRARY } from './data/products';
 import { TopBar } from './components/TopBar';
-import { LeftToolBar } from './components/LeftToolBar';
+import { LeftToolBar } from './components/LeftToolbar';
 import { CanvasArea } from './components/CanvasArea';
 import { ThreeDViewport } from './components/ThreeDViewport';
 import { LayerPanel } from './components/LayerPanel';

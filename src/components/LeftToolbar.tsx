@@ -1286,4 +1286,3 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
 
 export const LeftToolBar = LeftToolbar;
 export default LeftToolbar;
-
