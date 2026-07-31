@@ -42,6 +42,9 @@ interface PrintSublimationModalProps {
   onExportMirrorPNG?: () => void;
   currentProduct?: PrintableProduct | any;
   darkMode?: boolean;
+  canvasElement?: HTMLCanvasElement | null;
+  mirrorSublimation?: boolean;
+  onShowSnackbar?: (msg: string, type: 'success' | 'info' | 'error') => void;
 }
 
 export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
@@ -49,7 +52,10 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
   onClose,
   onExportMirrorPNG,
   currentProduct,
-  darkMode = true
+  darkMode = true,
+  canvasElement,
+  mirrorSublimation = true,
+  onShowSnackbar,
 }) => {
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<'rip' | 'press' | 'icc' | 'status' | 'support'>('rip');
@@ -69,13 +75,29 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
 
   // RIP & Preview Options
   const [resolutionDpi, setResolutionDpi] = useState<300 | 600 | 1200>(1200);
-  const [exportFormat, setExportFormat] = useState<'png' | 'pdf' | 'tiff' | 'svg'>('png');
-  const [mirrorEnabled, setMirrorEnabled] = useState(true);
+  const [exportFormat, setExportFormat] = useState<'png' | 'pdf' | 'tiff' | 'svg' | 'jpg'>('png');
+  const [mirrorEnabled, setMirrorEnabled] = useState(mirrorSublimation);
   const [showBleedLines, setShowBleedLines] = useState(true);
   const [showCropMarks, setShowCropMarks] = useState(true);
   const [showRulerGrid, setShowRulerGrid] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [rotation, setRotation] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
+  const [canvasDataUrl, setCanvasDataUrl] = useState<string | null>(null);
+
+  // Capture canvas data URL on open
+  useEffect(() => {
+    if (isOpen) {
+      const c = canvasElement || (document.querySelector('canvas') as HTMLCanvasElement);
+      if (c) {
+        try {
+          setCanvasDataUrl(c.toDataURL('image/png'));
+        } catch (e) {
+          console.warn('Canvas toDataURL failed:', e);
+        }
+      }
+    }
+  }, [isOpen, canvasElement]);
 
   // ICC Color Profile State
   const [selectedIccProfile, setSelectedIccProfile] = useState('subli_vibrant_hd');
@@ -177,6 +199,124 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
     setNewPresetName('');
   };
 
+  // High-Resolution Export Handler
+  const handlePerformExport = (formatOverride?: string) => {
+    const fmt = formatOverride || exportFormat;
+    const c = canvasElement || (document.querySelector('canvas') as HTMLCanvasElement);
+    setIsExporting(true);
+
+    setTimeout(() => {
+      const widthMm = currentProduct?.widthMm || 204;
+      const heightMm = currentProduct?.heightMm || 90;
+
+      // Convert mm to inches -> pixels at selected DPI
+      const widthInches = widthMm / 25.4;
+      const heightInches = heightMm / 25.4;
+      const pixelWidth = Math.round(widthInches * resolutionDpi);
+      const pixelHeight = Math.round(heightInches * resolutionDpi);
+
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = pixelWidth;
+      exportCanvas.height = pixelHeight;
+
+      const ctx = exportCanvas.getContext('2d');
+      if (ctx) {
+        // White background for non-transparent formats
+        if (fmt !== 'png' && fmt !== 'svg') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+        }
+
+        ctx.save();
+        // Handle Horizontal Mirroring
+        if (mirrorEnabled) {
+          ctx.translate(exportCanvas.width, 0);
+          ctx.scale(-1, 1);
+        }
+
+        if (c) {
+          ctx.drawImage(c, 0, 0, exportCanvas.width, exportCanvas.height);
+        } else {
+          ctx.fillStyle = '#6b21a8';
+          ctx.font = 'bold 32px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(currentProduct?.name || 'Estampa Sublimática', exportCanvas.width / 2, exportCanvas.height / 2);
+        }
+
+        ctx.restore();
+
+        // Add 3mm Bleed lines overlay if enabled
+        if (showBleedLines) {
+          const bleedPx = Math.round((3 / 25.4) * resolutionDpi);
+          ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+          ctx.lineWidth = Math.max(2, resolutionDpi / 150);
+          ctx.strokeRect(bleedPx, bleedPx, exportCanvas.width - bleedPx * 2, exportCanvas.height - bleedPx * 2);
+        }
+      }
+
+      // Download generated file
+      const link = document.createElement('a');
+      const prodName = (currentProduct?.name || 'Estampa').replace(/\s+/g, '_');
+      const ext = fmt === 'jpg' ? 'jpg' : fmt;
+      link.download = `SublimStudio_${prodName}_${resolutionDpi}DPI_${mirrorEnabled ? 'Espelhado' : 'Normal'}.${ext}`;
+      
+      const mimeType = fmt === 'jpg' ? 'image/jpeg' : fmt === 'pdf' ? 'application/pdf' : 'image/png';
+      link.href = exportCanvas.toDataURL(mimeType, 0.95);
+      link.click();
+
+      setIsExporting(false);
+      if (onShowSnackbar) {
+        onShowSnackbar(`Arquivo (${fmt.toUpperCase()} ${resolutionDpi} DPI) exportado com sucesso!`, 'success');
+      } else if (onExportMirrorPNG) {
+        onExportMirrorPNG();
+      }
+    }, 300);
+  };
+
+  // Direct Hardware Printer Trigger
+  const handleTriggerDirectPrint = () => {
+    const c = canvasElement || (document.querySelector('canvas') as HTMLCanvasElement);
+    if (!c) {
+      window.print();
+      return;
+    }
+
+    try {
+      const dataUrl = c.toDataURL('image/png');
+      const printWin = window.open('', '_blank');
+      if (printWin) {
+        printWin.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Imprimir Estampa - SublimStudio PRO</title>
+              <style>
+                body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background: #fff; }
+                img { max-width: 100%; max-height: 100%; ${mirrorEnabled ? 'transform: scaleX(-1);' : ''} }
+                @page { size: auto; margin: 10mm; }
+              </style>
+            </head>
+            <body>
+              <img src="${dataUrl}" />
+              <script>
+                window.onload = function() { window.print(); window.close(); };
+              </script>
+            </body>
+          </html>
+        `);
+        printWin.document.close();
+      } else {
+        window.print();
+      }
+    } catch (err) {
+      window.print();
+    }
+
+    if (onShowSnackbar) {
+      onShowSnackbar('Comando de impressão enviado para a impressora!', 'success');
+    }
+  };
+
   if (!isOpen) return null;
 
   // Calculate ink coverage cost
@@ -187,9 +327,14 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 select-none p-2 sm:p-4 animate-fade-in overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-50 select-none p-2 sm:p-4 animate-fade-in touch-scroll-y"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
-        className={`w-full max-w-5xl rounded-3xl shadow-2xl border flex flex-col max-h-[92vh] overflow-hidden transition-all ${
+        className={`w-full max-w-5xl rounded-3xl shadow-2xl border flex flex-col max-h-[92dvh] overflow-hidden transition-all pb-[env(safe-area-inset-bottom,0px)] ${
           darkMode
             ? 'bg-[#0f1118] border-[#222638] text-slate-100 shadow-purple-950/40'
             : 'bg-white border-slate-200 text-slate-800 shadow-slate-400/30'
@@ -225,10 +370,7 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
           <div className="flex items-center gap-2">
             {/* Quick LED Print Button */}
             <button
-              onClick={() => {
-                if (onExportMirrorPNG) onExportMirrorPNG();
-                onClose();
-              }}
+              onClick={handleTriggerDirectPrint}
               className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-500/25 transition-all cursor-pointer active:scale-95 text-xs uppercase tracking-wide"
             >
               <Printer className="w-4 h-4 text-slate-950" />
@@ -338,16 +480,20 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
                       transform: `rotate(${rotation}deg) scaleX(${mirrorEnabled ? -1 : 1})`
                     }}
                   >
-                    {/* Simulated Print Sample Design */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-amber-500/10">
-                      <Sparkles className="w-8 h-8 text-purple-600 mb-1 animate-pulse" />
-                      <span className="font-black text-xs text-purple-900 uppercase tracking-wider">
-                        {currentProduct?.name || 'Estampa Sublimática Pro'}
-                      </span>
-                      <span className="text-[10px] text-slate-600 font-mono mt-1">
-                        {currentProduct?.printAspect || '204 x 90 mm (300 DPI)'}
-                      </span>
-                    </div>
+                    {canvasDataUrl ? (
+                      <img src={canvasDataUrl} alt="Estampa Preview" className="w-full h-full object-contain pointer-events-none" />
+                    ) : (
+                      /* Simulated Print Sample Design */
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-amber-500/10">
+                        <Sparkles className="w-8 h-8 text-purple-600 mb-1 animate-pulse" />
+                        <span className="font-black text-xs text-purple-900 uppercase tracking-wider">
+                          {currentProduct?.name || 'Estampa Sublimática Pro'}
+                        </span>
+                        <span className="text-[10px] text-slate-600 font-mono mt-1">
+                          {currentProduct?.printAspect || '204 x 90 mm (300 DPI)'}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Bleed Lines 3mm */}
                     {showBleedLines && (
@@ -528,14 +674,12 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
 
                   {/* Export / Print Action Button */}
                   <button
-                    onClick={() => {
-                      if (onExportMirrorPNG) onExportMirrorPNG();
-                      onClose();
-                    }}
-                    className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:brightness-110 text-white font-black text-sm rounded-2xl shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider"
+                    disabled={isExporting}
+                    onClick={() => handlePerformExport()}
+                    className="w-full py-3 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:brightness-110 text-white font-black text-sm rounded-2xl shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 uppercase tracking-wider disabled:opacity-50"
                   >
                     <Download className="w-4 h-4" />
-                    <span>EXPORTAR & IMPRIMIR ({resolutionDpi} DPI)</span>
+                    <span>{isExporting ? 'EXPORTANDO ARQUIVO...' : `EXPORTAR & IMPRIMIR (${resolutionDpi} DPI)`}</span>
                   </button>
                 </div>
               </div>

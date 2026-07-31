@@ -143,6 +143,7 @@ export interface SublimationProduct {
 }
 
 export interface AIPromptParams {
+  theme?: string;
   prompt: string;
   negativePrompt: string;
   model: string;

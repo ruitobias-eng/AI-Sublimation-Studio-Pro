@@ -30,9 +30,14 @@ export function HelpModal({ isOpen, onClose, theme = 'dark' }: HelpModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
-        className={`w-full max-w-5xl h-[92vh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all ${
+        className={`w-full max-w-5xl max-h-[92dvh] h-full rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all pb-[env(safe-area-inset-bottom,0px)] ${
           theme === 'light'
             ? 'bg-slate-100 border-slate-300 text-slate-800'
             : 'bg-[#0f1118] border-[#2d2f3a] text-gray-100'
@@ -116,7 +121,7 @@ export function HelpModal({ isOpen, onClose, theme = 'dark' }: HelpModalProps) {
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 selection:bg-purple-500/30">
+        <div className="flex-1 touch-scroll-y p-4 sm:p-6 space-y-6 selection:bg-purple-500/30">
           {/* TAB 1: ELEMENTOS E FORMAS VETORIAIS */}
           {activeCategory === 'elementos' && (
             <div className="space-y-5 animate-fadeIn">

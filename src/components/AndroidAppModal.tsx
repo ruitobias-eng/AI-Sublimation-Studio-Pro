@@ -13,9 +13,14 @@ export function AndroidAppModal({ isOpen, onClose, theme = 'dark' }: AndroidAppM
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn touch-scroll-y"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
-        className={`w-full max-w-lg rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all ${
+        className={`w-full max-w-lg max-h-[88dvh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all pb-[env(safe-area-inset-bottom,0px)] ${
           theme === 'light' ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#14151a] border-[#2d2f3a] text-gray-100'
         }`}
       >

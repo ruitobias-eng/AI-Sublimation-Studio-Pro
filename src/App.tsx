@@ -831,7 +831,7 @@ export default function App() {
   const activeLayerObj = layers.find((l) => l.id === activeLayerId) || null;
 
   return (
-    <div className={`flex flex-col w-screen h-screen overflow-hidden select-none font-sans transition-colors ${
+    <div className={`flex flex-col w-full h-screen h-[100dvh] overflow-hidden select-none font-sans transition-colors ${
       theme === 'light' ? 'bg-slate-100 text-slate-900 light' : 'bg-[#141415] text-white dark'
     }`}>
       {/* Hidden file inputs for opening projects, including stamps, and camera capture */}
@@ -900,7 +900,7 @@ export default function App() {
       <div className={`flex-1 w-full overflow-hidden relative transition-all duration-300 ${
         isAndroidSimulated
           ? 'max-w-[420px] max-h-[860px] mx-auto my-auto rounded-[40px] border-[10px] border-slate-900 ring-4 ring-slate-800 shadow-2xl shadow-emerald-500/10 flex flex-col bg-[#090d16] relative'
-          : 'flex h-[calc(100vh-2.75rem)]'
+          : 'flex h-[calc(100dvh-3rem)] w-full max-w-full'
       }`}>
         {/* Android Notch & Status bar indicator when in simulated mode */}
         {isAndroidSimulated && (
@@ -1216,21 +1216,17 @@ export default function App() {
         }}
       />
 
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        product={currentProduct}
-        canvasElement={renderedCanvas}
-        mirrorSublimation={mirrorSublimation}
-        onOpenPrintModal={() => setIsPrintModalOpen(true)}
-      />
-
       <PrintSublimationModal
-        isOpen={isPrintModalOpen}
-        onClose={() => setIsPrintModalOpen(false)}
+        isOpen={isPrintModalOpen || isExportModalOpen}
+        onClose={() => {
+          setIsPrintModalOpen(false);
+          setIsExportModalOpen(false);
+        }}
         currentProduct={currentProduct}
         darkMode={theme === 'dark'}
-        onExportMirrorPNG={() => setIsExportModalOpen(true)}
+        canvasElement={renderedCanvas}
+        mirrorSublimation={mirrorSublimation}
+        onShowSnackbar={(msg, type) => showSnackbar(msg, type)}
       />
 
       {/* Novo Projeto Modal */}

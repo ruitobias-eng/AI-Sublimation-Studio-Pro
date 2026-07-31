@@ -96,7 +96,7 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
   }
 
   return (
-    <div className={`flex flex-col h-full text-xs p-3 overflow-y-auto select-none gap-4 border-l transition-colors ${
+    <div className={`flex flex-col h-full text-xs p-3 touch-scroll-y select-none gap-4 border-l transition-colors ${
       theme === 'light' ? 'bg-white text-slate-800 border-slate-200' : 'bg-[#1e1e20] text-gray-300 border-[#2d2d30]'
     }`}>
       {/* Header */}

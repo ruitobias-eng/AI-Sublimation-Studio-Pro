@@ -7,12 +7,12 @@ import {
   Scissors,
   RefreshCw,
   Palette,
-  ImagePlus,
-  Layers,
   Zap,
-  Sliders,
   Check,
-  AlertCircle
+  AlertCircle,
+  Tag,
+  Layers,
+  Sliders
 } from 'lucide-react';
 
 interface AIPanelProps {
@@ -23,6 +23,19 @@ interface AIPanelProps {
   theme?: 'dark' | 'light';
 }
 
+const PRESET_THEMES = [
+  'Cyberpunk Neon',
+  'Floral Aquarela',
+  'Profissões & Enfermagem',
+  'Anime & Geek',
+  'Gatos & Pets',
+  'Futebol & Esportes',
+  'Vaporwave Retro',
+  'Gamer 3D',
+  'Infantil Fofo',
+  'Graffiti & Street Art',
+];
+
 export const AIPanel: React.FC<AIPanelProps> = ({
   product,
   onAddAIGeneratedImageToCanvas,
@@ -31,8 +44,9 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   theme = 'dark',
 }) => {
   const [params, setParams] = useState<AIPromptParams>({
+    theme: '',
     prompt: '',
-    negativePrompt: 'blurry, low resolution, watermark, pixelated, distorted colors, bad quality',
+    negativePrompt: 'blurry, low resolution, watermark, pixelated, distorted colors, bad quality, cropped edges, noise',
     model: 'gemini-3.1-flash-image',
     guidanceScale: 7.5,
     seed: 42,
@@ -42,10 +56,11 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isCompletingPrompts, setIsCompletingPrompts] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [aiSuggestions, setAiSuggestions] = useState<{ title: string; prompt: string }[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<{ title: string; prompt: string; negativePrompt?: string }[]>([]);
 
   const generateLocalPattern = (promptText: string) => {
     const canvas = document.createElement('canvas');
@@ -82,10 +97,83 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     return canvas.toDataURL('image/png');
   };
 
+  // Complete Prompts with AI (Tema -> Prompt da Estampa + Prompt Negativo)
+  const handleCompletePromptsWithAI = async () => {
+    const currentTheme = params.theme?.trim() || params.prompt?.trim();
+    if (!currentTheme) {
+      setErrorMessage('Digite um Tema ou Assunto na caixa acima para a IA criar os prompts.');
+      return;
+    }
+
+    setIsCompletingPrompts(true);
+    setStatusMessage('IA analisando o tema e gerando os prompts ideais para sublimação...');
+    setErrorMessage(null);
+
+    try {
+      const res = await fetch('/api/gemini/assist-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          theme: params.theme,
+          idea: params.prompt,
+          productType: product?.name || 'Caneca Sublimática',
+        }),
+      });
+
+      const data = await res.json();
+      if (data.result) {
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(data.result);
+        } catch {
+          // JSON parse retry
+        }
+
+        if (parsed && typeof parsed === 'object') {
+          const newPrompt = parsed.prompt || `Arte de estampa sublimática em alta definição sobre o tema: ${currentTheme}, vetor moderno com cores vivas e alto contraste, 300 DPI`;
+          const newNegative = parsed.negativePrompt || 'blurry, low resolution, watermark, pixelated, distorted colors, bad quality, cropped edges, noise';
+
+          setParams((prev) => ({
+            ...prev,
+            prompt: newPrompt,
+            negativePrompt: newNegative,
+          }));
+
+          if (Array.isArray(parsed.variations)) {
+            setAiSuggestions(parsed.variations);
+          } else if (Array.isArray(parsed)) {
+            setAiSuggestions(parsed);
+          }
+
+          setStatusMessage('Prompts da Estampa e Negativo preenchidos com IA! Você pode editar antes de gerar.');
+        } else {
+          throw new Error('Formato retornado inválido.');
+        }
+      } else {
+        throw new Error('Falha ao comunicar com IA.');
+      }
+    } catch (e: any) {
+      console.warn('AI Assist fallback triggered:', e);
+      // Smart Fallback prompt builder
+      const fallbackPrompt = `${currentTheme} - arte de estampa sublimática profissional em altíssima definição 300 DPI, estilo vetorial vibrante com gradientes ricos e contornos nítidos para sublimação em ${product?.name || 'caneca/camiseta'}`;
+      const fallbackNegative = 'blurry, low resolution, watermark, pixelated, distorted colors, bad quality, cropped edges, noise, out of focus, low contrast';
+
+      setParams((prev) => ({
+        ...prev,
+        prompt: fallbackPrompt,
+        negativePrompt: fallbackNegative,
+      }));
+
+      setStatusMessage('Prompts criados com IA (Modo Otimizado Local)! Você já pode gerar a estampa.');
+    } finally {
+      setIsCompletingPrompts(false);
+    }
+  };
+
   // Call Express API `/api/gemini/generate-image`
   const handleGenerateImage = async () => {
     if (!params.prompt.trim()) {
-      setErrorMessage('Por favor, digite um prompt para a geração da estampa.');
+      setErrorMessage('Por favor, digite ou gere um prompt para a criação da estampa.');
       return;
     }
 
@@ -112,7 +200,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         throw new Error(data.error || 'Erro na geração de imagem por IA');
       }
 
-      onAddAIGeneratedImageToCanvas(data.imageUrl, params.prompt.slice(0, 20));
+      onAddAIGeneratedImageToCanvas(data.imageUrl, (params.theme || params.prompt).slice(0, 20));
       setStatusMessage('Estampa gerada com sucesso e adicionada ao canvas!');
     } catch (err: any) {
       console.error('Error generating AI image:', err);
@@ -120,7 +208,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
       if (isQuotaError) {
         setErrorMessage('Cota da API Gemini excedida temporariamente (Rate Limit 429). Geramos uma arte sublimática vetorial local de alta qualidade para você continuar desenhando!');
         const fallbackUrl = generateLocalPattern(params.prompt);
-        onAddAIGeneratedImageToCanvas(fallbackUrl, params.prompt.slice(0, 20) || 'Arte Sublimação');
+        onAddAIGeneratedImageToCanvas(fallbackUrl, (params.theme || params.prompt).slice(0, 20) || 'Arte Sublimação');
       } else {
         setErrorMessage(err.message || 'Falha ao conectar com o servidor Gemini IA.');
       }
@@ -129,50 +217,8 @@ export const AIPanel: React.FC<AIPanelProps> = ({
     }
   };
 
-  // Get AI Ideas / Prompt Recommendations
-  const handleGetAIIdeas = async () => {
-    setIsLoading(true);
-    setStatusMessage('Gerando sugestões de estampas com a IA para ' + (product?.name || 'Produto') + '...');
-    try {
-      const res = await fetch('/api/gemini/assist-prompt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idea: params.prompt || 'Design sublimático moderno e vibrante',
-          productType: product?.name || 'Produto',
-        }),
-      });
-      const data = await res.json();
-      if (data.result) {
-        const parsed = JSON.parse(data.result);
-        if (Array.isArray(parsed)) {
-          setAiSuggestions(parsed);
-        }
-      }
-      setStatusMessage(null);
-    } catch (e) {
-      // Fallback sample prompts
-      setAiSuggestions([
-        {
-          title: 'Ilustração Retro Vaporwave',
-          prompt: 'Vaporwave sunset with neon grid and tropical palm trees, vivid cyan and magenta dyes for mug sublimation',
-        },
-        {
-          title: 'Floral Botânico Elegante',
-          prompt: 'Watercolor botanical floral frame with golden geometric lines, seamless print for pillow or t-shirt',
-        },
-        {
-          title: 'Mesa Gaming Cyberpunk',
-          prompt: 'Cyberpunk futuristic neon Japanese dragon artwork, high contrast vector art for mousepad deskmat',
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className={`flex flex-col h-full text-xs p-3.5 overflow-y-auto select-none gap-4 transition-colors ${
+    <div className={`flex flex-col h-full text-xs p-3.5 touch-scroll-y select-none gap-4 transition-colors ${
       theme === 'light' ? 'bg-white text-slate-800 border-slate-200' : 'bg-[#1e1e20] text-gray-300 border-[#2d2d30]'
     }`}>
       {/* Header */}
@@ -183,19 +229,58 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         <span>PAINEL IA GENERATIVO SUBLIMAÇÃO</span>
       </div>
 
-      {/* Main Prompt Input */}
+      {/* 1. CAIXA TEMA / ASSUNTO DA ESTAMPA */}
+      <div className="flex flex-col gap-2 bg-[#18181a] p-3 rounded-xl border border-[#2d2d30] shadow-sm">
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-bold text-purple-300 flex items-center gap-1.5 uppercase tracking-wide">
+            <Tag className="w-3.5 h-3.5 text-purple-400" />
+            Caixa Tema / Assunto da Estampa
+          </label>
+        </div>
+
+        <input
+          type="text"
+          value={params.theme || ''}
+          onChange={(e) => setParams({ ...params, theme: e.target.value })}
+          placeholder="Ex: Cyberpunk, Leão Aquarela, Enfermagem, Floral Gold, Gamer..."
+          className="w-full bg-[#121214] border border-[#38383c] focus:border-purple-500 rounded-lg p-2.5 text-white text-xs font-medium focus:outline-none transition-colors"
+        />
+
+        {/* Quick Theme Chips */}
+        <div className="flex flex-wrap gap-1 mt-1">
+          {PRESET_THEMES.map((themeName) => (
+            <button
+              key={themeName}
+              onClick={() => setParams((prev) => ({ ...prev, theme: themeName }))}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-all ${
+                params.theme === themeName
+                  ? 'bg-purple-600 text-white border-purple-400 font-bold'
+                  : 'bg-[#121214] hover:bg-purple-950/50 text-gray-300 border-[#2d2d30] hover:border-purple-500/50'
+              }`}
+            >
+              {themeName}
+            </button>
+          ))}
+        </div>
+
+        {/* Botão COMPLETAR COM IA */}
+        <button
+          disabled={isCompletingPrompts}
+          onClick={handleCompletePromptsWithAI}
+          className="mt-2 py-2 px-3 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-600 hover:from-purple-600 hover:to-indigo-600 text-white font-bold rounded-lg shadow flex items-center justify-center gap-2 text-xs transition-all active:scale-95 disabled:opacity-50"
+        >
+          <Wand2 className={`w-4 h-4 text-purple-200 ${isCompletingPrompts ? 'animate-spin' : ''}`} />
+          <span>{isCompletingPrompts ? 'Completando com IA...' : 'COMPLETAR PROMPTS COM IA'}</span>
+        </button>
+      </div>
+
+      {/* 2. PROMPT DA ESTAMPA */}
       <div className="flex flex-col gap-1.5 bg-[#18181a] p-3 rounded-xl border border-[#2d2d30]">
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-semibold text-gray-200 flex items-center gap-1.5">
             <Wand2 className="w-3.5 h-3.5 text-purple-400" />
             Prompt da Estampa (Descreva sua ideia)
           </label>
-          <button
-            onClick={handleGetAIIdeas}
-            className="text-[10px] text-purple-400 hover:text-purple-300 flex items-center gap-1 underline"
-          >
-            <Zap className="w-3 h-3" /> Ideias da IA
-          </button>
         </div>
 
         <textarea
@@ -206,14 +291,20 @@ export const AIPanel: React.FC<AIPanelProps> = ({
           className="w-full bg-[#121214] border border-[#38383c] focus:border-purple-500 rounded-lg p-2.5 text-white text-xs font-medium focus:outline-none transition-colors"
         />
 
-        {/* AI Prompt Suggestions Badges */}
+        {/* AI Prompt Suggestions / Variations */}
         {aiSuggestions.length > 0 && (
           <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-[#2d2d30]">
-            <span className="text-[10px] text-purple-300 font-semibold">Sugestões de Prompts:</span>
+            <span className="text-[10px] text-purple-300 font-semibold">Variações Alternativas da IA:</span>
             {aiSuggestions.map((sug, idx) => (
               <button
                 key={idx}
-                onClick={() => setParams({ ...params, prompt: sug.prompt })}
+                onClick={() =>
+                  setParams((prev) => ({
+                    ...prev,
+                    prompt: sug.prompt,
+                    negativePrompt: sug.negativePrompt || prev.negativePrompt,
+                  }))
+                }
                 className="text-left p-1.5 bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30 rounded text-[10px] text-purple-200 transition-colors"
               >
                 <span className="font-bold block text-white">{sug.title}</span>
@@ -224,14 +315,14 @@ export const AIPanel: React.FC<AIPanelProps> = ({
         )}
       </div>
 
-      {/* Negative Prompt */}
+      {/* 3. PROMPT NEGATIVO */}
       <div className="flex flex-col gap-1.5 bg-[#18181a] p-3 rounded-xl border border-[#2d2d30]">
         <label className="text-[11px] font-semibold text-gray-300">Prompt Negativo (O que evitar)</label>
         <input
           type="text"
           value={params.negativePrompt}
           onChange={(e) => setParams({ ...params, negativePrompt: e.target.value })}
-          className="w-full bg-[#121214] border border-[#38383c] rounded-lg p-2 text-white text-xs focus:outline-none"
+          className="w-full bg-[#121214] border border-[#38383c] rounded-lg p-2 text-white text-xs focus:outline-none focus:border-purple-500"
         />
       </div>
 
@@ -280,7 +371,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
 
       {/* Generate Button */}
       <button
-        disabled={isLoading}
+        disabled={isLoading || isCompletingPrompts}
         onClick={handleGenerateImage}
         className="py-3 px-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 hover:from-purple-500 hover:to-sky-500 text-white font-bold rounded-xl shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
       >

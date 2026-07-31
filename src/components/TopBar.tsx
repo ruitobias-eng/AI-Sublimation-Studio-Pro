@@ -98,7 +98,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`h-12 border-b flex items-center justify-between px-2 sm:px-3 select-none text-xs z-40 shadow-md transition-colors gap-1.5 sm:gap-2 relative ${
+    <header className={`h-12 border-b flex items-center justify-between px-2 sm:px-3 select-none text-xs z-40 shadow-md transition-colors gap-1.5 sm:gap-2 relative overflow-x-auto no-scrollbar max-w-full shrink-0 touch-scroll-x ${
       theme === 'light'
         ? 'bg-white border-slate-200 text-slate-800'
         : 'bg-[#0e0f14] border-[#23242c] text-gray-200'

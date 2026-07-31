@@ -143,7 +143,7 @@ export const AndroidMobileNav: React.FC<AndroidMobileNavProps> = ({
       )}
 
       {/* Material Design 3 Bottom Navigation Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#090d16]/95 backdrop-blur-lg border-t border-slate-800/80 px-3 py-1.5 flex items-center justify-between shadow-2xl sm:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#090d16]/95 backdrop-blur-lg border-t border-slate-800/80 px-3 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-between shadow-2xl sm:hidden touch-action-manipulation">
         
         {/* 1. Estúdio Canvas 2D */}
         <button

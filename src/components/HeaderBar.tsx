@@ -72,7 +72,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   return (
     <header
-      className={`h-12 border-b px-3 flex items-center justify-between select-none z-40 text-xs shrink-0 shadow-md transition-colors ${
+      className={`h-12 border-b px-3 flex items-center justify-between select-none z-40 text-xs shrink-0 shadow-md transition-colors overflow-x-auto no-scrollbar max-w-full touch-scroll-x ${
         darkMode ? 'bg-[#0B0F17] border-[#1F2937] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
       }`}
     >
@@ -146,8 +146,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             </button>
             {activeDropdown === 'exibir' && (
               <div
-                className={`absolute top-full left-0 mt-1 w-48 border rounded-xl shadow-2xl py-1 z-50 animate-fade-in ${
-                  darkMode ? 'bg-[#161B26] border-[#2A3447]' : 'bg-white border-slate-200'
+                className={`fixed top-12 left-44 mt-1 w-48 border rounded-xl shadow-2xl py-1 z-[100] animate-fade-in ${
+                  darkMode ? 'bg-[#161B26] border-[#2A3447] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
                 }`}
                 onMouseLeave={() => setActiveDropdown(null)}
               >
@@ -181,8 +181,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             </button>
             {activeDropdown === 'prensa' && (
               <div
-                className={`absolute top-full left-0 mt-1 w-56 border rounded-xl shadow-2xl py-1 z-50 animate-fade-in ${
-                  darkMode ? 'bg-[#161B26] border-[#2A3447]' : 'bg-white border-slate-200'
+                className={`fixed top-12 left-64 mt-1 w-56 border rounded-xl shadow-2xl py-1 z-[100] animate-fade-in ${
+                  darkMode ? 'bg-[#161B26] border-[#2A3447] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
                 }`}
                 onMouseLeave={() => setActiveDropdown(null)}
               >

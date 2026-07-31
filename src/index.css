@@ -1,6 +1,36 @@
 @import "tailwindcss";
 
-/* Hide scrollbars for pill navigation */
+/* Momentum scroll & overscroll containment for touch devices */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+/* Touch momentum scrolling containers */
+.touch-scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.touch-scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+
+/* Hide scrollbars for pill navigation & headers */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -24,3 +54,15 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #a855f7;
 }
+
+/* Safe Area Inset Helpers for iOS & Android gesture bars */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+

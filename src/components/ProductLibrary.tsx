@@ -47,24 +47,29 @@ export const ProductLibrary: React.FC<ProductLibraryProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none">
-      <div className="bg-[#1e1e20] border border-[#38383c] rounded-2xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden text-gray-200">
+    <div
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 select-none"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="bg-[#1e1e20] border border-[#38383c] rounded-2xl w-full max-w-4xl max-h-[88dvh] flex flex-col shadow-2xl overflow-hidden text-gray-200 pb-[env(safe-area-inset-bottom,0px)]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#2d2d30] bg-[#18181a]">
+        <div className="flex items-center justify-between p-4 border-b border-[#2d2d30] bg-[#18181a] shrink-0">
           <div className="flex items-center gap-2">
             <Box className="w-5 h-5 text-sky-400" />
-            <span className="font-bold text-lg text-white">BIBLIOTECA DE PRODUTOS SUBLIMÁTICO</span>
+            <span className="font-bold text-sm sm:text-lg text-white">BIBLIOTECA DE PRODUTOS SUBLIMÁTICO</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Filter Bar */}
-        <div className="p-4 border-b border-[#2d2d30] flex flex-col sm:flex-row items-center gap-3 bg-[#141415]">
+        <div className="p-3 sm:p-4 border-b border-[#2d2d30] flex flex-col sm:flex-row items-center gap-3 bg-[#141415] shrink-0">
           {/* Search Box */}
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -78,12 +83,12 @@ export const ProductLibrary: React.FC<ProductLibraryProps> = ({
           </div>
 
           {/* Category Tabs Dropdown */}
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 touch-scroll-x no-scrollbar w-full sm:w-auto pb-1 sm:pb-0 shrink-0">
             {categories.slice(0, 6).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-sky-600 text-white shadow'
                     : 'bg-[#1e1e20] text-gray-400 hover:text-white hover:bg-white/5'
@@ -96,7 +101,7 @@ export const ProductLibrary: React.FC<ProductLibraryProps> = ({
         </div>
 
         {/* Product Grid */}
-        <div className="p-4 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 flex-1">
+        <div className="p-4 touch-scroll-y grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 flex-1">
           {filteredProducts.map((product) => {
             const isSelected = selectedProduct.id === product.id;
 

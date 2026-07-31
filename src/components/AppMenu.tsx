@@ -33,21 +33,29 @@ export function AppMenu({
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fecha o menu ao clicar fora dele
+  // Fecha o menu ao clicar/tocar fora dele
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
 
   return (
     <div className="relative z-50 shrink-0" ref={menuRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen((prev) => !prev);
+        }}
         className={`px-2.5 py-1 rounded-xl border transition-all flex items-center gap-1.5 font-extrabold cursor-pointer shadow-sm ${
           theme === 'light' 
             ? 'bg-slate-100 border-slate-300 hover:bg-purple-50 hover:border-purple-300 text-slate-800' 
@@ -60,7 +68,7 @@ export function AppMenu({
       </button>
 
       {isOpen && (
-        <div className={`absolute top-full left-0 mt-1.5 w-60 rounded-2xl shadow-2xl border overflow-hidden z-50 transition-all ${
+        <div className={`fixed top-12 left-2 sm:left-28 mt-1 w-64 rounded-2xl shadow-2xl border overflow-hidden z-[100] transition-all touch-scroll-y max-h-[calc(100dvh-3.5rem)] ${
           theme === 'light' 
             ? 'bg-white border-slate-200 text-slate-800 shadow-slate-300/50' 
             : 'bg-[#161720] border-[#2d2f3e] text-gray-200 shadow-black/80'

@@ -265,7 +265,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   return (
     <div className="flex h-full select-none z-30 relative">
       {/* 1. Canva Left Icon Rail */}
-      <aside className={`w-18 border-r flex flex-col items-center py-3 gap-3 select-none z-40 transition-colors ${
+      <aside className={`w-18 border-r flex flex-col items-center py-3 gap-3 select-none z-40 transition-colors overflow-y-auto no-scrollbar touch-scroll-y shrink-0 ${
         theme === 'light'
           ? 'bg-slate-100 border-slate-300 text-slate-600'
           : 'bg-[#0d0e12] border-[#23242a] text-gray-400'
@@ -462,7 +462,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
           )}
 
           {/* Drawer Body Content based on Active Tab */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 touch-scroll-y p-4 space-y-4">
             {/* TAB 1: TEMPLATES */}
             {activeTab === 'templates' && (
               <div className="space-y-3">
