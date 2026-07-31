@@ -10,7 +10,7 @@ import {
 } from './types';
 import { PRODUCTS_LIBRARY } from './data/products';
 import { TopBar } from './components/TopBar';
-import { LeftToolbar } from './components/LeftToolbar';
+import { LeftToolBar } from './components/LeftToolBar';
 import { CanvasArea } from './components/CanvasArea';
 import { ThreeDViewport } from './components/ThreeDViewport';
 import { LayerPanel } from './components/LayerPanel';
@@ -19,6 +19,13 @@ import { RightPropertiesPanel } from './components/RightPropertiesPanel';
 import { AIPanel } from './components/AIPanel';
 import { ProductLibrary } from './components/ProductLibrary';
 import { ExportModal } from './components/ExportModal';
+import { AndroidAppModal } from './components/AndroidAppModal';
+import { HelpModal } from './components/HelpModal';
+import { AboutModal } from './components/AboutModal';
+import { PrintSublimationModal } from './components/PrintSublimationModal';
+import { AndroidMobileNav } from './components/AndroidMobileNav';
+import { MD3Snackbar, SnackbarMessage } from './components/MD3Snackbar';
+import { MD3BottomSheet } from './components/MD3BottomSheet';
 
 import {
   Layers,
@@ -128,6 +135,33 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
+  const [isAndroidSimulated, setIsAndroidSimulated] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  // MD3 Snackbar & Mobile Bottom Sheet state
+  const [snackbar, setSnackbar] = useState<SnackbarMessage | null>(null);
+  const [mobileBottomSheetTab, setMobileBottomSheetTab] = useState<'layers' | 'properties' | 'ai' | null>(null);
+
+  const showSnackbar = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setSnackbar({ id: 'sb-' + Date.now(), message, type });
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate(15);
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
+
+  // Android Camera Input Ref
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const handleTriggerCamera = () => {
+    cameraInputRef.current?.click();
+  };
 
   // Handlers for App Menu
   const handleConfirmNewProject = (type: 'blank' | 'sample') => {
@@ -593,29 +627,95 @@ export default function App() {
     setCanvasVersion((v) => v + 1);
   };
 
-  // Keyboard Shortcuts: Delete/Backspace key deletes the selected layer/image
+  // Global Keyboard Shortcuts: Ctrl+P (Print RIP), Ctrl+E (Export), Ctrl+N (New), Ctrl+O (Open), Ctrl+S (Save), Ctrl+Z/Y (Undo/Redo), Delete, Arrow Keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeEl = document.activeElement as HTMLElement | null;
-      if (
+      const isInput =
         activeEl &&
         (activeEl.tagName === 'INPUT' ||
           activeEl.tagName === 'TEXTAREA' ||
           activeEl.tagName === 'SELECT' ||
-          activeEl.isContentEditable)
-      ) {
-        return;
+          activeEl.isContentEditable);
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+
+      if (isCtrlOrCmd) {
+        const keyLower = e.key.toLowerCase();
+        if (keyLower === 'p') {
+          e.preventDefault();
+          setIsPrintModalOpen(true);
+          return;
+        }
+        if (keyLower === 'e') {
+          e.preventDefault();
+          setIsExportModalOpen(true);
+          return;
+        }
+        if (keyLower === 'n') {
+          e.preventDefault();
+          setIsNewProjectModalOpen(true);
+          return;
+        }
+        if (keyLower === 'o') {
+          e.preventDefault();
+          handleOpenProjectClick();
+          return;
+        }
+        if (keyLower === 's') {
+          e.preventDefault();
+          handleSaveLayout();
+          return;
+        }
+        if (keyLower === 'z') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            handleRedo();
+          } else {
+            handleUndo();
+          }
+          return;
+        }
+        if (keyLower === 'y') {
+          e.preventDefault();
+          handleRedo();
+          return;
+        }
       }
+
+      if (isInput) return;
 
       if ((e.key === 'Delete' || e.key === 'Backspace') && activeLayerId) {
         e.preventDefault();
         handleDeleteLayer(activeLayerId);
+        return;
+      }
+
+      // Arrow keys nudge active layer
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && activeLayerId) {
+        const activeLayer = layers.find((l) => l.id === activeLayerId);
+        if (activeLayer && !activeLayer.locked) {
+          e.preventDefault();
+          const step = e.shiftKey ? 10 : 1;
+          let dx = 0;
+          let dy = 0;
+          if (e.key === 'ArrowLeft') dx = -step;
+          if (e.key === 'ArrowRight') dx = step;
+          if (e.key === 'ArrowUp') dy = -step;
+          if (e.key === 'ArrowDown') dy = step;
+
+          handleUpdateLayer({
+            ...activeLayer,
+            x: activeLayer.x + dx,
+            y: activeLayer.y + dy,
+          });
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeLayerId, layers]);
+  }, [activeLayerId, layers, currentHistoryIndex, historySteps]);
 
   const handleDuplicateLayer = (id: string) => {
     const target = layers.find((l) => l.id === id);
@@ -719,7 +819,7 @@ export default function App() {
     <div className={`flex flex-col w-screen h-screen overflow-hidden select-none font-sans transition-colors ${
       theme === 'light' ? 'bg-slate-100 text-slate-900 light' : 'bg-[#141415] text-white dark'
     }`}>
-      {/* Hidden file inputs for opening projects and including stamps */}
+      {/* Hidden file inputs for opening projects, including stamps, and camera capture */}
       <input
         ref={projectInputRef}
         type="file"
@@ -734,6 +834,14 @@ export default function App() {
         onChange={handleIncludeStampFile}
         className="hidden"
       />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleIncludeStampFile}
+        className="hidden"
+      />
 
       {/* Top Bar */}
       <TopBar
@@ -744,10 +852,14 @@ export default function App() {
         canUndo={currentHistoryIndex > 0}
         canRedo={currentHistoryIndex < historySteps.length - 1}
         onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenPrintModal={() => setIsPrintModalOpen(true)}
         onOpenAIPanel={() => {
           setActiveRightTab('ai');
           setIsRightSidebarCollapsed(false);
         }}
+        onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
+        onOpenHelp={() => setIsHelpModalOpen(true)}
+        onOpenAbout={() => setIsAboutModalOpen(true)}
         mirrorSublimation={mirrorSublimation}
         onToggleMirrorSublimation={() => setMirrorSublimation(!mirrorSublimation)}
         showGrid={showGrid}
@@ -770,9 +882,25 @@ export default function App() {
       />
 
       {/* Main Workspace Grid (Left Toolbar | Central Canvas or 3D Stage | Right Sidepanels) */}
-      <div className="flex flex-1 w-full h-[calc(100vh-2.75rem)] overflow-hidden relative">
+      <div className={`flex-1 w-full overflow-hidden relative transition-all duration-300 ${
+        isAndroidSimulated
+          ? 'max-w-[420px] max-h-[860px] mx-auto my-auto rounded-[40px] border-[10px] border-slate-900 ring-4 ring-slate-800 shadow-2xl shadow-emerald-500/10 flex flex-col bg-[#090d16] relative'
+          : 'flex h-[calc(100vh-2.75rem)]'
+      }`}>
+        {/* Android Notch & Status bar indicator when in simulated mode */}
+        {isAndroidSimulated && (
+          <div className="w-full bg-slate-950 px-6 py-2.5 flex items-center justify-between text-[10px] text-slate-400 border-b border-slate-800/80 shrink-0">
+            <span className="font-bold text-slate-200">14:59</span>
+            {/* Camera Hole Notch */}
+            <div className="w-4 h-4 bg-black rounded-full ring-2 ring-slate-800"></div>
+            <div className="flex items-center gap-1.5 font-medium">
+              <span>5G</span>
+              <span>100%</span>
+            </div>
+          </div>
+        )}
         {/* Left Canva Rail and Side Drawer */}
-        <LeftToolbar
+        <LeftToolBar
           activeTool={activeTool}
           onSelectTool={handleSelectTool}
           selectedShape={selectedShape}
@@ -1079,6 +1207,15 @@ export default function App() {
         product={currentProduct}
         canvasElement={renderedCanvas}
         mirrorSublimation={mirrorSublimation}
+        onOpenPrintModal={() => setIsPrintModalOpen(true)}
+      />
+
+      <PrintSublimationModal
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        currentProduct={currentProduct}
+        darkMode={theme === 'dark'}
+        onExportMirrorPNG={() => setIsExportModalOpen(true)}
       />
 
       {/* Novo Projeto Modal */}
@@ -1258,6 +1395,149 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Android Bottom Navigation Bar */}
+      <AndroidMobileNav
+        workspaceViewMode={workspaceViewMode}
+        setWorkspaceViewMode={setWorkspaceViewMode}
+        activeRightTab={activeRightTab}
+        setActiveRightTab={setActiveRightTab}
+        setIsRightSidebarCollapsed={setIsRightSidebarCollapsed}
+        onOpenProductLibrary={() => setIsProductLibraryOpen(true)}
+        onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
+        onTriggerCameraCapture={() => {
+          handleTriggerCamera();
+          showSnackbar('Câmera ativada para captura', 'info');
+        }}
+        onIncludeStamp={() => {
+          handleIncludeStampClick();
+          showSnackbar('Selecione uma estampa ou foto', 'info');
+        }}
+        onAddTextLayer={() => {
+          handleAddLayer('text');
+          showSnackbar('Novo texto adicionado!', 'success');
+        }}
+        onAddShapeLayer={(shape) => {
+          handleAddLayer('shape', shape);
+          showSnackbar(`Forma ${shape} adicionada!`, 'success');
+        }}
+        onOpenMobileBottomSheet={(tab) => {
+          setMobileBottomSheetTab(tab);
+        }}
+      />
+
+      {/* Material 3 Android Mobile Bottom Sheet */}
+      <MD3BottomSheet
+        isOpen={mobileBottomSheetTab !== null}
+        onClose={() => setMobileBottomSheetTab(null)}
+        title={
+          mobileBottomSheetTab === 'layers'
+            ? 'Gerenciador de Camadas'
+            : mobileBottomSheetTab === 'properties'
+            ? 'Ajustes e Propriedades'
+            : 'IA Studio - Gerar Estampa'
+        }
+        subtitle={
+          mobileBottomSheetTab === 'layers'
+            ? 'Organize, bloqueie e ajuste a opacidade dos elementos'
+            : mobileBottomSheetTab === 'properties'
+            ? 'Ajuste cores, tamanho, fonte e curva do objeto'
+            : 'Crie artes e fundos automáticos com IA'
+        }
+      >
+        {mobileBottomSheetTab === 'layers' && (
+          <LayerPanel
+            layers={layers}
+            activeLayerId={activeLayerId}
+            onSelectLayer={setActiveLayerId}
+            onAddLayer={(type) => {
+              handleAddLayer(type);
+              showSnackbar(`Camada ${type} criada!`, 'success');
+            }}
+            onDeleteLayer={(id) => {
+              handleDeleteLayer(id);
+              showSnackbar('Camada removida', 'info');
+            }}
+            onDuplicateLayer={(id) => {
+              handleDuplicateLayer(id);
+              showSnackbar('Camada duplicada', 'success');
+            }}
+            onToggleVisibility={handleToggleVisibility}
+            onToggleLock={handleToggleLock}
+            onUpdateLayer={handleUpdateLayer}
+            onReorderLayers={(reordered) => {
+              setLayers(reordered);
+              setCanvasVersion((v) => v + 1);
+            }}
+            theme={theme}
+          />
+        )}
+
+        {mobileBottomSheetTab === 'properties' && (
+          <RightPropertiesPanel
+            activeLayer={activeLayerObj}
+            onUpdateLayer={handleUpdateLayer}
+            product={currentProduct}
+            onApplyPresetTemplate={handleApplyPresetTemplate}
+            onDeleteLayer={(id) => {
+              handleDeleteLayer(id);
+              setMobileBottomSheetTab(null);
+              showSnackbar('Camada removida', 'info');
+            }}
+            onDuplicateLayer={(id) => {
+              handleDuplicateLayer(id);
+              showSnackbar('Camada duplicada', 'success');
+            }}
+            theme={theme}
+          />
+        )}
+
+        {mobileBottomSheetTab === 'ai' && (
+          <AIPanel
+            product={currentProduct}
+            onAddAIGeneratedImageToCanvas={(url, title) => {
+              handleAddAIGeneratedImageToCanvas(url, title);
+              setMobileBottomSheetTab(null);
+              showSnackbar('Arte IA adicionada à tela!', 'success');
+            }}
+            onApplyAIToolToActiveLayer={(action) => {
+              handleApplyAIToolToActiveLayer(action);
+              showSnackbar(`Efeito IA (${action}) aplicado!`, 'success');
+            }}
+            activeLayer={activeLayerObj}
+            theme={theme}
+          />
+        )}
+      </MD3BottomSheet>
+
+      {/* Material Design 3 Toast / Snackbar System */}
+      <MD3Snackbar
+        snackbar={snackbar}
+        onClose={() => setSnackbar(null)}
+      />
+
+      {/* Android App APK & PWA Modal */}
+      <AndroidAppModal
+        isOpen={isAndroidModalOpen}
+        onClose={() => setIsAndroidModalOpen(false)}
+        isAndroidSimulated={isAndroidSimulated}
+        setIsAndroidSimulated={setIsAndroidSimulated}
+      />
+
+      {/* Tutorial Completo & Ajuda Modal */}
+      <HelpModal
+        isOpen={isHelpModalOpen}
+        onClose={() => setIsHelpModalOpen(false)}
+        theme={theme}
+      />
+
+      {/* Sobre o SublimStudio PRO Modal */}
+      <AboutModal
+        isOpen={isAboutModalOpen}
+        onClose={() => setIsAboutModalOpen(false)}
+        theme={theme}
+        onOpenHelp={() => setIsHelpModalOpen(true)}
+      />
     </div>
   );
 }

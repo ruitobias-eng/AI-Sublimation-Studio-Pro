@@ -4,7 +4,7 @@ import { SublimationProduct, Environment3DConfig } from '../types';
 import { Maximize2, RotateCw, RotateCcw, Play, Pause, Box, Sun } from 'lucide-react';
 
 interface ThreeDViewportProps {
-  product: SublimationProduct;
+  product?: SublimationProduct;
   canvasElement: HTMLCanvasElement | null;
   canvasVersion: number;
 }
@@ -316,7 +316,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
 
     // Shared material for base body
     const baseBodyMaterial = new THREE.MeshStandardMaterial({
-      color: product.bgColor || 0xffffff,
+      color: product?.bgColor || 0xffffff,
       ...matProps,
     });
 
@@ -329,10 +329,10 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
       side: THREE.DoubleSide,
     });
 
-    switch (product.model3D) {
+    switch (product?.model3D || 'mug') {
       case 'mug': {
         // High-Fidelity Ceramic Sublimation Mug 11oz (325ml)
-        const mugBodyColor = product.bgColor || '#ffffff';
+        const mugBodyColor = product?.bgColor || '#ffffff';
         const accentColorHex = mugAccentColor || '#ffffff';
 
         // Base porcelain material for unprinted areas
@@ -429,7 +429,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
       case 'bottle':
       case 'tumbler': {
         // Skinny Tumbler / Inox Bottle
-        const bottleHeight = product.model3D === 'tumbler' ? 2.2 : 2.0;
+        const bottleHeight = product?.model3D === 'tumbler' ? 2.2 : 2.0;
         const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, bottleHeight, 48);
         const bodyMesh = new THREE.Mesh(bodyGeo, printMaterial);
         bodyMesh.userData.isPrintArea = true;
@@ -447,7 +447,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
         capMesh.position.y = bottleHeight / 2 + 0.15;
         group.add(capMesh);
 
-        if (product.model3D === 'tumbler') {
+        if (product?.model3D === 'tumbler') {
           // Clear Straw
           const strawGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.8, 12);
           const strawMat = new THREE.MeshPhysicalMaterial({
@@ -665,7 +665,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
           <Box className="w-4 h-4 text-sky-400" />
           <span className="font-semibold tracking-wide text-white">MOCKUP 3D REALISTA</span>
           <span className="px-2 py-0.5 text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full font-mono">
-            {product.name}
+            {product?.name || 'Produto'}
           </span>
         </div>
 
@@ -782,7 +782,7 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
             </div>
 
             {/* Mug Interior & Handle Color Accent Selector */}
-            {product.model3D === 'mug' && (
+            {product?.model3D === 'mug' && (
               <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
                 <span className="text-[10px] text-gray-400 hidden md:inline">Interior/Alça:</span>
                 <div className="flex items-center gap-1">

@@ -22,9 +22,9 @@ import {
 
 interface RightPropertiesPanelProps {
   activeLayer: Layer | null;
-  onUpdateLayer: (updatedLayer: Layer) => void;
-  product: SublimationProduct;
-  onApplyPresetTemplate: (templateType: 'centered_logo' | 'full_wrap' | 'name_badge') => void;
+  onUpdateLayer?: (updatedLayer: Layer) => void;
+  product?: SublimationProduct;
+  onApplyPresetTemplate?: (templateType: 'centered_logo' | 'full_wrap' | 'name_badge') => void;
   onDeleteLayer?: (id: string) => void;
   onDuplicateLayer?: (id: string) => void;
   theme?: 'dark' | 'light';
@@ -77,7 +77,7 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
             }`}
           >
             <Zap className="w-3.5 h-3.5 text-amber-500" />
-            <span>Centralizar Logo em {product.name}</span>
+            <span>Centralizar Logo em {product?.name || 'Produto'}</span>
           </button>
           <button
             onClick={() => onApplyPresetTemplate('full_wrap')}
@@ -211,15 +211,17 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
             <div className="grid grid-cols-2 gap-1.5">
               <button
                 onClick={() => {
-                  const printWidth = Math.round((product.defaultWidthCm / 2.54) * 150);
-                  const printHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
-                  onUpdateLayer({
-                    ...activeLayer,
-                    x: 0,
-                    y: 0,
-                    width: printWidth,
-                    height: printHeight,
-                  });
+                  const printWidth = Math.round(((product?.defaultWidthCm || 20) / 2.54) * 150);
+                  const printHeight = Math.round(((product?.defaultHeightCm || 9) / 2.54) * 150);
+                  if (onUpdateLayer) {
+                    onUpdateLayer({
+                      ...activeLayer,
+                      x: 0,
+                      y: 0,
+                      width: printWidth,
+                      height: printHeight,
+                    });
+                  }
                 }}
                 className="px-2 py-1 bg-[#252528] hover:bg-[#323236] border border-[#38383c] text-sky-300 rounded text-[10px] font-medium transition-colors cursor-pointer"
                 title="Redimensionar imagem para cobrir toda a área de estampa"
@@ -228,13 +230,15 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const printWidth = Math.round((product.defaultWidthCm / 2.54) * 150);
-                  const printHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
-                  onUpdateLayer({
-                    ...activeLayer,
-                    x: Math.round((printWidth - activeLayer.width) / 2),
-                    y: Math.round((printHeight - activeLayer.height) / 2),
-                  });
+                  const printWidth = Math.round(((product?.defaultWidthCm || 20) / 2.54) * 150);
+                  const printHeight = Math.round(((product?.defaultHeightCm || 9) / 2.54) * 150);
+                  if (onUpdateLayer) {
+                    onUpdateLayer({
+                      ...activeLayer,
+                      x: Math.round((printWidth - activeLayer.width) / 2),
+                      y: Math.round((printHeight - activeLayer.height) / 2),
+                    });
+                  }
                 }}
                 className="px-2 py-1 bg-[#252528] hover:bg-[#323236] border border-[#38383c] text-gray-200 rounded text-[10px] font-medium transition-colors cursor-pointer"
                 title="Centralizar imagem na área imprimível"

@@ -33,61 +33,88 @@ import { VECTOR_FONTS, FontDefinition } from '../data/fonts';
 import { VECTOR_TEXT_PRESETS, VectorTextPreset } from '../data/vectorTextPresets';
 import { ProductIcon } from './ProductIcon';
 
-interface LeftToolbarProps {
-  activeTool: ToolType;
-  onSelectTool: (tool: ToolType) => void;
-  selectedShape: ShapeType;
-  onSelectShape: (shape: ShapeType) => void;
-  activeColor: string;
-  onChangeColor: (color: string) => void;
-  brushSize: number;
-  onChangeBrushSize: (size: number) => void;
-  onAddLayer: (
+export type SidebarTabType = 'templates' | 'elements' | 'text' | 'uploads' | 'products' | 'ai' | 'layers' | 'history' | 'presets' | 'vector';
+
+export interface LeftToolbarProps {
+  activeTool?: ToolType;
+  setActiveTool?: (tool: ToolType) => void;
+  onSelectTool?: (tool: ToolType) => void;
+  activeSidebarTab?: SidebarTabType | null;
+  setActiveSidebarTab?: (tab: SidebarTabType | null) => void;
+  selectedShape?: ShapeType;
+  onSelectShape?: (shape: ShapeType) => void;
+  activeColor?: string;
+  onChangeColor?: (color: string) => void;
+  fillColor?: string;
+  setFillColor?: (color: string) => void;
+  strokeColor?: string;
+  setStrokeColor?: (color: string) => void;
+  onOpenColorPicker?: (type: 'fill' | 'stroke') => void;
+  brushSize?: number;
+  onChangeBrushSize?: (size: number) => void;
+  onAddLayer?: (
     type: 'text' | 'shape' | 'image',
     customShape?: ShapeType,
     defaultWarpStyle?: TextWarpStyle,
     customFontFamily?: string
   ) => void;
   onAddVectorTextPreset?: (preset: VectorTextPreset) => void;
-  currentProduct: SublimationProduct;
-  onSelectProduct: (product: SublimationProduct) => void;
-  layers: Layer[];
-  activeLayerId: string | null;
-  onSelectLayer: (id: string | null) => void;
-  onUpdateLayer: (layer: Layer) => void;
+  currentProduct?: SublimationProduct;
+  onSelectProduct?: (product: SublimationProduct) => void;
+  layers?: Layer[];
+  activeLayerId?: string | null;
+  onSelectLayer?: (id: string | null) => void;
+  onUpdateLayer?: (layer: Layer) => void;
   onDeleteLayer?: (id: string) => void;
   onDuplicateLayer?: (id: string) => void;
   onAddAIGeneratedImage?: (url: string, title: string) => void;
   onOpenAIPanel?: () => void;
+  darkMode?: boolean;
   theme?: 'dark' | 'light';
 }
 
 export const LeftToolbar: React.FC<LeftToolbarProps> = ({
-  activeTool,
+  activeTool = 'select',
+  setActiveTool,
   onSelectTool,
-  selectedShape,
+  activeSidebarTab: externalActiveSidebarTab,
+  setActiveSidebarTab: externalSetActiveSidebarTab,
+  selectedShape = 'rectangle',
   onSelectShape,
-  activeColor,
+  activeColor: externalActiveColor,
   onChangeColor,
-  brushSize,
+  fillColor = '#00D9FF',
+  setFillColor,
+  strokeColor = '#0F172A',
+  setStrokeColor,
+  onOpenColorPicker,
+  brushSize = 5,
   onChangeBrushSize,
   onAddLayer,
   onAddVectorTextPreset,
   currentProduct,
   onSelectProduct,
-  layers,
-  activeLayerId,
+  layers = [],
+  activeLayerId = null,
   onSelectLayer,
   onUpdateLayer,
   onDeleteLayer,
   onDuplicateLayer,
   onAddAIGeneratedImage,
   onOpenAIPanel,
-  theme = 'dark',
+  darkMode = true,
+  theme = darkMode ? 'dark' : 'light',
 }) => {
+  // Active Color
+  const activeColor = externalActiveColor || fillColor;
+
   // Canva Active Drawer Tab
-  const [activeTab, setActiveTab] = useState<'templates' | 'elements' | 'text' | 'uploads' | 'products' | 'ai' | 'layers' | null>('templates');
-  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(true);
+  const [internalActiveTab, setInternalActiveTab] = useState<SidebarTabType | null>('templates');
+  const [internalIsDrawerOpen, setInternalIsDrawerOpen] = useState<boolean>(true);
+
+  const activeTab = externalActiveSidebarTab !== undefined ? externalActiveSidebarTab : internalActiveTab;
+  const isDrawerOpen = externalActiveSidebarTab !== undefined ? Boolean(externalActiveSidebarTab) : internalIsDrawerOpen;
+
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedShapeCategory, setSelectedShapeCategory] = useState<string>('all');
   const [shapeSearchQuery, setShapeSearchQuery] = useState<string>('');
@@ -113,13 +140,13 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   ]);
 
   const handleSelectShapeWithRecent = (shapeId: string) => {
-    onSelectShape(shapeId);
+    if (onSelectShape) onSelectShape(shapeId);
     setRecentlyUsedShapes((prev) => [shapeId, ...prev.filter((id) => id !== shapeId)].slice(0, 16));
   };
 
   const handleApplyTextWarp = (warpStyle: TextWarpStyle) => {
     const activeL = layers.find((l) => l.id === activeLayerId);
-    if (activeL && activeL.type === 'text') {
+    if (activeL && activeL.type === 'text' && onUpdateLayer) {
       const isSpaciousStyle = [
         'circle',
         'logo_circle',
@@ -144,7 +171,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
         width: isSpaciousStyle ? Math.max(activeL.width, 320) : activeL.width,
         height: isSpaciousStyle ? Math.max(activeL.height, 220) : activeL.height,
       });
-    } else {
+    } else if (onAddLayer) {
       onAddLayer('text', undefined, warpStyle);
     }
   };
@@ -203,12 +230,20 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   ];
 
   // Handle Tab Click
-  const handleTabClick = (tab: 'templates' | 'elements' | 'text' | 'uploads' | 'products' | 'ai' | 'layers') => {
-    if (activeTab === tab && isDrawerOpen) {
-      setIsDrawerOpen(false);
+  const handleTabClick = (tab: SidebarTabType) => {
+    if (externalSetActiveSidebarTab) {
+      if (externalActiveSidebarTab === tab) {
+        externalSetActiveSidebarTab(null);
+      } else {
+        externalSetActiveSidebarTab(tab);
+      }
     } else {
-      setActiveTab(tab);
-      setIsDrawerOpen(true);
+      if (internalActiveTab === tab && internalIsDrawerOpen) {
+        setInternalIsDrawerOpen(false);
+      } else {
+        setInternalActiveTab(tab);
+        setInternalIsDrawerOpen(true);
+      }
     }
   };
 
@@ -342,11 +377,17 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             className="w-7 h-7 rounded-full border-2 border-slate-300 shadow-md cursor-pointer hover:scale-110 transition-transform relative overflow-hidden"
             style={{ backgroundColor: activeColor }}
             title="Mudar Cor Principal"
+            onClick={() => {
+              if (onOpenColorPicker) onOpenColorPicker('fill');
+            }}
           >
             <input
               type="color"
               value={activeColor}
-              onChange={(e) => onChangeColor(e.target.value)}
+              onChange={(e) => {
+                if (onChangeColor) onChangeColor(e.target.value);
+                if (setFillColor) setFillColor(e.target.value);
+              }}
               className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
             />
           </label>
@@ -354,7 +395,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
       </aside>
 
       {/* 2. Canva Sliding Side Drawer Panel */}
-      {isDrawerOpen && (
+      {isDrawerOpen && !externalSetActiveSidebarTab && (
         <div className={`w-80 border-r flex flex-col h-full text-xs z-30 shadow-2xl relative animate-in slide-in-from-left duration-200 transition-colors ${
           theme === 'light'
             ? 'bg-white border-slate-200 text-slate-800'
@@ -382,7 +423,13 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             </h2>
 
             <button
-              onClick={() => setIsDrawerOpen(false)}
+              onClick={() => {
+                if (externalSetActiveSidebarTab) {
+                  externalSetActiveSidebarTab(null);
+                } else {
+                  setInternalIsDrawerOpen(false);
+                }
+              }}
               className={`p-1 rounded-lg transition-colors cursor-pointer ${
                 theme === 'light' ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900' : 'hover:bg-white/10 text-gray-400 hover:text-white'
               }`}
@@ -1237,5 +1284,6 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   );
 };
 
+export const LeftToolBar = LeftToolbar;
 export default LeftToolbar;
 

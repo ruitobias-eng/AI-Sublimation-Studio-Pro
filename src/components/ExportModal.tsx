@@ -5,9 +5,10 @@ import { Download, X, Printer, FlipHorizontal, FileText, Check, Sparkles } from 
 interface ExportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: SublimationProduct;
+  product?: SublimationProduct;
   canvasElement: HTMLCanvasElement | null;
   mirrorSublimation: boolean;
+  onOpenPrintModal?: () => void;
 }
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -16,6 +17,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   product,
   canvasElement,
   mirrorSublimation,
+  onOpenPrintModal,
 }) => {
   const [config, setConfig] = useState<ExportConfig>({
     format: 'png',
@@ -23,8 +25,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     dpi: 300,
     transparentBg: true,
     mirrorHorizontal: mirrorSublimation,
-    physicalWidthCm: product.defaultWidthCm,
-    physicalHeightCm: product.defaultHeightCm,
+    physicalWidthCm: product?.defaultWidthCm || 20,
+    physicalHeightCm: product?.defaultHeightCm || 9,
   });
 
   const [isExporting, setIsExporting] = useState(false);
@@ -64,7 +66,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
       // Download file
       const link = document.createElement('a');
-      link.download = `Estampa_${product.name.replace(/\s+/g, '_')}_300DPI.${config.format}`;
+      const prodName = product?.name ? product.name.replace(/\s+/g, '_') : 'Produto';
+      link.download = `Estampa_${prodName}_300DPI.${config.format}`;
       link.href = exportCanvas.toDataURL(`image/${config.format === 'jpg' ? 'jpeg' : 'png'}`);
       link.click();
 
@@ -184,11 +187,24 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <button
             disabled={isExporting}
             onClick={handleDownload}
-            className="py-3 px-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+            className="py-3 px-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             <Download className={`w-4 h-4 ${isExporting ? 'animate-bounce' : ''}`} />
             <span>{isExporting ? 'Processando Imagem 300 DPI...' : 'BAIXAR ARQUIVO DE IMPRESSÃO'}</span>
           </button>
+
+          {onOpenPrintModal && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenPrintModal();
+              }}
+              className="py-2.5 px-4 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-extrabold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Printer className="w-4 h-4 text-emerald-400" />
+              <span>Abrir Central de Impressão & Prensa Sublimática</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

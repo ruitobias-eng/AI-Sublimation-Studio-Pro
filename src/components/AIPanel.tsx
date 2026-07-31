@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 interface AIPanelProps {
-  product: SublimationProduct;
+  product?: SublimationProduct;
   onAddAIGeneratedImageToCanvas: (imageUrl: string, title: string) => void;
   onApplyAIToolToActiveLayer: (action: 'remove_bg' | 'vectorize' | 'upscale' | 'color_replace') => void;
   activeLayer: Layer | null;
@@ -132,14 +132,14 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   // Get AI Ideas / Prompt Recommendations
   const handleGetAIIdeas = async () => {
     setIsLoading(true);
-    setStatusMessage('Gerando sugestões de estampas com a IA para ' + product.name + '...');
+    setStatusMessage('Gerando sugestões de estampas com a IA para ' + (product?.name || 'Produto') + '...');
     try {
       const res = await fetch('/api/gemini/assist-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           idea: params.prompt || 'Design sublimático moderno e vibrante',
-          productType: product.name,
+          productType: product?.name || 'Produto',
         }),
       });
       const data = await res.json();

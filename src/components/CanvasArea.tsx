@@ -268,6 +268,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   // Image cache to prevent recreating HTMLImageElement on every render
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
 
+  // Touch pinch distance ref
+  const touchDistanceRef = useRef<number | null>(null);
+
   // Auto-Fit canvas to viewport container
   const fitToScreen = () => {
     if (!containerRef.current) return;
@@ -279,8 +282,47 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     const scaleY = cHeight / baseCanvasHeight;
     const fitZoom = Math.min(scaleX, scaleY, 1.2);
 
-    setZoom(Math.max(0.15, fitZoom));
+    setZoom(Math.max(0.15, Math.round(fitZoom * 100) / 100));
     setPan({ x: 0, y: 0 });
+  };
+
+  const handleWheelContainer = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey || true) {
+      const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+      setZoom((prev) => {
+        const next = Math.min(4.0, Math.max(0.1, prev * zoomFactor));
+        return Math.round(next * 100) / 100;
+      });
+    }
+  };
+
+  const handleTouchStartContainer = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      touchDistanceRef.current = dist;
+    }
+  };
+
+  const handleTouchMoveContainer = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && touchDistanceRef.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const delta = dist - touchDistanceRef.current;
+      if (Math.abs(delta) > 3) {
+        const factor = delta > 0 ? 1.03 : 0.97;
+        setZoom((prev) => Math.min(4.0, Math.max(0.1, Math.round(prev * factor * 100) / 100)));
+        touchDistanceRef.current = dist;
+      }
+    }
+  };
+
+  const handleTouchEndContainer = () => {
+    touchDistanceRef.current = null;
   };
 
   useEffect(() => {
@@ -977,6 +1019,10 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   return (
     <div
       ref={containerRef}
+      onWheel={handleWheelContainer}
+      onTouchStart={handleTouchStartContainer}
+      onTouchMove={handleTouchMoveContainer}
+      onTouchEnd={handleTouchEndContainer}
       className={`relative flex-1 w-full h-full overflow-hidden flex items-center justify-center select-none transition-colors ${
         theme === 'light' ? 'bg-slate-200' : 'bg-[#121214]'
       }`}
@@ -1258,46 +1304,94 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       )}
 
       {/* Bottom Zoom & View Controls */}
-      <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 backdrop-blur-md border rounded-xl shadow-2xl z-30 text-xs ${
+      <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 p-1.5 backdrop-blur-md border rounded-2xl shadow-2xl z-30 text-xs ${
         theme === 'light'
           ? 'bg-white/95 border-slate-300 text-slate-800 shadow-slate-300/60'
-          : 'bg-[#1e1e20]/90 border-[#38383c] text-gray-300'
+          : 'bg-[#1e1e20]/95 border-[#38383c] text-gray-300 shadow-black/80'
       }`}>
+        {/* Zoom Out (-) */}
         <button
-          onClick={() => setZoom((z) => Math.max(0.2, z - 0.1))}
+          onClick={() => setZoom((z) => Math.max(0.1, Math.round((z - 0.1) * 10) / 10))}
           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
             theme === 'light' ? 'hover:bg-slate-100 text-slate-700 hover:text-slate-900' : 'hover:bg-white/10 text-gray-300 hover:text-white'
           }`}
-          title="Diminuir Zoom"
+          title="Diminuir Zoom (-10%)"
         >
           <ZoomOut className="w-3.5 h-3.5" />
         </button>
 
-        <span className={`font-mono text-[11px] font-semibold w-12 text-center ${
-          theme === 'light' ? 'text-purple-700' : 'text-sky-400'
-        }`}>
-          {Math.round(zoom * 100)}%
-        </span>
+        {/* Zoom Level Select Dropdown */}
+        <select
+          value={Math.round(zoom * 100)}
+          onChange={(e) => setZoom(parseInt(e.target.value) / 100)}
+          className={`font-mono text-[11px] font-bold px-1.5 py-1 rounded-lg border focus:outline-none cursor-pointer ${
+            theme === 'light'
+              ? 'bg-slate-100 border-slate-300 text-purple-700'
+              : 'bg-[#141416] border-[#38383c] text-sky-400'
+          }`}
+          title="Selecionar Porcentagem de Zoom"
+        >
+          <option value="25">25%</option>
+          <option value="50">50%</option>
+          <option value="75">75%</option>
+          <option value="100">100%</option>
+          <option value="125">125%</option>
+          <option value="150">150%</option>
+          <option value="200">200%</option>
+          <option value="300">300%</option>
+          <option value="400">400%</option>
+        </select>
 
+        {/* Zoom In (+) */}
         <button
-          onClick={() => setZoom((z) => Math.min(3.0, z + 0.1))}
+          onClick={() => setZoom((z) => Math.min(4.0, Math.round((z + 0.1) * 10) / 10))}
           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
             theme === 'light' ? 'hover:bg-slate-100 text-slate-700 hover:text-slate-900' : 'hover:bg-white/10 text-gray-300 hover:text-white'
           }`}
-          title="Aumentar Zoom"
+          title="Aumentar Zoom (+10%)"
         >
           <ZoomIn className="w-3.5 h-3.5" />
         </button>
 
         <div className={`w-[1px] h-4 my-auto ${theme === 'light' ? 'bg-slate-300' : 'bg-[#38383c]'}`}></div>
 
+        {/* Fit to Screen (Ajustar Tela) */}
         <button
           onClick={fitToScreen}
+          className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${
+            theme === 'light'
+              ? 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+              : 'bg-sky-500/15 text-sky-300 hover:bg-sky-500/25 hover:text-white'
+          }`}
+          title="Ajustar Estampa Automaticamente à Tela"
+        >
+          <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
+          <span>Ajustar Tela</span>
+        </button>
+
+        {/* 100% 1:1 Actual Size */}
+        <button
+          onClick={() => {
+            setZoom(1.0);
+            setPan({ x: 0, y: 0 });
+          }}
           className={`px-2 py-1 text-[11px] font-medium rounded-lg transition-colors cursor-pointer ${
             theme === 'light' ? 'hover:bg-slate-100 text-slate-700 hover:text-slate-900' : 'hover:bg-white/10 text-gray-300 hover:text-white'
           }`}
+          title="Zoom 100% (Tamanho Real)"
         >
-          Ajustar Tela
+          100% Real
+        </button>
+
+        {/* Reset Pan / Center */}
+        <button
+          onClick={() => setPan({ x: 0, y: 0 })}
+          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+            theme === 'light' ? 'hover:bg-slate-100 text-slate-700 hover:text-slate-900' : 'hover:bg-white/10 text-gray-300 hover:text-white'
+          }`}
+          title="Centralizar Posição da Tela"
+        >
+          <Move className="w-3.5 h-3.5" />
         </button>
       </div>
 
