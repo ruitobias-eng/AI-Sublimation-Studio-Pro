@@ -32,7 +32,7 @@ import_dotenv.default.config();
 var __filename = (0, import_url.fileURLToPath)(import_meta.url);
 var __dirname = import_path.default.dirname(__filename);
 var app = (0, import_express.default)();
-var PORT = 3e3;
+var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
 app.use(import_express.default.json({ limit: "50mb" }));
 function getGenAIClient() {
   const apiKey = process.env.GEMINI_API_KEY;
