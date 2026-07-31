@@ -1023,6 +1023,44 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       onTouchStart={handleTouchStartContainer}
       onTouchMove={handleTouchMoveContainer}
       onTouchEnd={handleTouchEndContainer}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          Array.from(e.dataTransfer.files).forEach((file: File) => {
+            if (file.type.startsWith('image/') || file.name.endsWith('.svg')) {
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                const url = event.target?.result as string;
+                if (url) {
+                  const newLayer: Layer = {
+                    id: 'layer-img-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+                    name: file.name,
+                    type: 'image',
+                    visible: true,
+                    locked: false,
+                    opacity: 100,
+                    blendMode: 'normal',
+                    x: 100,
+                    y: 100,
+                    width: 400,
+                    height: 400,
+                    rotation: 0,
+                    content: url,
+                  };
+                  onUpdateLayer(newLayer);
+                  onSelectLayer(newLayer.id);
+                }
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+        }
+      }}
       className={`relative flex-1 w-full h-full overflow-hidden flex items-center justify-center select-none transition-colors ${
         theme === 'light' ? 'bg-slate-200' : 'bg-[#121214]'
       }`}

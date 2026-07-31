@@ -31,6 +31,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   const [isExporting, setIsExporting] = useState(false);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Calculate pixel dimensions for 300 DPI
@@ -77,7 +86,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Exportar para Sublimação"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
+    >
       <div className="bg-[#1e1e20] border border-[#38383c] rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden text-gray-200">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#2d2d30] bg-[#18181a]">

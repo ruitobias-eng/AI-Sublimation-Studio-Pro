@@ -25,13 +25,26 @@ export const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 }) => {
   const [hexInput, setHexInput] = useState(color);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const handleSelectSwatch = (swatchHex: string) => {
     setHexInput(swatchHex);
     onChangeColor(swatchHex);
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 select-none p-4 animate-fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 select-none p-4 animate-fade-in"
+    >
       <div
         className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl space-y-4 border transition-colors ${
           darkMode ? 'bg-[#101522] border-[#232D3F] text-slate-100' : 'bg-white border-slate-200 text-slate-800'

@@ -1,39 +1,5 @@
 @import "tailwindcss";
 
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.animate-slide-up {
-  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.25s ease-out forwards;
-}
-
-/* Material Design 3 Touch Target Min standard */
-.md3-touch-target {
-  min-width: 48px;
-  min-height: 48px;
-}
-
 /* Hide scrollbars for pill navigation */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
@@ -43,10 +9,10 @@
   scrollbar-width: none;
 }
 
-/* Custom sleek dark scrollbars for Android & Web */
+/* Custom sleek dark scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -56,10 +22,5 @@
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #10b981;
-}
-
-/* Touch optimization for mobile canvas */
-canvas {
-  touch-action: manipulation;
+  background: #a855f7;
 }

@@ -640,6 +640,21 @@ export default function App() {
 
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
 
+      if (isInput) {
+        // Allow default input typing behavior; only catch Ctrl+S / Ctrl+P if desired
+        if (isCtrlOrCmd) {
+          const keyLower = e.key.toLowerCase();
+          if (keyLower === 's') {
+            e.preventDefault();
+            handleSaveLayout();
+          } else if (keyLower === 'p') {
+            e.preventDefault();
+            setIsPrintModalOpen(true);
+          }
+        }
+        return;
+      }
+
       if (isCtrlOrCmd) {
         const keyLower = e.key.toLowerCase();
         if (keyLower === 'p') {

@@ -81,7 +81,17 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         {/* Logo Badge & Main Application Menu */}
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-slate-900/40 dark:bg-slate-800/80 border border-purple-500/40 px-2 py-1 rounded-xl shadow-md cursor-pointer hover:brightness-110 transition-all">
-            <img src="/logo.png" alt="SublimStudio PRO" className="w-6 h-6 object-contain rounded-md" />
+            <img
+              src="/favicon.png"
+              alt="SublimStudio PRO"
+              className="w-6 h-6 object-contain rounded-md"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('.svg')) {
+                  target.src = '/favicon.svg';
+                }
+              }}
+            />
             <span className="text-[11px] sm:text-xs font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-amber-300">
               SublimStudio <span className="text-white bg-purple-600 px-1 py-0.5 rounded text-[9px] font-mono">PRO</span>
             </span>

@@ -22,8 +22,21 @@ const SHORTCUTS = [
 ];
 
 export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ onClose, darkMode = true }) => {
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 select-none p-4 animate-fade-in">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Atalhos de Teclado"
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 select-none p-4 animate-fade-in"
+    >
       <div
         className={`w-full max-w-md rounded-2xl p-4 shadow-2xl space-y-4 border transition-colors ${
           darkMode ? 'bg-[#101522] border-[#232D3F] text-slate-100' : 'bg-white border-slate-200 text-slate-800'

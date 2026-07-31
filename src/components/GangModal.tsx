@@ -90,8 +90,8 @@ export const GangModal: React.FC<GangModalProps> = ({ onClose, darkMode = true }
                 style={{
                   left: `${(box.x / sheetDims.w) * 100}%`,
                   top: `${(box.y / sheetDims.h) * 100}%`,
-                  width: `${(box.w / sheetDims.w) * 100}%`,
-                  height: `${(box.h / sheetDims.h) * 100}%`,
+                  width: `${((box.width || box.widthMm || 100) / sheetDims.w) * 100}%`,
+                  height: `${((box.height || box.heightMm || 100) / sheetDims.h) * 100}%`,
                   backgroundColor: '#00D9FF'
                 }}
               >

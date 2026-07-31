@@ -184,3 +184,21 @@ export interface Environment3DConfig {
   roughness: number;
   metalness: number;
 }
+
+// Aliases for component compatibility
+export type PrintableProduct = SublimationProduct;
+export type VectorElement = Layer;
+export type HistoryCommand = HistoryStep;
+
+export interface GangItem {
+  id: string;
+  name: string;
+  widthMm?: number;
+  heightMm?: number;
+  widthCm?: number;
+  heightCm?: number;
+  quantity: number;
+  color?: string;
+  imageUrl?: string;
+  rotation?: number;
+}
