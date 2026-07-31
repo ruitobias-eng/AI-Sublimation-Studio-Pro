@@ -1,0 +1,33 @@
+{
+  "short_name": "SublimaçãoPro",
+  "name": "AI Sublimation Studio Pro - Estúdio de Sublimação Android",
+  "description": "Estúdio profissional de design para sublimação e mockups 3D com ferramentas de IA e camadas no seu Android.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#090d16",
+  "display": "standalone",
+  "orientation": "any",
+  "categories": ["design", "graphics", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Novo Projeto",
+      "short_name": "Novo",
+      "description": "Criar nova estampa de sublimação",
+      "url": "/?action=new"
+    },
+    {
+      "name": "Mockup 3D",
+      "short_name": "3D",
+      "description": "Visualizar mockup 3D em tempo real",
+      "url": "/?view=3d"
+    }
+  ]
+}
