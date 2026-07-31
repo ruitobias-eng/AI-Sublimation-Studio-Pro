@@ -35,7 +35,7 @@ import { VectorElement, HistoryCommand, SublimationProduct, Layer } from '../typ
 import { PRESET_TEMPLATES, TEMPLATE_CATEGORIES } from '../utils/libraryEngine';
 import { PRODUCTS_LIBRARY } from '../data/products';
 import { VECTOR_TEXT_PRESETS, VectorTextPreset } from '../data/vectorTextPresets';
-import { SidebarTabType } from './LeftToolBar';
+import { SidebarTabType } from './LeftToolbar';
 import { AIPanel } from './AIPanel';
 import { LayerPanel } from './LayerPanel';
 
@@ -872,4 +872,3 @@ export const LeftSidebarContainer: React.FC<LeftSidebarContainerProps> = ({
     </aside>
   );
 };
-
