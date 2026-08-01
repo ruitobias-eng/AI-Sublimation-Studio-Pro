@@ -233,7 +233,7 @@ export interface GangItem {
   widthMm: number;
   heightMm: number;
   quantity: number;
-  color: string;
+  color?: string;
 }
 
 export interface GangPlacedBox {

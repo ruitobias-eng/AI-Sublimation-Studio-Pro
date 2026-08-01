@@ -128,6 +128,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const initialPinchDistRef = useRef<number | null>(null);
   const initialPinchAngleRef = useRef<number | null>(null);
   const initialTouchLayerRotRef = useRef<number | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const longPressTimerRef = useRef<any>(null);
   const lastTapTimeRef = useRef<number>(0);
   const lastTapLayerIdRef = useRef<string | null>(null);

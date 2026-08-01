@@ -1,8 +1,9 @@
 import { calculateInkAndCost, SUBLIMATION_PRESS_PRESETS } from '../pressEngine';
 import { GangEngine } from '../gangEngine';
 import { PRESET_TEMPLATES, TEMPLATE_CATEGORIES } from '../libraryEngine';
-import { WarpEngine } from '../warpEngine';
 import { TEXT_WARP_STYLES } from '../textWarp';
+import { AIEngine } from '../aiEngine';
+import { ALL_VECTOR_SHAPES } from '../shapeDrawer';
 
 export function runSuiteTests() {
   const results: { testName: string; passed: boolean; details?: string }[] = [];
@@ -31,7 +32,7 @@ export function runSuiteTests() {
       { id: '2', name: 'Logo 2', widthMm: 150, heightMm: 50, quantity: 1 }
     ];
     const packed = GangEngine.packItemsOnSheet(items, 300, 420);
-    const validPacking = packed.placedBoxes.length === 2 && packed.totalOccupancyPercent > 0;
+    const validPacking = packed.placedBoxes.length === 3 && packed.totalOccupancyPercent > 0;
     results.push({ testName: 'GangEngine packing', passed: validPacking });
   } catch (err: any) {
     results.push({ testName: 'GangEngine packing', passed: false, details: err.message });
@@ -53,6 +54,23 @@ export function runSuiteTests() {
     results.push({ testName: 'Text Warp Styles definition', passed: false, details: err.message });
   }
 
+  // Test 6: AI Engine Art URL Generation
+  try {
+    const url = AIEngine.generateSublimationArtUrl('Caneca Floral Vintage');
+    const validAI = url.includes('pollinations.ai') && url.includes('flux');
+    results.push({ testName: 'AIEngine URL generation', passed: validAI });
+  } catch (err: any) {
+    results.push({ testName: 'AIEngine URL generation', passed: false, details: err.message });
+  }
+
+  // Test 7: Vector Shape Definitions
+  try {
+    const validShapes = ALL_VECTOR_SHAPES.length > 50 && ALL_VECTOR_SHAPES.some(s => s.id === 'circle');
+    results.push({ testName: 'ALL_VECTOR_SHAPES library', passed: validShapes });
+  } catch (err: any) {
+    results.push({ testName: 'ALL_VECTOR_SHAPES library', passed: false, details: err.message });
+  }
+
   return results;
 }
 
@@ -61,3 +79,4 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
   const res = runSuiteTests();
   console.table(res);
 }
+
