@@ -1,16 +1,22 @@
 const CACHE_NAME = 'sublimstudio-v1';
 const ASSETS_TO_CACHE = [
   '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.png',
-  '/favicon.svg'
+  '/favicon.svg',
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.allSettled(
+        ASSETS_TO_CACHE.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn('SW cache.add failed for:', url, err);
+          })
+        )
+      );
     })
   );
   self.skipWaiting();
@@ -32,15 +38,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Network first with cache fallback
   if (event.request.method !== 'GET') return;
-  
+  const url = event.request.url;
+
+  // Ignore non-http/https, extensions, or vite dev server hot updates
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return;
+  if (url.includes('/@vite/') || url.includes('/@react-refresh') || url.includes('hot-update')) return;
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        if (response.status === 200) {
+        if (response.status === 200 && response.type === 'basic') {
           const resClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
+          caches.open(CACHE_NAME).then((cache) => {
+            try {
+              cache.put(event.request, resClone);
+            } catch (e) {
+              // Ignore cache put errors
+            }
+          });
         }
         return response;
       })
@@ -48,7 +64,7 @@ self.addEventListener('fetch', (event) => {
         return caches.match(event.request).then((cached) => {
           if (cached) return cached;
           if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/index.html');
+            return caches.match('/');
           }
         });
       })
