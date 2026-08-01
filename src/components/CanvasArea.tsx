@@ -44,8 +44,8 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowRight,
-  Move,
-  Target
+  Target,
+  X
 } from 'lucide-react';
 
 interface CanvasAreaProps {
@@ -105,6 +105,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   // Pan and Zoom infinite canvas transform states
   const [zoom, setZoom] = useState(1.0);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [showTouchPad, setShowTouchPad] = useState<boolean>(true);
 
   // Mouse interaction state
   const isPanningRef = useRef(false);
@@ -1987,14 +1988,41 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         >
           <Move className="w-3.5 h-3.5" />
         </button>
+
+        <div className={`w-[1px] h-4 my-auto ${theme === 'light' ? 'bg-slate-300' : 'bg-[#38383c]'}`}></div>
+
+        {/* Toggle Floating Mover & Ajustar Panel */}
+        <button
+          onClick={() => setShowTouchPad((prev) => !prev)}
+          className={`flex items-center gap-1 px-2 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer ${
+            showTouchPad && activeLayerId
+              ? 'bg-purple-600 text-white shadow-md'
+              : theme === 'light'
+              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              : 'bg-[#23242e] text-purple-300 hover:bg-purple-900/40 border border-purple-500/30'
+          }`}
+          title="Mover e Ajustar Item (Teclado Touch / D-Pad)"
+        >
+          <Target className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="hidden xs:inline">Mover & Ajustar</span>
+        </button>
       </div>
 
-      {/* Mobile Floating Touch Controls (Mover & Redimensionar) for Selected Element */}
-      {activeLayerId && (
-        <div className="absolute bottom-16 right-3 sm:hidden flex flex-col items-center gap-2 bg-[#181920]/95 backdrop-blur-xl border border-purple-500/50 p-2.5 rounded-2xl shadow-2xl z-30 animate-in fade-in slide-in-from-right-3">
-          <div className="flex items-center justify-between w-full text-[9px] font-extrabold text-purple-300 uppercase tracking-wider px-0.5">
-            <span>Mover & Ajustar</span>
-            <span className="text-[8px] text-emerald-400">Touch ON</span>
+      {/* Floating Touch Controls (Mover & Redimensionar) for Selected Element - Works in Portrait & Landscape */}
+      {activeLayerId && showTouchPad && (
+        <div className="absolute bottom-14 right-3 max-h-[85vh] flex flex-col items-center gap-2 bg-[#181920]/95 backdrop-blur-xl border border-purple-500/50 p-2.5 rounded-2xl shadow-2xl z-30 animate-in fade-in slide-in-from-right-3">
+          <div className="flex items-center justify-between w-full text-[9px] font-extrabold text-purple-300 uppercase tracking-wider px-0.5 border-b border-purple-500/20 pb-1">
+            <div className="flex items-center gap-1">
+              <Target className="w-3 h-3 text-emerald-400" />
+              <span>Mover & Ajustar</span>
+            </div>
+            <button
+              onClick={() => setShowTouchPad(false)}
+              className="text-gray-400 hover:text-white p-0.5 rounded cursor-pointer transition-colors"
+              title="Minimizar Painel"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Scale Buttons (+ / -) */}
@@ -2060,6 +2088,18 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
             <div></div>
           </div>
         </div>
+      )}
+
+      {/* Floating Pill when minimized */}
+      {activeLayerId && !showTouchPad && (
+        <button
+          onClick={() => setShowTouchPad(true)}
+          className="absolute bottom-14 right-3 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white px-3 py-1.5 rounded-full shadow-2xl border border-purple-400 flex items-center gap-1.5 text-xs font-bold z-30 animate-in fade-in cursor-pointer"
+          title="Abrir Painel Mover & Ajustar"
+        >
+          <Target className="w-4 h-4 text-emerald-300" />
+          <span>Mover & Ajustar</span>
+        </button>
       )}
 
       {/* Canva Floating Right-Click / Touch Context Menu */}
