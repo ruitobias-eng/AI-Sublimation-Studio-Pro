@@ -140,6 +140,18 @@ export default function App() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   // MD3 Snackbar & Mobile Bottom Sheet state
   const [snackbar, setSnackbar] = useState<SnackbarMessage | null>(null);
@@ -1533,6 +1545,9 @@ export default function App() {
         onClose={() => setIsAndroidModalOpen(false)}
         isAndroidSimulated={isAndroidSimulated}
         setIsAndroidSimulated={setIsAndroidSimulated}
+        deferredInstallPrompt={deferredInstallPrompt}
+        onShowSnackbar={(msg, type) => showSnackbar(msg, type)}
+        theme={theme}
       />
 
       {/* Tutorial Completo & Ajuda Modal */}

@@ -330,29 +330,28 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="hidden lg:inline text-[11px]">IA Studio</span>
         </button>
 
-        {/* Baixar / Exportar Button */}
-        <button
-          onClick={onOpenExportModal}
-          className="flex items-center gap-1 px-2.5 sm:px-3 py-1 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-500 hover:brightness-110 text-white font-extrabold rounded-xl shadow-md shadow-purple-600/20 transition-all cursor-pointer active:scale-95 shrink-0 text-xs"
-          title="Baixar e Exportar Estampa em Alta Resolução (PNG, PDF, Print)"
-        >
-          <Share2 className="w-3.5 h-3.5 shrink-0" />
-          <span>Baixar</span>
-        </button>
-
         {/* Ergonomic Illuminated LED Print Button */}
-        {onOpenPrintModal && (
+        {onOpenPrintModal ? (
           <button
             onClick={onOpenPrintModal}
             className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black rounded-xl shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95 shrink-0 text-xs uppercase tracking-wide border border-emerald-400/50"
-            title="Central de Impressão Avançada e Prensa Sublimática (RIP 1200 DPI, Perfis ICC, Timer)"
+            title="Central de Impressão e Exportação Sublimática (RIP 1200 DPI, Perfis ICC, Timer)"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-950 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-950"></span>
             </span>
             <Printer className="w-3.5 h-3.5 text-slate-950 shrink-0" />
-            <span className="hidden sm:inline">Imprimir</span>
+            <span>Imprimir / Exportar</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenExportModal}
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1 bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-500 hover:brightness-110 text-white font-extrabold rounded-xl shadow-md shadow-purple-600/20 transition-all cursor-pointer active:scale-95 shrink-0 text-xs"
+            title="Baixar e Exportar Estampa em Alta Resolução"
+          >
+            <Share2 className="w-3.5 h-3.5 shrink-0" />
+            <span>Exportar</span>
           </button>
         )}
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Smartphone, Download, CheckCircle2, ShieldCheck, X, Sparkles, Zap, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Smartphone, Download, CheckCircle2, ShieldCheck, X, Sparkles, Zap, ExternalLink, QrCode, Monitor } from 'lucide-react';
 
 interface AndroidAppModalProps {
   isOpen: boolean;
@@ -7,10 +7,96 @@ interface AndroidAppModalProps {
   theme?: 'light' | 'dark' | string;
   isAndroidSimulated?: boolean;
   setIsAndroidSimulated?: (val: boolean) => void;
+  deferredInstallPrompt?: any;
+  onShowSnackbar?: (msg: string, type: 'success' | 'info' | 'error') => void;
 }
 
-export function AndroidAppModal({ isOpen, onClose, theme = 'dark' }: AndroidAppModalProps) {
+export function AndroidAppModal({
+  isOpen,
+  onClose,
+  theme = 'dark',
+  deferredInstallPrompt,
+  onShowSnackbar,
+}: AndroidAppModalProps) {
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+
+  useEffect(() => {
+    // Check if running as standalone PWA
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsStandalone(true);
+    }
+  }, []);
+
   if (!isOpen) return null;
+
+  // Handle Direct Native PWA Install
+  const handleInstallPWA = async () => {
+    if (deferredInstallPrompt) {
+      setIsInstalling(true);
+      try {
+        deferredInstallPrompt.prompt();
+        const choiceResult = await deferredInstallPrompt.userChoice;
+        if (choiceResult.outcome === 'accepted') {
+          if (onShowSnackbar) onShowSnackbar('Instalação do SublimStudio PWA iniciada!', 'success');
+          setIsStandalone(true);
+        } else {
+          if (onShowSnackbar) onShowSnackbar('Instalação PWA cancelada.', 'info');
+        }
+      } catch (err) {
+        console.error('PWA Prompt Error:', err);
+      } finally {
+        setIsInstalling(false);
+      }
+    } else {
+      // If prompt isn't directly available (e.g. inside iframe), open in new tab or trigger WebApp shortcut
+      handleOpenInNewTab();
+    }
+  };
+
+  // Open outside iframe in new tab for native install prompt support
+  const handleOpenInNewTab = () => {
+    window.open(window.location.origin || window.location.href, '_blank');
+    if (onShowSnackbar) {
+      onShowSnackbar('Abrindo em nova aba para instalação nativa do Android Chrome!', 'info');
+    }
+  };
+
+  // Generate and download a WebApp Android Shortcut / APK Launcher HTML wrapper
+  const handleDownloadAPKLauncher = () => {
+    const currentUrl = window.location.origin || window.location.href;
+    const htmlContent = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SublimStudio PRO Mobile</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#090d16">
+  <link rel="manifest" href="${currentUrl}/manifest.json">
+  <style>
+    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#090d16; font-family:sans-serif; }
+    iframe { width:100%; height:100%; border:none; }
+  </style>
+</head>
+<body>
+  <iframe src="${currentUrl}" allow="camera; microphone; geolocation; storage-access"></iframe>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'SublimStudio_Pro_Android_Launcher.html';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    if (onShowSnackbar) {
+      onShowSnackbar('Atalho WebApp baixado! Abra no seu Android ou registre como App.', 'success');
+    }
+  };
 
   return (
     <div
@@ -20,12 +106,12 @@ export function AndroidAppModal({ isOpen, onClose, theme = 'dark' }: AndroidAppM
       }}
     >
       <div
-        className={`w-full max-w-lg max-h-[88dvh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all pb-[env(safe-area-inset-bottom,0px)] ${
+        className={`w-full max-w-lg max-h-[90dvh] rounded-3xl shadow-2xl border flex flex-col overflow-hidden transition-all pb-[env(safe-area-inset-bottom,0px)] ${
           theme === 'light' ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#14151a] border-[#2d2f3a] text-gray-100'
         }`}
       >
         {/* Modal Header */}
-        <div className="relative px-6 pt-6 pb-5 bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 border-b border-emerald-500/20 text-center flex flex-col items-center">
+        <div className="relative px-6 pt-6 pb-5 bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 border-b border-emerald-500/20 text-center flex flex-col items-center shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-xl bg-black/30 text-gray-400 hover:text-white hover:bg-black/50 transition-colors cursor-pointer"
@@ -49,52 +135,117 @@ export function AndroidAppModal({ isOpen, onClose, theme = 'dark' }: AndroidAppM
           </div>
 
           <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-            App Android SublimStudio PRO
+            Instalar App SublimStudio PRO
           </h2>
           <p className="text-xs text-emerald-300 font-medium mt-1">
-            Instale o PWA Nativo ou baixe o APK para smartphone e tablet Android
+            Versão Nativada PWA / APK para Android, iOS e Desktop
           </p>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-4 text-xs">
-          <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
-            <Smartphone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <strong className="text-emerald-300 block font-bold text-xs">Instalação Instantânea em 1 Clique (PWA)</strong>
-              <p className="text-gray-300 text-[11px] leading-relaxed">
-                Toque no menu do seu navegador (três pontinhos no Chrome do Android) e selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong>.
-              </p>
+        <div className="p-5 sm:p-6 space-y-4 text-xs overflow-y-auto custom-scrollbar">
+          {isStandalone ? (
+            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 flex items-center gap-3">
+              <ShieldCheck className="w-6 h-6 text-emerald-400 shrink-0" />
+              <div>
+                <strong className="text-emerald-300 font-bold block text-sm">App PWA Já Instalado!</strong>
+                <p className="text-gray-300 text-xs">Você está utilizando a versão nativa em modo tela cheia.</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Primary Action Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/15 via-teal-500/10 to-slate-900/80 border border-emerald-500/30 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl shrink-0">
+                    <Smartphone className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <strong className="text-white block font-bold text-sm">Instalação Direta (PWA Nativo)</strong>
+                    <p className="text-gray-300 text-xs mt-0.5 leading-relaxed">
+                      Instale o aplicativo na tela inicial do seu celular Android sem precisar da Play Store!
+                    </p>
+                  </div>
+                </div>
 
-          <div className="space-y-2">
-            <h3 className="font-bold text-gray-200 text-xs uppercase tracking-wider">Recursos da Versão Mobile Android:</h3>
-            <ul className="space-y-2">
-              <li className="flex items-center gap-2 text-gray-300 text-[11px]">
+                <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                  {deferredInstallPrompt ? (
+                    <button
+                      disabled={isInstalling}
+                      onClick={handleInstallPWA}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>{isInstalling ? 'Instalando...' : 'INSTALAR AGORA (1 CLIQUE)'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleOpenInNewTab}
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:brightness-110 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>ABRIR EM NOVA ABA E INSTALAR</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={handleDownloadAPKLauncher}
+                    className="w-full sm:w-auto py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-gray-200 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700 shrink-0"
+                    title="Baixar atalho/wrapper APK nativo para execução offline"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Baixar Atalho WebApp</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Step by Step instructions */}
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+                <h3 className="font-bold text-gray-200 text-xs uppercase tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  Como Instalar Manualmente no Celular:
+                </h3>
+                <ol className="list-decimal list-inside space-y-1.5 text-gray-300 text-[11px] leading-relaxed">
+                  <li>Toque nos <strong>três pontinhos (⋮)</strong> no canto superior do Chrome Android ou Edge.</li>
+                  <li>Selecione <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong>.</li>
+                  <li>Confirme em <strong>"Adicionar"</strong> para ter o ícone na sua gaveta de apps!</li>
+                </ol>
+              </div>
+            </>
+          )}
+
+          {/* Features checklist */}
+          <div className="space-y-2 pt-1">
+            <h3 className="font-bold text-gray-300 text-xs uppercase tracking-wider">Vantagens do App Instalado:</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="flex items-center gap-2 text-gray-300 text-[11px] p-2 rounded-xl bg-slate-900/40 border border-slate-800">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Suporte completo a Gestos Touch (Pinch-to-zoom & rotação)</span>
-              </li>
-              <li className="flex items-center gap-2 text-gray-300 text-[11px]">
+                <span>Modo Tela Cheia sem barras</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-300 text-[11px] p-2 rounded-xl bg-slate-900/40 border border-slate-800">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Navegação por Abas Android Material Design 3 e BottomSheet</span>
-              </li>
-              <li className="flex items-center gap-2 text-gray-300 text-[11px]">
+                <span>Controles Touch e Gestos</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-300 text-[11px] p-2 rounded-xl bg-slate-900/40 border border-slate-800">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Modo Offline para criação de estampas sem internet</span>
-              </li>
-            </ul>
+                <span>Carregamento Rápido Cache</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-300 text-[11px] p-2 rounded-xl bg-slate-900/40 border border-slate-800">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Suporte Câmera e Arquivos</span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="bg-slate-950 px-6 py-4 border-t border-slate-800 flex items-center justify-between gap-3">
-          <span className="text-[10px] text-gray-400 font-mono">v3.1.0 • Android PWA Nativo</span>
+        <div className="bg-slate-950 px-6 py-4 border-t border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          <span className="text-[10px] text-gray-400 font-mono">v3.1.0 • Android PWA & APK Wrapper</span>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-black rounded-xl text-xs cursor-pointer shadow-md"
+            className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs cursor-pointer"
           >
-            Entendi, Prosseguir
+            Fechar
           </button>
         </div>
       </div>
