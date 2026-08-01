@@ -178,7 +178,44 @@ export default function App() {
   };
 
   // Handlers for App Menu
-  const handleConfirmNewProject = (type: 'blank' | 'sample') => {
+  const handleConfirmNewProject = (type: 'blank' | 'sample' | 'restore') => {
+    if (type === 'restore') {
+      try {
+        const savedRaw = localStorage.getItem('sublimstudio_saved_project');
+        if (savedRaw) {
+          const data = JSON.parse(savedRaw);
+          if (data && Array.isArray(data.layers)) {
+            setLayers(data.layers);
+            if (data.projectName) setProjectName(data.projectName);
+            if (data.product) {
+              const foundProduct = PRODUCTS_LIBRARY.find((p) => p.id === data.product.id) || data.product;
+              setCurrentProduct(foundProduct);
+            }
+            if (typeof data.mirrorSublimation === 'boolean') setMirrorSublimation(data.mirrorSublimation);
+            if (typeof data.showGrid === 'boolean') setShowGrid(data.showGrid);
+            if (typeof data.showRulers === 'boolean') setShowRulers(data.showRulers);
+            setActiveLayerId(data.layers.length > 0 ? data.layers[data.layers.length - 1].id : null);
+
+            const initStep: HistoryStep = {
+              id: 'hist-restore-' + Date.now(),
+              description: 'Restaurado do Backup Salvo',
+              toolName: 'Restaurar Projeto',
+              timestamp: new Date(),
+              layers: data.layers,
+            };
+            setHistorySteps([initStep]);
+            setCurrentHistoryIndex(0);
+            setCanvasVersion((v) => v + 1);
+            setIsNewProjectModalOpen(false);
+            showSnackbar('Rascunho do projeto restaurado com sucesso!', 'success');
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao restaurar rascunho:', e);
+      }
+    }
+
     let newLayers: Layer[] = [];
 
     if (type === 'sample') {
@@ -239,6 +276,7 @@ export default function App() {
     setCurrentHistoryIndex(0);
     setCanvasVersion((v) => v + 1);
     setIsNewProjectModalOpen(false);
+    showSnackbar(`Novo projeto "${newName}" iniciado!`, 'success');
   };
 
   // File input refs for Abrir Projeto e Incluir Estampa
@@ -246,11 +284,17 @@ export default function App() {
   const stampInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpenProjectClick = () => {
-    projectInputRef.current?.click();
+    if (projectInputRef.current) {
+      projectInputRef.current.value = '';
+      projectInputRef.current.click();
+    }
   };
 
   const handleIncludeStampClick = () => {
-    stampInputRef.current?.click();
+    if (stampInputRef.current) {
+      stampInputRef.current.value = '';
+      stampInputRef.current.click();
+    }
   };
 
   const handleIncludeStampFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -284,6 +328,7 @@ export default function App() {
         setActiveLayerId(newId);
         pushHistoryStep('Incluiu Estampa: ' + stampName, 'Incluir Estampa', updatedLayers);
         setCanvasVersion((v) => v + 1);
+        showSnackbar(`Estampa "${stampName}" adicionada ao canvas!`, 'success');
       }
     };
     reader.readAsDataURL(file);
@@ -294,7 +339,10 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type.startsWith('image/')) {
+    const filename = file.name.toLowerCase();
+
+    // If file is an image, import as stamp/image layer directly
+    if (filename.endsWith('.png') || filename.endsWith('.jpg') || filename.endsWith('.jpeg') || filename.endsWith('.webp') || filename.endsWith('.svg') || file.type.startsWith('image/')) {
       handleIncludeStampFile(e);
       return;
     }
@@ -304,50 +352,113 @@ export default function App() {
       try {
         const content = event.target?.result as string;
         const data = JSON.parse(content);
-        if (data && Array.isArray(data.layers)) {
-          setLayers(data.layers);
-          if (data.projectName) setProjectName(data.projectName);
+        if (data && (Array.isArray(data.layers) || Array.isArray(data))) {
+          const loadedLayers: Layer[] = Array.isArray(data.layers) ? data.layers : data;
+          setLayers(loadedLayers);
+
+          const loadedName = data.projectName || file.name.replace(/\.[^/.]+$/, '');
+          setProjectName(loadedName);
+
           if (data.product) {
-            const found = PRODUCTS_LIBRARY.find((p) => p.id === data.product.id) || data.product;
-            setCurrentProduct(found);
+            const foundProduct = PRODUCTS_LIBRARY.find((p) => p.id === data.product.id) || data.product;
+            setCurrentProduct(foundProduct);
           }
+
           if (typeof data.mirrorSublimation === 'boolean') {
             setMirrorSublimation(data.mirrorSublimation);
           }
-          if (data.layers.length > 0) {
-            setActiveLayerId(data.layers[data.layers.length - 1].id);
+          if (typeof data.showGrid === 'boolean') {
+            setShowGrid(data.showGrid);
           }
-          pushHistoryStep('Abriu Projeto ' + (data.projectName || file.name), 'Abrir', data.layers);
+          if (typeof data.showRulers === 'boolean') {
+            setShowRulers(data.showRulers);
+          }
+
+          setActiveLayerId(loadedLayers.length > 0 ? loadedLayers[loadedLayers.length - 1].id : null);
+
+          // Reset history stack cleanly for the newly opened project
+          const initStep: HistoryStep = {
+            id: 'hist-open-' + Date.now(),
+            description: 'Abriu Projeto: ' + loadedName,
+            toolName: 'Abrir Projeto',
+            timestamp: new Date(),
+            layers: loadedLayers,
+          };
+          setHistorySteps([initStep]);
+          setCurrentHistoryIndex(0);
           setCanvasVersion((v) => v + 1);
+
+          // Local auto-save backup
+          try {
+            localStorage.setItem('sublimstudio_saved_project', JSON.stringify(data));
+          } catch (err) {
+            // ignore
+          }
+
+          showSnackbar(`Projeto "${loadedName}" aberto com sucesso!`, 'success');
         } else {
-          alert('Formato de arquivo de projeto inválido. Selecione um arquivo .sublimation ou .json válido.');
+          showSnackbar('Formato de arquivo inválido. Selecione um arquivo .sublimation ou .json válido.', 'error');
         }
       } catch (err) {
-        console.error('Erro ao abrir projeto:', err);
-        alert('Não foi possível ler o arquivo. Se for uma imagem de estampa (PNG/JPG), selecione a opção "Incluir Estampa".');
+        console.error('Erro ao abrir arquivo de projeto:', err);
+        showSnackbar('Não foi possível ler o projeto. Verifique o arquivo selecionado.', 'error');
       }
     };
+
+    reader.onerror = () => {
+      showSnackbar('Erro ao ler arquivo do dispositivo.', 'error');
+    };
+
     reader.readAsText(file);
     e.target.value = '';
   };
 
   const handleSaveLayout = () => {
-    const projectData = {
-      version: '1.0',
-      projectName,
-      product: currentProduct,
-      layers,
-      mirrorSublimation,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const projectData = {
+        version: '1.0',
+        projectName: projectName || 'Arte_Sublimacao',
+        product: currentProduct,
+        layers,
+        mirrorSublimation,
+        showGrid,
+        showRulers,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(projectData, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `${projectName.toLowerCase().replace(/\s+/g, '_')}_layout.sublimation`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+      const jsonString = JSON.stringify(projectData, null, 2);
+
+      // Save to localStorage as quick auto-save draft
+      try {
+        localStorage.setItem('sublimstudio_saved_project', jsonString);
+      } catch (e) {
+        // quota exceeded
+      }
+
+      // Download .sublimation file using Blob and ObjectURL
+      const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.href = url;
+      const cleanFileName = (projectName || 'arte_sublimacao')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9_-]/gi, '_');
+      downloadAnchor.download = `${cleanFileName}.sublimation`;
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      document.body.removeChild(downloadAnchor);
+
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 2000);
+
+      showSnackbar(`Projeto "${projectName}" salvo com sucesso! (.sublimation)`, 'success');
+    } catch (err) {
+      console.error('Erro ao salvar projeto:', err);
+      showSnackbar('Erro ao gerar arquivo de salvamento do projeto.', 'error');
+    }
   };
 
   // 7. Canvas element ref for 3D mapping & export
@@ -1318,6 +1429,27 @@ export default function App() {
                   Inclui fundo guia e camada de texto inicial para personalizar.
                 </span>
               </button>
+
+              {localStorage.getItem('sublimstudio_saved_project') && (
+                <button
+                  onClick={() => handleConfirmNewProject('restore')}
+                  className={`sm:col-span-2 p-4 rounded-xl border text-left flex items-center gap-3 transition-all cursor-pointer hover:border-emerald-500 group ${
+                    theme === 'light'
+                      ? 'bg-emerald-50/60 border-emerald-300 hover:bg-emerald-100/80 text-emerald-950'
+                      : 'bg-emerald-950/20 border-emerald-500/40 hover:bg-emerald-900/30 text-emerald-100'
+                  }`}
+                >
+                  <div className="p-2.5 rounded-lg bg-emerald-600 text-white shrink-0 group-hover:scale-110 transition-transform shadow-md">
+                    <Save className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-sm block">Restaurar Rascunho Salvo</span>
+                    <span className={`text-xs ${theme === 'light' ? 'text-emerald-800' : 'text-emerald-300/80'}`}>
+                      Carregar as camadas e configurações do último projeto salvo neste dispositivo.
+                    </span>
+                  </div>
+                </button>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-[#2e2e33]">
