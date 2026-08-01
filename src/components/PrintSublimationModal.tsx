@@ -337,7 +337,7 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
       const link = document.createElement('a');
       const prodName = (currentProduct?.name || 'Estampa').replace(/\s+/g, '_');
       const ext = fmt === 'jpg' ? 'jpg' : fmt;
-      link.download = `SublimStudio_${prodName}_${resolutionDpi}DPI_${mirrorEnabled ? 'Espelhado' : 'Normal'}.${ext}`;
+      link.download = `Sublim_Studio_${prodName}_${resolutionDpi}DPI_${mirrorEnabled ? 'Espelhado' : 'Normal'}.${ext}`;
       
       const mimeType = fmt === 'jpg' ? 'image/jpeg' : fmt === 'pdf' ? 'application/pdf' : 'image/png';
       link.href = exportCanvas.toDataURL(mimeType, 0.95);
@@ -368,7 +368,7 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
           <!DOCTYPE html>
           <html>
             <head>
-              <title>Imprimir Estampa - SublimStudio PRO</title>
+              <title>Imprimir Estampa - Sublim Studio</title>
               <style>
                 body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; height: 100vh; background: #fff; }
                 img { max-width: 100%; max-height: 100%; ${mirrorEnabled ? 'transform: scaleX(-1);' : ''} }

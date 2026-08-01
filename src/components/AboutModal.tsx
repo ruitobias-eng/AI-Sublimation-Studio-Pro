@@ -50,23 +50,20 @@ export function AboutModal({ isOpen, onClose, theme = 'dark', onOpenHelp }: Abou
           <div className="relative group mb-3">
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 rounded-3xl blur-md opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <img
-              src="/favicon.png"
-              alt="SublimStudio PRO"
+              src="/favicon.svg"
+              alt="Sublim Studio"
               className="relative w-20 h-20 rounded-2xl object-contain bg-slate-900 border border-purple-500/40 p-1 shadow-2xl"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('.svg')) {
-                  target.src = '/favicon.svg';
+                if (!target.src.endsWith('.png')) {
+                  target.src = '/favicon.png';
                 }
               }}
             />
           </div>
 
           <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-            SublimStudio
-            <span className="px-2 py-0.5 text-xs font-black bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-md font-mono shadow-md">
-              PRO
-            </span>
+            Sublim Studio
           </h2>
           <p className="text-xs text-purple-300 font-medium mt-1">
             Estúdio Profissional de Sublimação & Mockups 3D em Tempo Real
@@ -112,7 +109,7 @@ export function AboutModal({ isOpen, onClose, theme = 'dark', onOpenHelp }: Abou
           {/* Credits Box */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 border border-purple-500/30 text-center space-y-2">
             <div className="flex items-center justify-center gap-1.5 text-xs text-purple-300 font-bold">
-              <span>SublimStudio PRO</span>
+              <span>Sublim Studio</span>
               <span>&bull;</span>
               <span>Criado por</span>
               <strong className="text-white font-extrabold underline decoration-purple-500">dibiTECh®</strong>

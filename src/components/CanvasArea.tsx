@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Layer, ToolType, ShapeType, SublimationProduct } from '../types';
+import { Layer, ToolType, ShapeType, SublimationProduct, LayerFilters } from '../types';
 import { drawWarpedText } from '../utils/textWarp';
 import { drawVectorShape } from '../utils/shapeDrawer';
+import { ImageAdjustmentModal } from './ImageAdjustmentModal';
 import {
   ZoomIn,
   ZoomOut,
@@ -25,7 +26,18 @@ import {
   Layers,
   Square,
   Sparkles,
-  Maximize
+  Maximize,
+  Sliders,
+  Crop,
+  Wand2,
+  Download,
+  Scissors,
+  Zap,
+  RotateCcw,
+  Tablet,
+  Smartphone,
+  Laptop,
+  Monitor
 } from 'lucide-react';
 
 interface CanvasAreaProps {
@@ -40,6 +52,9 @@ interface CanvasAreaProps {
   onToggleLock?: (id: string) => void;
   onToggleVisibility?: (id: string) => void;
   onChangeColor?: (color: string) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  pushHistoryStep?: (description: string, toolName: string, updatedLayers: Layer[]) => void;
   activeTool: ToolType;
   selectedShape: ShapeType;
   activeColor: string;
@@ -63,6 +78,9 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   onToggleLock,
   onToggleVisibility,
   onChangeColor,
+  onUndo,
+  onRedo,
+  pushHistoryStep,
   activeTool,
   selectedShape,
   activeColor,
@@ -92,6 +110,22 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const layerDragOffsetRef = useRef({ x: 0, y: 0 });
   const isResizingModeRef = useRef<'tl' | 'tr' | 'bl' | 'br' | 'tc' | 'bc' | 'lc' | 'rc' | 'rotate' | null>(null);
   const resizeStartRef = useRef<{ mouseX: number; mouseY: number; x: number; y: number; w: number; h: number; rot: number; aspect: number } | null>(null);
+
+  // Smart Alignment Guides State
+  const activeGuidesRef = useRef<{ x?: number; y?: number }>({});
+
+  // Touch Gesture & Multi-Touch State
+  const activeTouchesRef = useRef<{ id: number; x: number; y: number }[]>([]);
+  const initialPinchDistRef = useRef<number | null>(null);
+  const initialPinchAngleRef = useRef<number | null>(null);
+  const initialTouchLayerRotRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<any>(null);
+  const lastTapTimeRef = useRef<number>(0);
+  const lastTapLayerIdRef = useRef<string | null>(null);
+
+  // Image Adjustment Modal State
+  const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
+  const [modalDefaultTab, setModalDefaultTab] = useState<'adjustments' | 'crop' | 'filters' | 'smart'>('adjustments');
 
   // Dynamic Mouse Cursor State
   const [cursorStyle, setCursorStyle] = useState<string>('crosshair');
@@ -219,6 +253,96 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     setContextMenu(null);
   };
 
+  // Device-Specific Image / Layer Resizing Handlers (Tablet, Android, macOS)
+  const handleResizeForDevice = (id: string, device: 'tablet' | 'android' | 'macos' | 'fit') => {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer) return;
+
+    const printWidth = Math.round((product.defaultWidthCm / 2.54) * 150);
+    const printHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
+
+    let targetW = layer.width;
+    let targetH = layer.height;
+
+    // Preserve aspect ratio if layer has valid dimensions
+    const currentAspect = layer.width / (layer.height || 1);
+
+    if (device === 'tablet') {
+      // Tablet format (iPad / Android Tablet 4:3 target)
+      targetW = Math.min(800, Math.round(printWidth * 0.65));
+      targetH = Math.round(targetW / (currentAspect || (4 / 3)));
+      if (targetH > printHeight * 0.8) {
+        targetH = Math.round(printHeight * 0.8);
+        targetW = Math.round(targetH * (currentAspect || (4 / 3)));
+      }
+    } else if (device === 'android') {
+      // Android Mobile format (9:16 vertical ratio)
+      targetW = Math.min(480, Math.round(printWidth * 0.45));
+      targetH = Math.round(targetW / (currentAspect || (9 / 16)));
+      if (targetH > printHeight * 0.85) {
+        targetH = Math.round(printHeight * 0.85);
+        targetW = Math.round(targetH * (currentAspect || (9 / 16)));
+      }
+    } else if (device === 'macos') {
+      // macOS / Laptop Retina format (16:10 or desktop ratio)
+      targetW = Math.min(1280, Math.round(printWidth * 0.90));
+      targetH = Math.round(targetW / (currentAspect || (16 / 10)));
+      if (targetH > printHeight * 0.9) {
+        targetH = Math.round(printHeight * 0.9);
+        targetW = Math.round(targetH * (currentAspect || (16 / 10)));
+      }
+    } else if (device === 'fit') {
+      // Fit completely within print canvas
+      targetW = printWidth;
+      targetH = printHeight;
+    }
+
+    // Center resized layer in print canvas
+    const newX = Math.round((printWidth - targetW) / 2);
+    const newY = Math.round((printHeight - targetH) / 2);
+
+    const updated = {
+      ...layer,
+      x: newX,
+      y: newY,
+      width: Math.max(50, targetW),
+      height: Math.max(50, targetH),
+    };
+
+    onUpdateLayer(updated);
+    if (pushHistoryStep) {
+      const label = device === 'tablet' ? 'Tablet (iPad)' : device === 'android' ? 'Android Mobile' : device === 'macos' ? 'macOS Retina' : 'Área Total';
+      const newLayers = layers.map((l) => (l.id === updated.id ? updated : l));
+      pushHistoryStep(`Redimensionado para ${label}`, 'Redimensionar', newLayers);
+    }
+    setContextMenu(null);
+  };
+
+  // Export selected layer object as PNG
+  const handleExportLayerAsImage = (id: string) => {
+    const layer = layers.find((l) => l.id === id);
+    if (!layer) return;
+
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = layer.width;
+    exportCanvas.height = layer.height;
+    const ctx = exportCanvas.getContext('2d');
+    if (!ctx) return;
+
+    if (layer.content && (layer.type === 'image' || layer.type === 'smart')) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = layer.content;
+      img.onload = () => {
+        ctx.drawImage(img, 0, 0, layer.width, layer.height);
+        const link = document.createElement('a');
+        link.download = `${layer.name.toLowerCase().replace(/\s+/g, '_')}.png`;
+        link.href = exportCanvas.toDataURL('image/png');
+        link.click();
+      };
+    }
+  };
+
   const handleContextMenu = (e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -261,15 +385,11 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   };
 
   // Physical Printable Area Dimensions mapped to pixel canvas
-  // Base high resolution canvas width/height (300 DPI target ratio)
   const baseCanvasWidth = Math.round((product.defaultWidthCm / 2.54) * 150); // High res canvas
   const baseCanvasHeight = Math.round((product.defaultHeightCm / 2.54) * 150);
 
   // Image cache to prevent recreating HTMLImageElement on every render
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
-
-  // Touch pinch distance ref
-  const touchDistanceRef = useRef<number | null>(null);
 
   // Auto-Fit canvas to viewport container
   const fitToScreen = () => {
@@ -296,33 +416,143 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     }
   };
 
+  // TOUCH GESTURE HANDLERS (1, 2, 3 fingers)
   const handleTouchStartContainer = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      touchDistanceRef.current = dist;
+    const touches = Array.from(e.touches) as React.Touch[];
+
+    // 3 Finger Touch -> Undo or Reset Zoom
+    if (touches.length === 3) {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (onUndo) {
+        onUndo();
+      } else {
+        fitToScreen();
+      }
+      if ('vibrate' in navigator) navigator.vibrate?.([30, 20, 30]);
+      return;
+    }
+
+    // 2 Finger Touch -> Pinch Zoom + 2-Finger Pan + 2-Finger Layer Rotation
+    if (touches.length === 2) {
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+
+      const t1 = touches[0];
+      const t2 = touches[1];
+
+      const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
+
+      initialPinchDistRef.current = dist;
+      initialPinchAngleRef.current = angle;
+
+      const activeL = layers.find((l) => l.id === activeLayerId);
+      if (activeL) {
+        initialTouchLayerRotRef.current = activeL.rotation;
+      }
+      return;
+    }
+
+    // 1 Finger Touch -> Selection, Dragging, Long-Press Timer, Double Tap Check
+    if (touches.length === 1) {
+      const touch = touches[0];
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const touchX = (touch.clientX - rect.left) * scaleX;
+      const touchY = (touch.clientY - rect.top) * scaleY;
+
+      // Find touched layer top-to-bottom
+      const touchedLayer = [...layers].reverse().find((l) => {
+        if (!l.visible) return false;
+        return (
+          touchX >= l.x &&
+          touchX <= l.x + l.width &&
+          touchY >= l.y &&
+          touchY <= l.y + l.height
+        );
+      });
+
+      // Start Long-Press Timer (500ms for Context Menu)
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = setTimeout(() => {
+        if ('vibrate' in navigator) navigator.vibrate?.(40);
+        setContextMenu({
+          x: touch.clientX,
+          y: touch.clientY,
+          layerId: touchedLayer ? touchedLayer.id : activeLayerId,
+        });
+      }, 500);
+
+      // Check Double Tap (<300ms) for Image Editing Modal
+      const now = Date.now();
+      if (
+        touchedLayer &&
+        touchedLayer.id === lastTapLayerIdRef.current &&
+        now - lastTapTimeRef.current < 300
+      ) {
+        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+        if (touchedLayer.type === 'image' || touchedLayer.type === 'smart') {
+          onSelectLayer(touchedLayer.id);
+          setModalDefaultTab('adjustments');
+          setIsImageModalOpen(true);
+          if ('vibrate' in navigator) navigator.vibrate?.(25);
+        }
+      }
+
+      lastTapTimeRef.current = now;
+      lastTapLayerIdRef.current = touchedLayer ? touchedLayer.id : null;
     }
   };
 
   const handleTouchMoveContainer = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 2 && touchDistanceRef.current !== null) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const delta = dist - touchDistanceRef.current;
-      if (Math.abs(delta) > 3) {
-        const factor = delta > 0 ? 1.03 : 0.97;
+    const touches = Array.from(e.touches) as React.Touch[];
+
+    // If moved, cancel long press context menu
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    // 2 Finger Pinch / Pan / Rotate
+    if (touches.length === 2 && initialPinchDistRef.current !== null) {
+      const t1 = touches[0];
+      const t2 = touches[1];
+
+      const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+      const currentAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
+
+      const deltaDist = currentDist - initialPinchDistRef.current;
+      if (Math.abs(deltaDist) > 3) {
+        const factor = deltaDist > 0 ? 1.025 : 0.975;
         setZoom((prev) => Math.min(4.0, Math.max(0.1, Math.round(prev * factor * 100) / 100)));
-        touchDistanceRef.current = dist;
+        initialPinchDistRef.current = currentDist;
+      }
+
+      // 2 Finger Active Layer Rotation
+      if (activeLayerId && initialPinchAngleRef.current !== null && initialTouchLayerRotRef.current !== null) {
+        const activeL = layers.find((l) => l.id === activeLayerId);
+        if (activeL) {
+          const angleDelta = currentAngle - initialPinchAngleRef.current;
+          let newRot = Math.round(initialTouchLayerRotRef.current + angleDelta);
+          if (newRot < 0) newRot += 360;
+          onUpdateLayer({ ...activeL, rotation: newRot % 360 });
+        }
       }
     }
   };
 
   const handleTouchEndContainer = () => {
-    touchDistanceRef.current = null;
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    initialPinchDistRef.current = null;
+    initialPinchAngleRef.current = null;
+    initialTouchLayerRotRef.current = null;
   };
 
   useEffect(() => {
@@ -375,6 +605,40 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       }
       ctx.translate(-layer.width / 2, -layer.height / 2);
 
+      // Apply Real-time Image Adjustment Filters if present
+      if ((layer.type === 'image' || layer.type === 'smart') && layer.filters) {
+        const b = 100 + (layer.filters.brightness || 0) + (layer.filters.exposure || 0);
+        const c = 100 + (layer.filters.contrast || 0);
+        const s = 100 + (layer.filters.saturation || 0) + ((layer.filters.vibrance || 0) * 0.5);
+        const h = layer.filters.hue || 0;
+        const blur = layer.filters.blur || 0;
+        const sepia = layer.filters.sepia || 0;
+        const invert = layer.filters.invert ? 100 : 0;
+        const grayscale = layer.filters.grayscale ? 100 : 0;
+
+        let filterString = `brightness(${b}%) contrast(${c}%) saturate(${s}%) hue-rotate(${h}deg) blur(${blur}px) sepia(${sepia}%) invert(${invert}%) grayscale(${grayscale}%)`;
+
+        if (layer.filters.presetFilter && layer.filters.presetFilter !== 'none') {
+          const intensity = (layer.filters.filterIntensity ?? 100) / 100;
+          switch (layer.filters.presetFilter) {
+            case 'vintage': filterString += ` sepia(${50 * intensity}%) contrast(${120 * intensity}%)`; break;
+            case 'hdr': filterString += ` contrast(${140 * intensity}%) saturate(${130 * intensity}%)`; break;
+            case 'neon': filterString += ` saturate(${200 * intensity}%) contrast(${150 * intensity}%) hue-rotate(${90 * intensity}deg)`; break;
+            case 'cinema': filterString += ` contrast(${130 * intensity}%) sepia(${20 * intensity}%) hue-rotate(${-10 * intensity}deg)`; break;
+            case 'popart': filterString += ` saturate(${250 * intensity}%) contrast(${160 * intensity}%)`; break;
+            case 'cool': filterString += ` hue-rotate(${180 * intensity}deg) saturate(${110 * intensity}%)`; break;
+            case 'warm': filterString += ` sepia(${30 * intensity}%) saturate(${120 * intensity}%)`; break;
+            case 'duotone': filterString += ` contrast(${180 * intensity}%) grayscale(${80 * intensity}%)`; break;
+          }
+        }
+
+        try {
+          ctx.filter = filterString;
+        } catch (e) {
+          // ignore
+        }
+      }
+
       // Render based on layer type
       if (layer.type === 'text') {
         drawWarpedText(ctx, layer, activeColor);
@@ -390,7 +654,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
               if (canvasRef.current) onCanvasRendered(canvasRef.current);
             };
             img.onerror = () => {
-              // Fallback gradient pattern on image load error
+              // Fallback gradient pattern
               const fallbackCanvas = document.createElement('canvas');
               fallbackCanvas.width = 400;
               fallbackCanvas.height = 400;
@@ -443,12 +707,13 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         }
       }
 
+      ctx.filter = 'none';
       ctx.restore();
     });
 
     ctx.restore();
 
-    // Create a clean snapshot of artwork (without editing handles/selection box) for 3D mapping
+    // Snapshot artwork for 3D mapping
     const cleanCanvas = document.createElement('canvas');
     cleanCanvas.width = canvas.width;
     cleanCanvas.height = canvas.height;
@@ -458,11 +723,35 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       onCanvasRendered(cleanCanvas);
     }
 
-    // Render Bounding Box and Transform handles for active layer (editing UI only)
+    // Render Smart Alignment Guides if active
+    if (activeGuidesRef.current.x !== undefined) {
+      ctx.save();
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(activeGuidesRef.current.x, 0);
+      ctx.lineTo(activeGuidesRef.current.x, canvas.height);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (activeGuidesRef.current.y !== undefined) {
+      ctx.save();
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, activeGuidesRef.current.y);
+      ctx.lineTo(canvas.width, activeGuidesRef.current.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Render Bounding Box and Transform handles for active layer
     const activeLayer = layers.find((l) => l.id === activeLayerId);
     if (activeLayer && activeLayer.visible) {
       ctx.save();
-      ctx.strokeStyle = '#007acc';
+      ctx.strokeStyle = '#8b5cf6';
       ctx.lineWidth = 2;
       ctx.setLineDash([6, 4]);
 
@@ -477,18 +766,18 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       // Corner & Side handles rendering for active layer
       ctx.setLineDash([]);
-      ctx.strokeStyle = '#007acc';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 2;
 
       // Rotation top stem line & handle
       ctx.beginPath();
       ctx.moveTo(activeLayer.width / 2, 0);
-      ctx.lineTo(activeLayer.width / 2, -22);
+      ctx.lineTo(activeLayer.width / 2, -24);
       ctx.stroke();
 
-      ctx.fillStyle = '#007acc';
+      ctx.fillStyle = '#8b5cf6';
       ctx.beginPath();
-      ctx.arc(activeLayer.width / 2, -22, 6, 0, Math.PI * 2);
+      ctx.arc(activeLayer.width / 2, -24, 7, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
@@ -496,9 +785,10 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       // Corner handles (Squares)
       ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#007acc';
-      ctx.lineWidth = 1.5;
-      const cornerSize = 10;
+      ctx.strokeStyle = '#8b5cf6';
+      ctx.lineWidth = 2;
+
+      const cornerSize = 12;
       const corners = [
         { id: 'tl', x: 0, y: 0 },
         { id: 'tr', x: activeLayer.width, y: 0 },
@@ -519,7 +809,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       ];
       sideHandles.forEach((s) => {
         ctx.beginPath();
-        ctx.arc(s.x, s.y, 4.5, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, 5.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       });
@@ -535,8 +825,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     w: number,
     h: number
   ): 'tl' | 'tr' | 'bl' | 'br' | 'tc' | 'bc' | 'lc' | 'rc' | 'rotate' | null => {
-    const r = 14; // Hit tolerance
-    if (Math.hypot(localX - w / 2, localY - (-22)) <= r) return 'rotate';
+    const r = 16; // Hit tolerance
+    if (Math.hypot(localX - w / 2, localY - (-24)) <= r) return 'rotate';
     if (Math.hypot(localX - 0, localY - 0) <= r) return 'tl';
     if (Math.hypot(localX - w, localY - 0) <= r) return 'tr';
     if (Math.hypot(localX - 0, localY - h) <= r) return 'bl';
@@ -864,14 +1154,39 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     if (isDraggingLayerRef.current && activeLayerId) {
       const activeLayer = layers.find((l) => l.id === activeLayerId);
       if (activeLayer) {
+        let newX = Math.round(mouseX - layerDragOffsetRef.current.x);
+        let newY = Math.round(mouseY - layerDragOffsetRef.current.y);
+
+        // Smart Alignment Snap Guidelines Calculation
+        const centerX = newX + activeLayer.width / 2;
+        const centerY = newY + activeLayer.height / 2;
+        const canvasCenterX = baseCanvasWidth / 2;
+        const canvasCenterY = baseCanvasHeight / 2;
+
+        const snapThreshold = 8;
+        const guides: { x?: number; y?: number } = {};
+
+        if (Math.abs(centerX - canvasCenterX) < snapThreshold) {
+          newX = Math.round(canvasCenterX - activeLayer.width / 2);
+          guides.x = canvasCenterX;
+        }
+        if (Math.abs(centerY - canvasCenterY) < snapThreshold) {
+          newY = Math.round(canvasCenterY - activeLayer.height / 2);
+          guides.y = canvasCenterY;
+        }
+
+        activeGuidesRef.current = guides;
+
         onUpdateLayer({
           ...activeLayer,
-          x: mouseX - layerDragOffsetRef.current.x,
-          y: mouseY - layerDragOffsetRef.current.y,
+          x: newX,
+          y: newY,
         });
         setCursorStyle('move');
         return;
       }
+    } else {
+      activeGuidesRef.current = {};
     }
 
     // Hover mouse cursor calculation
@@ -938,6 +1253,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const handleMouseUp = () => {
     isResizingModeRef.current = null;
     resizeStartRef.current = null;
+    activeGuidesRef.current = {};
 
     if (isDrawingRef.current && activeTool === 'brush') {
       isDrawingRef.current = false;
@@ -968,54 +1284,6 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     isDraggingLayerRef.current = false;
   };
 
-  // Helper Star Drawer
-  const drawStar = (
-    ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    spikes: number,
-    outerRadius: number,
-    innerRadius: number
-  ) => {
-    let rot = (Math.PI / 2) * 3;
-    let x = cx;
-    let y = cy;
-    const step = Math.PI / spikes;
-
-    ctx.beginPath();
-    ctx.moveTo(cx, cy - outerRadius);
-    for (let i = 0; i < spikes; i++) {
-      x = cx + Math.cos(rot) * outerRadius;
-      y = cy + Math.sin(rot) * outerRadius;
-      ctx.lineTo(x, y);
-      rot += step;
-
-      x = cx + Math.cos(rot) * innerRadius;
-      y = cy + Math.sin(rot) * innerRadius;
-      ctx.lineTo(x, y);
-      rot += step;
-    }
-    ctx.lineTo(cx, cy - outerRadius);
-    ctx.closePath();
-  };
-
-  // Helper Heart Drawer
-  const drawHeart = (
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number
-  ) => {
-    ctx.beginPath();
-    ctx.moveTo(x + w / 2, y + h / 4);
-    ctx.bezierCurveTo(x + w / 2, y, x, y, x, y + h / 4);
-    ctx.bezierCurveTo(x, y + h / 2, x + w / 2, y + (h * 3) / 4, x + w / 2, y + h);
-    ctx.bezierCurveTo(x + w / 2, y + (h * 3) / 4, x + w, y + h / 2, x + w, y + h / 4);
-    ctx.bezierCurveTo(x + w, y, x + w / 2, y, x + w / 2, y + h / 4);
-    ctx.closePath();
-  };
-
   return (
     <div
       ref={containerRef}
@@ -1023,6 +1291,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       onTouchStart={handleTouchStartContainer}
       onTouchMove={handleTouchMoveContainer}
       onTouchEnd={handleTouchEndContainer}
+      onTouchCancel={handleTouchEndContainer}
       onDragOver={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -1133,34 +1402,119 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
       {/* Canva Floating Contextual Formatting Bar */}
       {activeLayerId && (
-        <div className={`absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3.5 py-2 backdrop-blur-lg border rounded-2xl shadow-2xl z-30 text-xs animate-in fade-in slide-in-from-top-3 duration-200 ${
+        <div className={`absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 backdrop-blur-xl border rounded-2xl shadow-2xl z-30 text-xs animate-in fade-in slide-in-from-top-3 duration-200 max-w-[95vw] overflow-x-auto ${
           theme === 'light'
             ? 'bg-white/95 border-purple-200 text-slate-800 shadow-slate-300/60'
-            : 'bg-[#181920]/95 border-purple-500/40 text-gray-200'
+            : 'bg-[#181920]/95 border-purple-500/40 text-gray-200 shadow-black/90'
         }`}>
           {(() => {
             const activeL = layers.find((l) => l.id === activeLayerId);
             if (!activeL) return null;
 
+            const isImage = activeL.type === 'image' || activeL.type === 'smart';
+
             return (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 shrink-0">
                 {/* Layer Title Badge */}
-                <span className="text-[11px] font-bold text-purple-300 max-w-[110px] truncate bg-purple-950/60 px-2 py-0.5 rounded-lg border border-purple-500/30">
+                <span className="text-[11px] font-bold text-purple-300 max-w-[100px] truncate bg-purple-950/70 px-2.5 py-1 rounded-lg border border-purple-500/30 shrink-0">
                   {activeL.name}
                 </span>
 
-                <div className="w-[1px] h-4 bg-white/20"></div>
+                <div className="w-[1px] h-4 bg-white/20 shrink-0"></div>
+
+                {/* IMAGE SPECIFIC ADVANCED TOOL BUTTONS */}
+                {isImage && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setModalDefaultTab('adjustments');
+                        setIsImageModalOpen(true);
+                      }}
+                      className="px-2.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-1.5 text-[11px] shadow-sm transition-all cursor-pointer shrink-0"
+                      title="Abrir Painel de Ajuste de Cores, Luz e Filtros"
+                    >
+                      <Sliders className="w-3.5 h-3.5" />
+                      <span>Editar</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setModalDefaultTab('crop');
+                        setIsImageModalOpen(true);
+                      }}
+                      className="px-2.5 py-1.5 bg-[#23242e] hover:bg-[#2e2f3d] text-gray-200 hover:text-white rounded-xl font-semibold flex items-center gap-1.5 text-[11px] transition-all cursor-pointer shrink-0"
+                      title="Recortar Imagem"
+                    >
+                      <Crop className="w-3.5 h-3.5 text-sky-400" />
+                      <span>Cortar</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setModalDefaultTab('filters');
+                        setIsImageModalOpen(true);
+                      }}
+                      className="px-2.5 py-1.5 bg-[#23242e] hover:bg-[#2e2f3d] text-gray-200 hover:text-white rounded-xl font-semibold flex items-center gap-1.5 text-[11px] transition-all cursor-pointer shrink-0"
+                      title="Aplicar Filtro Estético"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                      <span>Filtros</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setModalDefaultTab('smart');
+                        setIsImageModalOpen(true);
+                      }}
+                      className="px-2.5 py-1.5 bg-[#23242e] hover:bg-[#2e2f3d] text-gray-200 hover:text-white rounded-xl font-semibold flex items-center gap-1.5 text-[11px] transition-all cursor-pointer shrink-0"
+                      title="Ferramentas IA (Remover Fundo, Vetorizar, Upscale)"
+                    >
+                      <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                      <span>IA Smart</span>
+                    </button>
+
+                    {/* Device Preset Resizing Group */}
+                    <div className="flex items-center bg-[#23242e] rounded-xl border border-[#383945] p-0.5 shrink-0" title="Redimensionar Imagem para Dispositivos">
+                      <span className="px-1.5 text-[10px] font-bold text-gray-400 uppercase hidden md:inline">Tamanho:</span>
+                      <button
+                        onClick={() => handleResizeForDevice(activeL.id, 'tablet')}
+                        className="px-2 py-1 hover:bg-purple-600/30 text-gray-200 hover:text-white rounded-lg flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
+                        title="Redimensionar p/ Tablet / iPad (4:3)"
+                      >
+                        <Tablet className="w-3.5 h-3.5 text-sky-400" />
+                        <span className="hidden lg:inline">Tablet</span>
+                      </button>
+                      <button
+                        onClick={() => handleResizeForDevice(activeL.id, 'android')}
+                        className="px-2 py-1 hover:bg-purple-600/30 text-gray-200 hover:text-white rounded-lg flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
+                        title="Redimensionar p/ Android Mobile (9:16)"
+                      >
+                        <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="hidden lg:inline">Android</span>
+                      </button>
+                      <button
+                        onClick={() => handleResizeForDevice(activeL.id, 'macos')}
+                        className="px-2 py-1 hover:bg-purple-600/30 text-gray-200 hover:text-white rounded-lg flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
+                        title="Redimensionar p/ macOS Desktop (16:10 Retina)"
+                      >
+                        <Laptop className="w-3.5 h-3.5 text-purple-400" />
+                        <span className="hidden lg:inline">macOS</span>
+                      </button>
+                    </div>
+
+                    <div className="w-[1px] h-4 bg-white/20 shrink-0"></div>
+                  </>
+                )}
 
                 {/* TEXT CONTROLS */}
                 {activeL.type === 'text' && (
                   <>
-                    {/* Font Family Selector */}
                     <select
                       value={activeL.fontFamily || 'Impact'}
                       onChange={(e) =>
                         onUpdateLayer({ ...activeL, fontFamily: e.target.value })
                       }
-                      className="bg-[#23242e] text-white text-[11px] px-2 py-1 rounded-lg border border-[#383945] focus:outline-none focus:border-purple-500 cursor-pointer"
+                      className="bg-[#23242e] text-white text-[11px] px-2 py-1 rounded-lg border border-[#383945] focus:outline-none focus:border-purple-500 cursor-pointer shrink-0"
                     >
                       <option value="Impact">Impact</option>
                       <option value="Arial">Arial Bold</option>
@@ -1172,8 +1526,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       <option value="Courier New">Courier</option>
                     </select>
 
-                    {/* Font Size Decrement / Increment */}
-                    <div className="flex items-center bg-[#23242e] rounded-lg border border-[#383945] p-0.5">
+                    <div className="flex items-center bg-[#23242e] rounded-lg border border-[#383945] p-0.5 shrink-0">
                       <button
                         onClick={() =>
                           onUpdateLayer({
@@ -1200,112 +1553,28 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                         +
                       </button>
                     </div>
-
-                    {/* Curved Text Arc Toggle */}
-                    <button
-                      onClick={() =>
-                        onUpdateLayer({
-                          ...activeL,
-                          isCurved: !activeL.isCurved,
-                          curveRadius: activeL.curveRadius || 120,
-                        })
-                      }
-                      className={`px-2 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
-                        activeL.isCurved
-                          ? 'bg-purple-600 text-white shadow-sm'
-                          : 'bg-[#23242e] text-gray-300 hover:text-white'
-                      }`}
-                      title="Alternar Texto Curvado em Arco (Caneca)"
-                    >
-                      <span>Arco: {activeL.isCurved ? 'ON' : 'OFF'}</span>
-                    </button>
                   </>
                 )}
 
-                {/* Color Swatches: Preenchimento e Cor da Linha */}
-                <div className="flex items-center gap-2 bg-[#23242e] px-2 py-1 rounded-xl border border-[#383945]">
-                  {/* Fill Color */}
-                  <div className="flex items-center gap-1" title="Cor de Preenchimento / Fundo">
-                    <span className="text-[10px] text-gray-300 font-medium hidden sm:inline">Cor:</span>
-                    <label
-                      className="w-5 h-5 rounded-full border border-white/40 cursor-pointer shadow-inner hover:scale-110 transition-transform relative overflow-hidden flex-shrink-0"
-                      style={{ backgroundColor: activeL.color || activeColor }}
-                      title="Selecionar Cor de Preenchimento"
-                    >
-                      <input
-                        type="color"
-                        value={activeL.color || activeColor}
-                        onChange={(e) =>
-                          onUpdateLayer({ ...activeL, color: e.target.value })
-                        }
-                        className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
-                      />
-                    </label>
-                  </div>
+                {/* Align Center Button */}
+                <button
+                  onClick={() => handleCenterLayer(activeL.id)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-gray-200 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+                  title="Centralizar na Estampa"
+                >
+                  <AlignCenter className="w-3.5 h-3.5 text-indigo-400" />
+                  <span className="hidden sm:inline">Centralizar</span>
+                </button>
 
-                  <div className="w-[1px] h-3.5 bg-white/20"></div>
-
-                  {/* Line / Stroke Color */}
-                  <div className="flex items-center gap-1" title="Cor da Linha / Contorno">
-                    <span className="text-[10px] text-purple-300 font-medium hidden sm:inline">Linha:</span>
-                    <label
-                      className="w-5 h-5 rounded-full border-2 border-purple-400 cursor-pointer shadow-inner hover:scale-110 transition-transform relative overflow-hidden flex-shrink-0 flex items-center justify-center"
-                      style={{ backgroundColor: activeL.strokeColor || activeL.color || '#000000' }}
-                      title="Selecionar Cor da Linha / Contorno"
-                    >
-                      <input
-                        type="color"
-                        value={activeL.strokeColor || activeL.color || '#000000'}
-                        onChange={(e) =>
-                          onUpdateLayer({
-                            ...activeL,
-                            strokeColor: e.target.value,
-                            strokeWidth: activeL.strokeWidth ? activeL.strokeWidth : 3,
-                          })
-                        }
-                        className="opacity-0 absolute inset-0 cursor-pointer w-full h-full"
-                      />
-                    </label>
-                  </div>
-
-                  {/* Line Thickness */}
-                  {(activeL.type === 'shape' || activeL.type === 'text') && (
-                    <>
-                      <div className="w-[1px] h-3.5 bg-white/20"></div>
-                      <div className="flex items-center gap-1" title="Espessura da Linha / Contorno">
-                        <span className="text-[10px] text-gray-400 font-medium hidden lg:inline">Grossura:</span>
-                        <input
-                          type="number"
-                          min="0"
-                          max="50"
-                          value={activeL.strokeWidth ?? 0}
-                          onChange={(e) =>
-                            onUpdateLayer({
-                              ...activeL,
-                              strokeWidth: Math.max(0, parseInt(e.target.value) || 0),
-                            })
-                          }
-                          className="w-10 bg-[#121216] border border-[#383945] rounded px-1 py-0.5 text-center text-purple-300 font-mono text-[10px] font-bold focus:outline-none focus:border-purple-500"
-                        />
-                        <span className="text-[9px] text-gray-400 font-mono">px</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="w-[1px] h-4 bg-white/20"></div>
-
-                {/* Duplicate Button */}
-                {onDuplicateLayer && (
-                  <button
-                    onClick={() => onDuplicateLayer(activeL.id)}
-                    className="p-1.5 hover:bg-white/10 rounded-lg text-gray-200 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer"
-                    title="Duplicar elemento"
-                  >
-                    <Copy className="w-3.5 h-3.5 text-purple-400" />
-                    <span className="hidden sm:inline">Duplicar</span>
-                  </button>
-                )}
+                {/* Mirror / Flip H & V */}
+                <button
+                  onClick={() => handleFlipHorizontal(activeL.id)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-gray-200 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+                  title="Espelhar Horizontalmente"
+                >
+                  <FlipHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="hidden sm:inline">Espelhar</span>
+                </button>
 
                 {/* Rotate Button */}
                 <button
@@ -1315,20 +1584,42 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       rotation: (activeL.rotation + 90) % 360,
                     })
                   }
-                  className="p-1.5 hover:bg-white/10 rounded-lg text-gray-200 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer"
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-gray-200 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
                   title="Girar 90°"
                 >
                   <RotateCw className="w-3.5 h-3.5 text-sky-400" />
                   <span className="hidden sm:inline">Girar</span>
                 </button>
 
-                <div className="w-[1px] h-4 bg-white/20"></div>
+                {/* Duplicate Button */}
+                {onDuplicateLayer && (
+                  <button
+                    onClick={() => onDuplicateLayer(activeL.id)}
+                    className="p-1.5 hover:bg-white/10 rounded-lg text-gray-200 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+                    title="Duplicar elemento"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="hidden sm:inline">Duplicar</span>
+                  </button>
+                )}
+
+                {/* Export Object */}
+                <button
+                  onClick={() => handleExportLayerAsImage(activeL.id)}
+                  className="p-1.5 hover:bg-white/10 rounded-lg text-gray-200 hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+                  title="Exportar Objeto em PNG"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Baixar PNG</span>
+                </button>
+
+                <div className="w-[1px] h-4 bg-white/20 shrink-0"></div>
 
                 {/* Delete Button */}
                 {onDeleteLayer && (
                   <button
                     onClick={() => onDeleteLayer(activeL.id)}
-                    className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-lg font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer"
+                    className="p-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 rounded-lg font-bold flex items-center gap-1 text-[11px] transition-colors cursor-pointer shrink-0"
                     title="Excluir Elemento Selecionado (Del)"
                   >
                     <Trash2 className="w-3.5 h-3.5 text-red-400" />
@@ -1407,20 +1698,6 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           <span>Ajustar Tela</span>
         </button>
 
-        {/* 100% 1:1 Actual Size */}
-        <button
-          onClick={() => {
-            setZoom(1.0);
-            setPan({ x: 0, y: 0 });
-          }}
-          className={`px-2 py-1 text-[11px] font-medium rounded-lg transition-colors cursor-pointer ${
-            theme === 'light' ? 'hover:bg-slate-100 text-slate-700 hover:text-slate-900' : 'hover:bg-white/10 text-gray-300 hover:text-white'
-          }`}
-          title="Zoom 100% (Tamanho Real)"
-        >
-          100% Real
-        </button>
-
         {/* Reset Pan / Center */}
         <button
           onClick={() => setPan({ x: 0, y: 0 })}
@@ -1433,7 +1710,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         </button>
       </div>
 
-      {/* Canva Floating Right-Click Context Menu */}
+      {/* Canva Floating Right-Click / Touch Context Menu */}
       {contextMenu && (
         <div
           className={`fixed z-50 w-60 rounded-2xl border shadow-2xl backdrop-blur-md text-xs py-2 flex flex-col select-none animate-in fade-in zoom-in-95 duration-150 ${
@@ -1562,15 +1839,44 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     </button>
 
                     {(activeL.type === 'image' || activeL.type === 'smart') && (
-                      <button
-                        onClick={() => handleFillPrintArea(activeL.id)}
-                        className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
-                          theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
-                        }`}
-                      >
-                        <Maximize className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>Preencher Área de Estampa</span>
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleResizeForDevice(activeL.id, 'tablet')}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                            theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                          }`}
+                        >
+                          <Tablet className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                          <span>Redimensionar p/ Tablet (iPad 4:3)</span>
+                        </button>
+                        <button
+                          onClick={() => handleResizeForDevice(activeL.id, 'android')}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                            theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                          }`}
+                        >
+                          <Smartphone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Redimensionar p/ Android Mobile (9:16)</span>
+                        </button>
+                        <button
+                          onClick={() => handleResizeForDevice(activeL.id, 'macos')}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                            theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                          }`}
+                        >
+                          <Laptop className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                          <span>Redimensionar p/ macOS (Retina 16:10)</span>
+                        </button>
+                        <button
+                          onClick={() => handleFillPrintArea(activeL.id)}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                            theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                          }`}
+                        >
+                          <Maximize className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Preencher Área de Estampa</span>
+                        </button>
+                      </>
                     )}
                   </div>
 
@@ -1679,6 +1985,18 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           })()}
         </div>
       )}
+
+      {/* Advanced Image Adjustment & Filter Modal */}
+      <ImageAdjustmentModal
+        isOpen={isImageModalOpen}
+        onClose={() => setIsImageModalOpen(false)}
+        activeLayer={layers.find((l) => l.id === activeLayerId) || null}
+        onUpdateLayer={onUpdateLayer}
+        pushHistoryStep={pushHistoryStep}
+        allLayers={layers}
+        theme={theme}
+        defaultTab={modalDefaultTab}
+      />
     </div>
   );
 };

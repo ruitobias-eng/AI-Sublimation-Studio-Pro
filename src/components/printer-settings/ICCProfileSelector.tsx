@@ -6,9 +6,9 @@ import { FileUp, Check, ShieldCheck, HardDrive } from 'lucide-react';
 const SYSTEM_ICC_PROFILES: ICCProfile[] = [
   {
     id: 'subli_vibrant_hd',
-    name: 'Sublima Studio AI — Vibrant HD Sublimation ICC (CMYK)',
+    name: 'Sublim Studio — Vibrant HD Sublimation ICC (CMYK)',
     filename: 'subli_vibrant_hd_v4.icc',
-    manufacturer: 'Sublima Studio Labs',
+    manufacturer: 'Sublim Studio Labs',
     colorSpace: 'CMYK',
     description: 'Perfil otimizado para tintas sublimáticas em papéis tratados 90g/100g. Alta saturação no poliéster.',
     isCustom: false,

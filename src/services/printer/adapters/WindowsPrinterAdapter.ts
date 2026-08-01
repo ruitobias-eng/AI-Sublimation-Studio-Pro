@@ -112,7 +112,7 @@ export class WindowsPrinterAdapter implements PrinterPlatformAdapter {
             <!DOCTYPE html>
             <html>
               <head>
-                <title>${job.documentTitle} - Sublima Studio AI PRO</title>
+                <title>${job.documentTitle} - Sublim Studio</title>
                 <style>
                   @page { size: auto; margin: 0mm; }
                   body { margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #fff; }

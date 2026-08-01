@@ -439,7 +439,7 @@ export const PrinterSettingsModal: React.FC<PrinterSettingsModalProps> = ({
         {/* Footer Actions */}
         <div className="p-4 bg-[#0a0b10] border-t border-slate-800/80 flex items-center justify-between">
           <div className="text-[11px] text-gray-400 font-mono">
-            Sublima Studio Engine v4.0 • Modo Espelho Sublimático:{' '}
+            Sublim Studio Engine v4.0 • Modo Espelho Sublimático:{' '}
             <span className={settings.mirror ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
               {settings.mirror ? 'ATIVADO' : 'DESATIVADO'}
             </span>

@@ -17,7 +17,7 @@ export const PrinterSelector: React.FC<PrinterSelectorProps> = ({
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-bold text-purple-300 flex items-center gap-1.5 uppercase tracking-wider">
         <PrinterIcon className="w-3.5 h-3.5 text-purple-400" />
-        Impressora Ativa no Sublima Studio
+        Impressora Ativa no Sublim Studio
       </label>
       <select
         value={selectedPrinterId}

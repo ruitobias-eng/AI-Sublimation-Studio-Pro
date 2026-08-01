@@ -470,7 +470,7 @@ export function HelpModal({ isOpen, onClose, theme = 'dark' }: HelpModalProps) {
               <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs space-y-2">
                 <strong className="text-amber-300 block font-bold">💡 Suporte e PWA Android:</strong>
                 <p className="text-gray-300 leading-relaxed">
-                  O SublimStudio PRO é totalmente otimizado para celulares e tablets Android PWA/APK com suporte a gestos de toque, rotação 3D e câmera integrada para transformar fotos do aparelho direto em estampas sublimáveis.
+                  O Sublim Studio é totalmente otimizado para celulares e tablets Android PWA/APK com suporte a gestos de toque, rotação 3D e câmera integrada para transformar fotos do aparelho direto em estampas sublimáveis.
                 </p>
               </div>
             </div>
@@ -479,7 +479,7 @@ export function HelpModal({ isOpen, onClose, theme = 'dark' }: HelpModalProps) {
 
         {/* Footer */}
         <div className="px-5 py-3 border-t border-slate-800/80 bg-slate-900/80 flex items-center justify-between text-xs text-gray-400 shrink-0">
-          <span>SublimStudio PRO v7.0 • dibiTECh® Rui e Rodrigo</span>
+          <span>Sublim Studio v7.0 • dibiTECh® Rui e Rodrigo</span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition-all cursor-pointer shadow-md"

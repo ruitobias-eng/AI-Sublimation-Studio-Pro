@@ -83,12 +83,23 @@ export type TextWarpStyle =
 export type LayerType = 'image' | 'text' | 'shape' | 'brush' | 'smart' | 'group' | 'path';
 
 export interface LayerFilters {
-  brightness: number;
-  contrast: number;
-  saturation: number;
-  hue: number;
-  blur: number;
-  vibrance: number;
+  brightness: number;  // -100 to 100
+  contrast: number;    // -100 to 100
+  saturation: number;  // -100 to 100
+  hue: number;         // -180 to 180
+  blur: number;        // 0 to 50
+  vibrance: number;    // -100 to 100
+  temperature?: number; // -100 to 100
+  exposure?: number;   // -100 to 100
+  shadows?: number;    // -100 to 100
+  highlights?: number; // -100 to 100
+  sharpen?: number;    // 0 to 100
+  gamma?: number;      // 0.2 to 3.0
+  sepia?: number;      // 0 to 100
+  invert?: boolean;
+  grayscale?: boolean;
+  presetFilter?: string; // vintage, hdr, cartoon, sketch, neon, cinema, popart, sharpen, blur, emboss, glow, duotone, cool, warm
+  filterIntensity?: number; // 0 to 100
 }
 
 export interface Layer {

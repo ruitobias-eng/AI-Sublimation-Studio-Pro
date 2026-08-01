@@ -29,7 +29,7 @@ export class PrinterTestService {
 
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `bold ${Math.round(dpi * 0.22)}px sans-serif`;
-    ctx.fillText('Sublima Studio AI PRO v4.0 — PÁGINA DE TESTE SUBLIMÁTICA', Math.round(dpi * 0.4), Math.round(dpi * 0.35));
+    ctx.fillText('Sublim Studio v4.0 — PÁGINA DE TESTE SUBLIMÁTICA', Math.round(dpi * 0.4), Math.round(dpi * 0.35));
 
     ctx.fillStyle = '#c084fc';
     ctx.font = `bold ${Math.round(dpi * 0.12)}px sans-serif`;

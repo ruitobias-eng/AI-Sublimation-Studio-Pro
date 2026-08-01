@@ -988,6 +988,9 @@ export default function App() {
                 onToggleLock={handleToggleLock}
                 onToggleVisibility={handleToggleVisibility}
                 onChangeColor={handleChangeColor}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                pushHistoryStep={pushHistoryStep}
                 activeTool={activeTool}
                 selectedShape={selectedShape}
                 activeColor={activeColor}
@@ -1570,7 +1573,7 @@ export default function App() {
         theme={theme}
       />
 
-      {/* Sobre o SublimStudio PRO Modal */}
+      {/* Sobre o Sublim Studio Modal */}
       <AboutModal
         isOpen={isAboutModalOpen}
         onClose={() => setIsAboutModalOpen(false)}

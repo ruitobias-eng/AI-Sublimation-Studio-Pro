@@ -92,7 +92,7 @@ export const PrinterCard: React.FC<PrinterCardProps> = ({
           <button
             onClick={onSetAppDefault}
             className="py-1.5 px-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
-            title="Tornar impressora padrão do Sublima Studio"
+            title="Tornar impressora padrão do Sublim Studio"
           >
             Tornar Padrão
           </button>

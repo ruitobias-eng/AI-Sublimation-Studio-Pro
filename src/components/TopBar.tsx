@@ -111,14 +111,13 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="flex items-center gap-1.5 bg-slate-900/10 dark:bg-white/5 border border-purple-500/30 px-2 py-1 rounded-xl shadow-sm cursor-pointer hover:brightness-110 transition-all shrink-0 whitespace-nowrap">
           {!logoError ? (
             <img
-              src="/favicon.png"
-              alt="SublimStudio PRO"
+              src="/favicon.svg"
+              alt="Sublim Studio"
               className="w-5 h-5 object-contain rounded-md shrink-0"
-              onError={() => {
-                // If favicon.png fails, try favicon.svg before falling back to icon
-                const img = document.activeElement as HTMLImageElement;
-                if (img && !img.src.endsWith('.svg')) {
-                  img.src = '/favicon.svg';
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('.png')) {
+                  target.src = '/favicon.png';
                 } else {
                   setLogoError(true);
                 }
@@ -389,7 +388,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 ? 'bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-300'
                 : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border-purple-500/30'
             }`}
-            title="Sobre o SublimStudio PRO"
+            title="Sobre o Sublim Studio"
           >
             <Info className="w-3.5 h-3.5 text-purple-400 shrink-0" />
             <span className="hidden xl:inline">Sobre</span>

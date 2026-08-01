@@ -82,13 +82,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-slate-900/40 dark:bg-slate-800/80 border border-purple-500/40 px-2 py-1 rounded-xl shadow-md cursor-pointer hover:brightness-110 transition-all">
             <img
-              src="/favicon.png"
+              src="/favicon.svg"
               alt="SublimStudio PRO"
               className="w-6 h-6 object-contain rounded-md"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('.svg')) {
-                  target.src = '/favicon.svg';
+                if (!target.src.endsWith('.png')) {
+                  target.src = '/favicon.png';
                 }
               }}
             />

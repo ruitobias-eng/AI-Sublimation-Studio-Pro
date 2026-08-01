@@ -38,7 +38,7 @@ export function AndroidAppModal({
         deferredInstallPrompt.prompt();
         const choiceResult = await deferredInstallPrompt.userChoice;
         if (choiceResult.outcome === 'accepted') {
-          if (onShowSnackbar) onShowSnackbar('Instalação do SublimStudio PWA iniciada!', 'success');
+          if (onShowSnackbar) onShowSnackbar('Instalação do Sublim Studio PWA iniciada!', 'success');
           setIsStandalone(true);
         } else {
           if (onShowSnackbar) onShowSnackbar('Instalação PWA cancelada.', 'info');
@@ -72,7 +72,7 @@ export function AndroidAppModal({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SublimStudio PRO Mobile</title>
+  <title>Sublim Studio</title>
   <style>
     body { margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #090d16; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; }
     .card { background: #14151a; border: 1px solid #2d2f3a; padding: 32px 24px; border-radius: 24px; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
@@ -87,7 +87,7 @@ export function AndroidAppModal({
 </head>
 <body>
   <div class="card">
-    <h1>SublimStudio PRO</h1>
+    <h1>Sublim Studio</h1>
     <p>Redirecionando para o aplicativo completo de sublimação...</p>
     <a class="btn" href="${currentUrl}">ABRIR APLICATIVO AGORA</a>
   </div>
@@ -98,7 +98,7 @@ export function AndroidAppModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'SublimStudio_Pro_Launcher.html';
+    a.download = 'Sublim_Studio_Launcher.html';
     a.click();
     URL.revokeObjectURL(url);
 
@@ -131,20 +131,20 @@ export function AndroidAppModal({
           <div className="relative group mb-2">
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-2xl blur-md opacity-75"></div>
             <img
-              src="/favicon.png"
-              alt="SublimStudio PRO Android"
+              src="/favicon.svg"
+              alt="Sublim Studio Android"
               className="relative w-16 h-16 rounded-2xl object-contain bg-slate-900 border border-emerald-500/40 p-1 shadow-2xl"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('.svg')) {
-                  target.src = '/favicon.svg';
+                if (!target.src.endsWith('.png')) {
+                  target.src = '/favicon.png';
                 }
               }}
             />
           </div>
 
           <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-            Instalar App SublimStudio PRO
+            Instalar App Sublim Studio
           </h2>
           <p className="text-xs text-emerald-300 font-medium mt-1">
             Versão Nativada PWA / APK para Android, iOS e Desktop
