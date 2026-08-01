@@ -62,26 +62,35 @@ export function AndroidAppModal({
     }
   };
 
-  // Generate and download a WebApp Android Shortcut / APK Launcher HTML wrapper
+  // Generate and download a WebApp Android/Desktop Shortcut (.url and clean html launcher)
   const handleDownloadAPKLauncher = () => {
     const currentUrl = window.location.origin || window.location.href;
+    
+    // Clean HTML launcher that redirects directly to HTTPS app
     const htmlContent = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SublimStudio PRO Mobile</title>
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#090d16">
-  <link rel="manifest" href="${currentUrl}/manifest.json">
   <style>
-    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#090d16; font-family:sans-serif; }
-    iframe { width:100%; height:100%; border:none; }
+    body { margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #090d16; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; }
+    .card { background: #14151a; border: 1px solid #2d2f3a; padding: 32px 24px; border-radius: 24px; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+    h1 { font-size: 20px; font-weight: 800; margin-bottom: 8px; color: #10b981; }
+    p { font-size: 13px; color: #9ca3af; margin-bottom: 24px; line-height: 1.5; }
+    .btn { display: inline-block; width: 100%; box-sizing: border-box; background: linear-gradient(135deg, #10b981, #14b8a6); color: #090d16; font-weight: 800; font-size: 14px; padding: 14px 20px; border-radius: 14px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.5px; }
   </style>
+  <script>
+    // Redirect directly to HTTPS app URL to prevent local file:// CORS restrictions
+    window.location.replace("${currentUrl}");
+  </script>
 </head>
 <body>
-  <iframe src="${currentUrl}" allow="camera; microphone; geolocation; storage-access"></iframe>
+  <div class="card">
+    <h1>SublimStudio PRO</h1>
+    <p>Redirecionando para o aplicativo completo de sublimação...</p>
+    <a class="btn" href="${currentUrl}">ABRIR APLICATIVO AGORA</a>
+  </div>
 </body>
 </html>`;
 
@@ -89,12 +98,12 @@ export function AndroidAppModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'SublimStudio_Pro_Android_Launcher.html';
+    a.download = 'SublimStudio_Pro_Launcher.html';
     a.click();
     URL.revokeObjectURL(url);
 
     if (onShowSnackbar) {
-      onShowSnackbar('Atalho WebApp baixado! Abra no seu Android ou registre como App.', 'success');
+      onShowSnackbar('Atalho baixado com sucesso! Clique no arquivo para abrir o app.', 'success');
     }
   };
 
