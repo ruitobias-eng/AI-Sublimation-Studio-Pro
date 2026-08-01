@@ -52,6 +52,7 @@ interface TopBarProps {
   onIncludeStamp?: () => void;
   onSaveLayout?: () => void;
   onOpenSettings?: () => void;
+  onOpenPrinterSettings?: () => void;
   projectName?: string;
   onChangeProjectName?: (name: string) => void;
 }
@@ -80,6 +81,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onIncludeStamp,
   onSaveLayout,
   onOpenSettings,
+  onOpenPrinterSettings,
   projectName = 'Arte Sublimação - Caneca 325ml',
   onChangeProjectName,
 }) => {
@@ -145,6 +147,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           onIncludeStamp={onIncludeStamp}
           onSaveLayout={onSaveLayout}
           onOpenSettings={onOpenSettings}
+          onOpenPrinterSettings={onOpenPrinterSettings}
           onOpenAndroidModal={onOpenAndroidModal}
           onOpenHelp={onOpenHelp}
           onOpenAbout={onOpenAbout}
@@ -331,18 +334,24 @@ export const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         {/* Ergonomic Illuminated LED Print Button */}
-        {onOpenPrintModal ? (
+        {onOpenPrinterSettings || onOpenPrintModal ? (
           <button
-            onClick={onOpenPrintModal}
+            onClick={() => {
+              if (onOpenPrinterSettings) {
+                onOpenPrinterSettings();
+              } else if (onOpenPrintModal) {
+                onOpenPrintModal();
+              }
+            }}
             className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black rounded-xl shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95 shrink-0 text-xs uppercase tracking-wide border border-emerald-400/50"
-            title="Central de Impressão e Exportação Sublimática (RIP 1200 DPI, Perfis ICC, Timer)"
+            title="Central Unificada de Impressão e Configurações (RIP 1200 DPI, Perfis ICC, Spooler)"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-950 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-950"></span>
             </span>
             <Printer className="w-3.5 h-3.5 text-slate-950 shrink-0" />
-            <span>Imprimir / Exportar</span>
+            <span>Imprimir / Configurações</span>
           </button>
         ) : (
           <button

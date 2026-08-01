@@ -23,6 +23,7 @@ import { AndroidAppModal } from './components/AndroidAppModal';
 import { HelpModal } from './components/HelpModal';
 import { AboutModal } from './components/AboutModal';
 import { PrintSublimationModal } from './components/PrintSublimationModal';
+import { PrinterSettingsModal } from './components/printer-settings';
 import { AndroidMobileNav } from './components/AndroidMobileNav';
 import { MD3Snackbar, SnackbarMessage } from './components/MD3Snackbar';
 import { MD3BottomSheet } from './components/MD3BottomSheet';
@@ -135,6 +136,7 @@ export default function App() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isPrinterSettingsOpen, setIsPrinterSettingsOpen] = useState(false);
   const [isAndroidModalOpen, setIsAndroidModalOpen] = useState(false);
   const [isAndroidSimulated, setIsAndroidSimulated] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -904,6 +906,7 @@ export default function App() {
         onIncludeStamp={handleIncludeStampClick}
         onSaveLayout={handleSaveLayout}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenPrinterSettings={() => setIsPrinterSettingsOpen(true)}
         projectName={projectName}
         onChangeProjectName={setProjectName}
       />
@@ -1239,6 +1242,16 @@ export default function App() {
         canvasElement={renderedCanvas}
         mirrorSublimation={mirrorSublimation}
         onShowSnackbar={(msg, type) => showSnackbar(msg, type)}
+        onOpenPrinterSettings={() => setIsPrinterSettingsOpen(true)}
+      />
+
+      <PrinterSettingsModal
+        isOpen={isPrinterSettingsOpen}
+        onClose={() => setIsPrinterSettingsOpen(false)}
+        theme={theme}
+        canvasElement={renderedCanvas}
+        onShowSnackbar={(msg, type) => showSnackbar(msg, type)}
+        onOpenPrintModal={() => setIsPrintModalOpen(true)}
       />
 
       {/* Novo Projeto Modal */}

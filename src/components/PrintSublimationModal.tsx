@@ -31,10 +31,18 @@ import {
   Award,
   ChevronRight,
   Save,
-  Grid
+  Grid,
+  Search,
+  Bookmark,
+  Settings
 } from 'lucide-react';
 import { SUBLIMATION_PRESS_PRESETS, calculateInkAndCost } from '../utils/pressEngine';
 import { PrintableProduct } from '../types';
+import { usePrinterStore } from '../store/usePrinterStore';
+import { usePrintSettingsStore } from '../store/usePrintSettingsStore';
+import { usePrintPresetStore } from '../store/usePrintPresetStore';
+import { StorageService } from '../services/storage/StorageService';
+import { PrintPreset, PrintSettings } from '../services/printer/PrinterTypes';
 
 interface PrintSublimationModalProps {
   isOpen: boolean;
@@ -45,6 +53,7 @@ interface PrintSublimationModalProps {
   canvasElement?: HTMLCanvasElement | null;
   mirrorSublimation?: boolean;
   onShowSnackbar?: (msg: string, type: 'success' | 'info' | 'error') => void;
+  onOpenPrinterSettings?: () => void;
 }
 
 export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
@@ -56,9 +65,15 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
   canvasElement,
   mirrorSublimation = true,
   onShowSnackbar,
+  onOpenPrinterSettings,
 }) => {
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<'rip' | 'press' | 'icc' | 'status' | 'support'>('rip');
+
+  // Printer & Settings Stores
+  const { selectedPrinter, printers, selectPrinter } = usePrinterStore();
+  const { settings, updateSettings } = usePrintSettingsStore(selectedPrinter?.id || 'pwa_epson_l3250');
+  const { presets } = usePrintPresetStore();
 
   // Substrate / Press State
   const [selectedPresetId, setSelectedPresetId] = useState('mug_ceramic');
@@ -84,6 +99,70 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
   const [rotation, setRotation] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
   const [canvasDataUrl, setCanvasDataUrl] = useState<string | null>(null);
+
+  // Fetch & Apply Saved Printer Settings
+  const handleLoadSavedSettings = (presetToApply?: PrintPreset) => {
+    let targetSettings = settings;
+    let label = selectedPrinter?.displayName || 'Epson Subli-Pro L3250';
+
+    if (presetToApply) {
+      targetSettings = presetToApply.settings;
+      if (presetToApply.printerId) {
+        selectPrinter(presetToApply.printerId);
+      }
+      updateSettings(targetSettings);
+      label = presetToApply.name;
+    } else {
+      const saved = StorageService.getItem<PrintSettings | null>('currentPrintSettings', null);
+      if (saved) {
+        targetSettings = saved;
+        updateSettings(saved);
+      }
+    }
+
+    if (targetSettings) {
+      if (targetSettings.dpi && [300, 600, 1200].includes(targetSettings.dpi)) {
+        setResolutionDpi(targetSettings.dpi as 300 | 600 | 1200);
+      }
+      if (targetSettings.mirror !== undefined) {
+        setMirrorEnabled(targetSettings.mirror);
+      }
+      if (targetSettings.iccProfile) {
+        setSelectedIccProfile(targetSettings.iccProfile);
+      }
+      if (targetSettings.mediaType) {
+        setPaperType(targetSettings.mediaType);
+      }
+    }
+
+    if (onShowSnackbar) {
+      onShowSnackbar(
+        `Configurações salvas de "${label}" carregadas! (${targetSettings.dpi || 1200} DPI, Espelho: ${targetSettings.mirror ? 'Sim' : 'Não'}, Profile: ${targetSettings.iccProfile || 'subli_vibrant_hd'})`,
+        'success'
+      );
+    }
+  };
+
+  // Auto-sync saved printer settings when opening modal
+  useEffect(() => {
+    if (isOpen) {
+      const saved = StorageService.getItem<PrintSettings | null>('currentPrintSettings', null);
+      if (saved) {
+        if (saved.dpi && [300, 600, 1200].includes(saved.dpi)) {
+          setResolutionDpi(saved.dpi as any);
+        }
+        if (saved.mirror !== undefined) {
+          setMirrorEnabled(saved.mirror);
+        }
+        if (saved.iccProfile) {
+          setSelectedIccProfile(saved.iccProfile);
+        }
+        if (saved.mediaType) {
+          setPaperType(saved.mediaType);
+        }
+      }
+    }
+  }, [isOpen]);
 
   // Capture canvas data URL on open
   useEffect(() => {
@@ -352,11 +431,13 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-sm shadow-emerald-400"></span>
               </span>
               <div className="flex flex-col">
-                <span className="text-[10px] font-black tracking-wider uppercase text-emerald-400 leading-none">
-                  PRONTA • IMPRESSORA HQ CONNECTED
+                <span className="text-[10px] font-black tracking-wider uppercase text-emerald-400 leading-none flex items-center gap-1">
+                  <span>PRONTA</span>
+                  <span>•</span>
+                  <span>{selectedPrinter?.displayName || 'IMPRESSORA HQ CONNECTED'}</span>
                 </span>
                 <span className="text-[9px] text-slate-400 font-mono leading-none mt-0.5">
-                  Epson Subli-Pro L3250 (1200 DPI Wi-Fi 5GHz)
+                  {selectedPrinter ? `${selectedPrinter.displayName} (${resolutionDpi} DPI - ${selectedPrinter.port || 'Wi-Fi 5GHz'})` : 'Epson Subli-Pro L3250 (1200 DPI Wi-Fi 5GHz)'}
                 </span>
               </div>
             </div>
@@ -368,6 +449,26 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Button to Fetch Saved Printer Settings */}
+            <button
+              onClick={() => handleLoadSavedSettings()}
+              title="Carregar Configurações Salvas da Impressora"
+              className="flex items-center gap-1.5 px-3 py-2 bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 font-bold rounded-2xl transition-all cursor-pointer text-xs"
+            >
+              <Search className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden sm:inline">Buscar Configs Salvas</span>
+            </button>
+
+            {onOpenPrinterSettings && (
+              <button
+                onClick={onOpenPrinterSettings}
+                title="Configurações Avançadas da Impressora"
+                className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition-all cursor-pointer"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            )}
+
             {/* Quick LED Print Button */}
             <button
               onClick={handleTriggerDirectPrint}
@@ -603,10 +704,54 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
                 <div className={`p-4 rounded-2xl border space-y-3 ${
                   darkMode ? 'bg-[#141724] border-[#222638]' : 'bg-slate-50 border-slate-200'
                 }`}>
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-purple-400 flex items-center gap-2">
-                    <Printer className="w-4 h-4" />
-                    <span>Configurações do Arquivo RIP</span>
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-purple-400 flex items-center gap-2">
+                      <Printer className="w-4 h-4" />
+                      <span>Configurações do Arquivo RIP</span>
+                    </h4>
+                    
+                    <button
+                      onClick={() => handleLoadSavedSettings()}
+                      className="px-2 py-1 bg-purple-600/30 hover:bg-purple-600 text-purple-200 hover:text-white border border-purple-500/40 text-[10px] font-bold rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      <Search className="w-3 h-3" />
+                      <span>Buscar Salvas</span>
+                    </button>
+                  </div>
+
+                  {/* Quick Select Saved Preset or Saved Printer Config */}
+                  <div className={`p-3 rounded-xl border flex flex-col gap-1.5 ${
+                    darkMode ? 'bg-[#0e101a] border-[#1d2133]' : 'bg-purple-50 border-purple-200'
+                  }`}>
+                    <label className="text-[10px] font-extrabold uppercase tracking-wider text-purple-300 flex items-center gap-1">
+                      <Bookmark className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Perfil / Preset de Impressora Salvo</span>
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value === 'current_saved') {
+                          handleLoadSavedSettings();
+                        } else {
+                          const found = presets.find((p) => p.id === e.target.value);
+                          if (found) {
+                            handleLoadSavedSettings(found);
+                          }
+                        }
+                      }}
+                      className={`w-full p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        darkMode ? 'bg-[#141724] border-[#222638] text-purple-200' : 'bg-white border-purple-300 text-purple-900'
+                      }`}
+                    >
+                      <option value="current_saved">
+                        🖨️ {selectedPrinter?.displayName || 'Epson L3250'} (Configuração Salva Padrão)
+                      </option>
+                      {presets.map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          ⭐ {preset.name} ({preset.settings.dpi} DPI - {preset.settings.mirror ? 'Espelhado' : 'Normal'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   {/* Resolution DPI selector */}
                   <div className="space-y-1">

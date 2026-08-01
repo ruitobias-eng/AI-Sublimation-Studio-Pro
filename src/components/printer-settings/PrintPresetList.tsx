@@ -1,0 +1,89 @@
+import React from 'react';
+import { PrintPreset } from '../../services/printer/PrinterTypes';
+import { Bookmark, Trash2, ArrowRight, Check } from 'lucide-react';
+
+interface PrintPresetListProps {
+  presets: PrintPreset[];
+  activePresetId?: string;
+  onApplyPreset: (preset: PrintPreset) => void;
+  onDeletePreset: (presetId: string) => void;
+  onCreateNew: () => void;
+}
+
+export const PrintPresetList: React.FC<PrintPresetListProps> = ({
+  presets,
+  activePresetId,
+  onApplyPreset,
+  onDeletePreset,
+  onCreateNew,
+}) => {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+          <Bookmark className="w-4 h-4 text-purple-400" />
+          Presets de Impressão Salvos por Produto
+        </h4>
+
+        <button
+          onClick={onCreateNew}
+          className="py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl cursor-pointer transition-all"
+        >
+          + Salvar Configurações Atuais como Preset
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {presets.map((preset) => {
+          const isActive = activePresetId === preset.id;
+          return (
+            <div
+              key={preset.id}
+              className={`p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3 ${
+                isActive
+                  ? 'bg-purple-950/30 border-purple-500 shadow-md'
+                  : 'bg-[#0a0b10] border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div>
+                <div className="flex items-start justify-between gap-2">
+                  <h5 className="font-bold text-white text-xs">{preset.name}</h5>
+                  {preset.productCategory && (
+                    <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-slate-800 text-purple-300 border border-slate-700">
+                      {preset.productCategory}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-2 space-y-1 text-[11px] text-gray-400 font-mono">
+                  <div>• Papel: {preset.settings.paperSize} ({preset.settings.orientation})</div>
+                  <div>• Resolução: {preset.settings.dpi} DPI</div>
+                  <div>• Espelhamento Sublimático: {preset.settings.mirror ? 'Ativado' : 'Desativado'}</div>
+                  <div>• Perfil ICC: {preset.settings.iccProfile || 'Nenhum'}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                <button
+                  onClick={() => onApplyPreset(preset)}
+                  className="py-1.5 px-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Aplicar Preset</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  onClick={() => onDeletePreset(preset.id)}
+                  className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl cursor-pointer transition-all"
+                  title="Excluir Preset"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

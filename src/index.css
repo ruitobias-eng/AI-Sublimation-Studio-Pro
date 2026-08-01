@@ -1,36 +1,40 @@
 @import "tailwindcss";
 
-/* Momentum scroll & overscroll containment for touch devices */
-* {
-  -webkit-tap-highlight-color: transparent;
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-html, body, #root {
-  width: 100%;
-  height: 100%;
-  height: 100dvh;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  touch-action: manipulation;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-/* Touch momentum scrolling containers */
-.touch-scroll-y {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-  touch-action: pan-y;
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.touch-scroll-x {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  touch-action: pan-x;
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
 }
 
-/* Hide scrollbars for pill navigation & headers */
+/* Material Design 3 Touch Target Min standard */
+.md3-touch-target {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+/* Hide scrollbars for pill navigation */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -39,10 +43,10 @@ html, body, #root {
   scrollbar-width: none;
 }
 
-/* Custom sleek dark scrollbars */
+/* Custom sleek dark scrollbars for Android & Web */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -52,17 +56,10 @@ html, body, #root {
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a855f7;
+  background: #10b981;
 }
 
-/* Safe Area Inset Helpers for iOS & Android gesture bars */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+/* Touch optimization for mobile canvas */
+canvas {
+  touch-action: manipulation;
 }
-.pt-safe {
-  padding-top: env(safe-area-inset-top, 0px);
-}
-.mb-safe {
-  margin-bottom: env(safe-area-inset-bottom, 0px);
-}
-

@@ -10,6 +10,7 @@ interface AppMenuProps {
   onIncludeStamp?: () => void;
   onSaveLayout?: () => void;
   onOpenSettings?: () => void;
+  onOpenPrinterSettings?: () => void;
   onOpenAndroidModal?: () => void;
   onOpenHelp?: () => void;
   onOpenAbout?: () => void;
@@ -25,6 +26,7 @@ export function AppMenu({
   onIncludeStamp,
   onSaveLayout,
   onOpenSettings,
+  onOpenPrinterSettings,
   onOpenAndroidModal,
   onOpenHelp,
   onOpenAbout,
@@ -131,24 +133,22 @@ export function AppMenu({
               <span>Exportar Imagem PNG</span>
             </button>
 
-            {onOpenPrintModal && (
-              <button 
-                onClick={() => {
-                  setIsOpen(false);
-                  onOpenPrintModal();
-                }}
-                className="flex items-center justify-between px-4 py-2.5 hover:bg-emerald-600 hover:text-white transition-colors text-sm text-left w-full cursor-pointer font-extrabold bg-emerald-500/15 text-emerald-400 my-0.5"
-              >
-                <div className="flex items-center gap-3">
-                  <Printer className="w-4 h-4 text-emerald-400 group-hover:text-white shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="font-black text-xs">Imprimir (Central RIP)</span>
-                    <span className="text-[10px] text-emerald-300/80 font-normal group-hover:text-white/90">1200 DPI • Perfil ICC • LPT/WiFi</span>
-                  </div>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onOpenPrinterSettings ? onOpenPrinterSettings() : onOpenSettings?.();
+              }}
+              className="flex items-center justify-between px-4 py-2.5 hover:bg-purple-600 hover:text-white transition-colors text-sm text-left w-full cursor-pointer font-extrabold bg-purple-500/15 text-purple-300 my-0.5"
+            >
+              <div className="flex items-center gap-3">
+                <Printer className="w-4 h-4 text-purple-400 group-hover:text-white shrink-0" />
+                <div className="flex flex-col">
+                  <span className="font-extrabold text-xs">Impressão & Impressoras</span>
+                  <span className="text-[10px] text-purple-300/80 font-normal group-hover:text-white/90">Central RIP • Perfis ICC • Spooler</span>
                 </div>
-                <span className="text-[10px] bg-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-300 font-mono border border-emerald-500/30">Ctrl+P</span>
-              </button>
-            )}
+              </div>
+              <span className="text-[10px] bg-purple-500/20 px-1.5 py-0.5 rounded text-purple-200 font-mono border border-purple-500/30">Ctrl+P</span>
+            </button>
 
             {onOpenAndroidModal && (
               <button
@@ -221,7 +221,7 @@ export function AppMenu({
               className="flex items-center gap-3 px-4 py-2 hover:bg-purple-600 hover:text-white transition-colors text-sm text-left w-full cursor-pointer"
             >
               <Settings className="w-4 h-4 text-slate-400 group-hover:text-white" />
-              Configurações
+              Configurações Gerais
             </button>
           </div>
         </div>

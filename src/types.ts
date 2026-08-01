@@ -19,7 +19,16 @@ export type ToolType =
   | 'remove_bg'
   | 'upscale'
   | 'generative_fill'
-  | 'object_replace';
+  | 'object_replace'
+  | 'direct'
+  | 'rectangle'
+  | 'circle'
+  | 'polygon'
+  | 'star'
+  | 'line'
+  | 'hand'
+  | 'zoom'
+  | 'ai';
 
 export type ShapeType = string;
 
@@ -39,52 +48,47 @@ export type BlendMode =
 export type TextWarpCategory = 'basics' | 'curves' | 'shapes' | 'perspective' | 'effects' | 'decorative';
 
 export type TextWarpStyle =
-  // Básicos
   | 'straight'
   | 'arc_upper'
   | 'arc_lower'
   | 'circle'
   | 'semi_circle'
-  // Curvas
   | 'wave'
   | 'smile'
   | 'frown'
   | 's_curve'
   | 'spiral'
-  // Formas
   | 'heart'
   | 'star'
   | 'oval'
   | 'vertical_ellipse'
   | 'diamond'
-  // Perspectiva
   | 'trapezoid'
   | 'perspective_left'
   | 'perspective_right'
   | 'perspective_center'
   | 'arc_3d'
-  // Efeitos
   | 'flag'
   | 'bulge'
   | 'pinch'
   | 'fish_eye'
   | 'flex_arc'
-  // Texto Decorativo
   | 'logo_circle'
   | 'seal'
   | 'stamp_style'
   | 'emblem'
-  | 'ribbon';
+  | 'ribbon'
+  | 'cylinder';
 
-export type LayerType = 'image' | 'text' | 'shape' | 'brush' | 'smart' | 'group';
+export type LayerType = 'image' | 'text' | 'shape' | 'brush' | 'smart' | 'group' | 'path';
 
 export interface LayerFilters {
-  brightness: number; // -100 to 100
-  contrast: number;   // -100 to 100
-  saturation: number; // -100 to 100
-  hue: number;        // -180 to 180
-  blur: number;       // 0 to 20
-  vibrance: number;   // -100 to 100
+  brightness: number;
+  contrast: number;
+  saturation: number;
+  hue: number;
+  blur: number;
+  vibrance: number;
 }
 
 export interface Layer {
@@ -93,14 +97,14 @@ export interface Layer {
   type: LayerType;
   visible: boolean;
   locked: boolean;
-  opacity: number; // 0 to 100
+  opacity: number;
   blendMode: BlendMode;
   x: number;
   y: number;
   width: number;
   height: number;
   rotation: number;
-  content: string; // Image src base64/url, text string, shape data, or SVG
+  content: string;
   color?: string;
   fontSize?: number;
   fontFamily?: string;
@@ -128,22 +132,144 @@ export interface Layer {
   filters?: LayerFilters;
 }
 
+export interface VectorElement {
+  id: string;
+  name: string;
+  type: LayerType;
+  visible: boolean;
+  locked: boolean;
+  opacity: number;
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  width?: number;
+  height?: number;
+  rotation: number;
+  content: string;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  color?: string;
+  strokeColor?: string;
+  blendMode?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  fontWeight?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  textWarpStyle?: TextWarpStyle;
+  warpIntensity?: number;
+  shapeType?: 'rectangle' | 'circle' | 'star' | 'polygon' | 'heart' | 'triangle' | string;
+  shadowColor?: string;
+  shadowBlur?: number;
+  filterBrightness?: number;
+  filterContrast?: number;
+  filterSaturation?: number;
+}
+
 export interface SublimationProduct {
   id: string;
   name: string;
   category: string;
   defaultWidthCm: number;
   defaultHeightCm: number;
-  printAspect: string; // e.g. "20 x 9.5 cm"
-  model3D: 'mug' | 'tshirt' | 'bottle' | 'tumbler' | 'mousepad' | 'ecobag' | 'cap' | 'tile' | 'pillow' | 'puzzle' | 'phonecase' | 'coaster';
+  printAspect: string;
+  model3D: 'mug' | 'tshirt' | 'bottle' | 'tumbler' | 'mousepad' | 'ecobag' | 'cap' | 'tile' | 'pillow' | 'puzzle' | 'phonecase' | 'coaster' | 'cup';
   description: string;
   bgColor: string;
   material: string;
   samplePrints: string[];
 }
 
+export interface PrintableProduct {
+  id: string;
+  name: string;
+  category: string;
+  widthMm: number;
+  heightMm: number;
+  printAspect: string;
+  model3D: 'mug' | 'tshirt' | 'bottle' | 'tumbler' | 'mousepad' | 'pillow' | 'tile' | 'phonecase' | 'puzzle' | 'cup';
+  description: string;
+  bgColor: string;
+  material: string;
+  cylinderRadiusMm?: number;
+  cylinderArcDegrees?: number;
+}
+
+export interface SublimationPressPreset {
+  id: string;
+  productName: string;
+  temperatureC: number;
+  temperatureF: number;
+  timeSeconds: number;
+  pressure: 'Leve' | 'Média' | 'Alta';
+  paperType: string;
+  inkType: string;
+  notes: string;
+}
+
+export interface TemplatePreset {
+  id: string;
+  title: string;
+  category: 'Tropical' | 'Sunset' | 'Vintage' | 'Neon' | 'Floral' | 'Minimal' | 'Geométrico' | 'Aquarela';
+  previewUrl: string;
+  elements: VectorElement[];
+}
+
+export interface GangItem {
+  id: string;
+  name: string;
+  widthMm: number;
+  heightMm: number;
+  quantity: number;
+  color: string;
+}
+
+export interface GangPlacedBox {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  rotated: boolean;
+}
+
+export interface HistoryCommand {
+  id: string;
+  action: string;
+  timestamp: string;
+  elements: VectorElement[];
+}
+
+export interface HistoryStep {
+  id: string;
+  description: string;
+  toolName: string;
+  timestamp: Date;
+  layers: Layer[];
+}
+
+export interface ExportSettings {
+  format: 'png' | 'svg' | 'pdf' | 'json';
+  dpi: 300 | 150 | 72;
+  mirrorHorizontal: boolean;
+  includeBleed: boolean;
+  bleedMm: number;
+  cmykProfile: 'Fogra39' | 'sRGB' | 'USWebCoated';
+}
+
+export interface ExportConfig {
+  format: 'png' | 'jpg' | 'pdf' | 'svg' | 'psd' | 'tiff';
+  colorSpace: 'CMYK' | 'RGB';
+  dpi: 300 | 150 | 72;
+  transparentBg: boolean;
+  mirrorHorizontal: boolean;
+  physicalWidthCm: number;
+  physicalHeightCm: number;
+}
+
 export interface AIPromptParams {
-  theme?: string;
   prompt: string;
   negativePrompt: string;
   model: string;
@@ -156,24 +282,6 @@ export interface AIPromptParams {
   colorReplaceTo?: string;
 }
 
-export interface HistoryStep {
-  id: string;
-  description: string;
-  toolName: string;
-  timestamp: Date;
-  layers: Layer[];
-}
-
-export interface ExportConfig {
-  format: 'png' | 'jpg' | 'pdf' | 'svg' | 'psd' | 'tiff';
-  colorSpace: 'CMYK' | 'RGB';
-  dpi: 300 | 150 | 72;
-  transparentBg: boolean;
-  mirrorHorizontal: boolean; // Essential for sublimation transfer paper
-  physicalWidthCm: number;
-  physicalHeightCm: number;
-}
-
 export interface Environment3DConfig {
   hdri: 'studio' | 'outdoor' | 'neon' | 'warm';
   showShadows: boolean;
@@ -184,22 +292,4 @@ export interface Environment3DConfig {
   showBleedLine: boolean;
   roughness: number;
   metalness: number;
-}
-
-// Aliases for component compatibility
-export type PrintableProduct = SublimationProduct;
-export type VectorElement = Layer;
-export type HistoryCommand = HistoryStep;
-
-export interface GangItem {
-  id: string;
-  name: string;
-  widthMm?: number;
-  heightMm?: number;
-  widthCm?: number;
-  heightCm?: number;
-  quantity: number;
-  color?: string;
-  imageUrl?: string;
-  rotation?: number;
 }

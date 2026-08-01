@@ -11,11 +11,11 @@ window.addEventListener('error', (e) => {
   }
 });
 
-// Register PWA Service Worker
-if ('serviceWorker' in navigator && ((import.meta as any).env?.PROD || (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production'))) {
+// Register Service Worker for Android PWA Install & Offline capabilities
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.warn('SW registration info:', err);
+      console.log('SW registration failed:', err);
     });
   });
 }
