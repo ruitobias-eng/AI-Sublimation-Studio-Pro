@@ -37,7 +37,9 @@ import {
   Tablet,
   Smartphone,
   Laptop,
-  Monitor
+  Monitor,
+  Plus,
+  Minus
 } from 'lucide-react';
 
 interface CanvasAreaProps {
@@ -316,6 +318,42 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       pushHistoryStep(`Redimensionado para ${label}`, 'Redimensionar', newLayers);
     }
     setContextMenu(null);
+  };
+
+  // Incremental Scale Handler (+ and - buttons) for selected layer/element
+  const handleScaleActiveLayer = (deltaPercent: number) => {
+    if (!activeLayerId) return;
+    const activeL = layers.find((l) => l.id === activeLayerId);
+    if (!activeL) return;
+
+    const factor = 1 + deltaPercent / 100;
+    const newW = Math.max(20, Math.round(activeL.width * factor));
+    const newH = Math.max(20, Math.round(activeL.height * factor));
+
+    // Center expansion / contraction
+    const dx = Math.round((newW - activeL.width) / 2);
+    const dy = Math.round((newH - activeL.height) / 2);
+
+    const updated: Layer = {
+      ...activeL,
+      width: newW,
+      height: newH,
+      x: Math.round(activeL.x - dx),
+      y: Math.round(activeL.y - dy),
+    };
+
+    // Scale font size proportionally for text layers
+    if (activeL.type === 'text' && activeL.fontSize) {
+      updated.fontSize = Math.max(8, Math.round(activeL.fontSize * factor));
+    }
+
+    onUpdateLayer(updated);
+
+    if (pushHistoryStep) {
+      const direction = deltaPercent > 0 ? 'Aumentado (+10%)' : 'Diminuído (-10%)';
+      const newLayers = layers.map((l) => (l.id === updated.id ? updated : l));
+      pushHistoryStep(`Item ${direction}`, 'Redimensionar', newLayers);
+    }
   };
 
   // Export selected layer object as PNG
@@ -1556,6 +1594,27 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                   </>
                 )}
 
+                {/* Universal Size Scale Controls (- / +) for active layer */}
+                <div className="flex items-center bg-[#23242e] rounded-xl border border-[#383945] p-0.5 shrink-0" title="Aumentar ou Diminuir Tamanho do Item Selecionado">
+                  <button
+                    onClick={() => handleScaleActiveLayer(-10)}
+                    className="p-1.5 hover:bg-rose-500/20 text-rose-300 hover:text-white rounded-lg flex items-center justify-center font-bold text-xs transition-all cursor-pointer"
+                    title="Diminuir Tamanho do Item (-10%)"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-1 text-[10px] font-bold text-purple-300 uppercase shrink-0">
+                    Tamanho
+                  </span>
+                  <button
+                    onClick={() => handleScaleActiveLayer(10)}
+                    className="p-1.5 hover:bg-emerald-500/20 text-emerald-300 hover:text-white rounded-lg flex items-center justify-center font-bold text-xs transition-all cursor-pointer"
+                    title="Aumentar Tamanho do Item (+10%)"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
                 {/* Align Center Button */}
                 <button
                   onClick={() => handleCenterLayer(activeL.id)}
@@ -1710,6 +1769,27 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         </button>
       </div>
 
+      {/* Mobile Floating Touch Quick Scale Controls (+ / -) for Selected Element */}
+      {activeLayerId && (
+        <div className="absolute bottom-16 right-3 sm:hidden flex flex-col items-center gap-1.5 bg-[#181920]/95 backdrop-blur-xl border border-purple-500/50 p-2 rounded-2xl shadow-2xl z-30 animate-in fade-in slide-in-from-right-3">
+          <span className="text-[9px] font-extrabold text-purple-300 uppercase tracking-wider">Item</span>
+          <button
+            onClick={() => handleScaleActiveLayer(10)}
+            className="w-11 h-11 bg-purple-600 active:bg-purple-700 text-white rounded-xl flex items-center justify-center font-bold shadow-lg transition-transform active:scale-90 cursor-pointer"
+            title="Aumentar Tamanho do Item (+10%)"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => handleScaleActiveLayer(-10)}
+            className="w-11 h-11 bg-[#23242e] active:bg-purple-900/50 text-rose-400 border border-[#383945] rounded-xl flex items-center justify-center font-bold shadow-lg transition-transform active:scale-90 cursor-pointer"
+            title="Diminuir Tamanho do Item (-10%)"
+          >
+            <Minus className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       {/* Canva Floating Right-Click / Touch Context Menu */}
       {contextMenu && (
         <div
@@ -1804,6 +1884,31 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                     <div className="px-3 py-1 text-[9px] uppercase font-bold text-gray-400 tracking-wider">
                       Alinhamento & Transformação
                     </div>
+                    <button
+                      onClick={() => {
+                        handleScaleActiveLayer(10);
+                        setContextMenu(null);
+                      }}
+                      className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <Plus className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>Aumentar Tamanho (+10%)</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleScaleActiveLayer(-10);
+                        setContextMenu(null);
+                      }}
+                      className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
+                        theme === 'light' ? 'hover:bg-purple-50 hover:text-purple-700' : 'hover:bg-[#2a2a32] hover:text-white'
+                      }`}
+                    >
+                      <Minus className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                      <span>Diminuir Tamanho (-10%)</span>
+                    </button>
+
                     <button
                       onClick={() => handleCenterLayer(activeL.id)}
                       className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${
