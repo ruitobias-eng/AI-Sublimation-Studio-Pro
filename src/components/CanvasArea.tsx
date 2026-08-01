@@ -39,7 +39,13 @@ import {
   Laptop,
   Monitor,
   Plus,
-  Minus
+  Minus,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  Move,
+  Target
 } from 'lucide-react';
 
 interface CanvasAreaProps {
@@ -356,6 +362,26 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     }
   };
 
+  // Directional Position Nudge Handler for Mobile Touch / Arrow Buttons
+  const handleMoveActiveLayer = (dx: number, dy: number) => {
+    if (!activeLayerId) return;
+    const activeL = layers.find((l) => l.id === activeLayerId);
+    if (!activeL) return;
+
+    const updated: Layer = {
+      ...activeL,
+      x: Math.round(activeL.x + dx),
+      y: Math.round(activeL.y + dy),
+    };
+
+    onUpdateLayer(updated);
+
+    if (pushHistoryStep) {
+      const newLayers = layers.map((l) => (l.id === updated.id ? updated : l));
+      pushHistoryStep('Item Movido', 'Mover', newLayers);
+    }
+  };
+
   // Export selected layer object as PNG
   const handleExportLayerAsImage = (id: string) => {
     const layer = layers.find((l) => l.id === id);
@@ -503,6 +529,38 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       const touchX = (touch.clientX - rect.left) * scaleX;
       const touchY = (touch.clientY - rect.top) * scaleY;
 
+      touchStartPosRef.current = { x: touch.clientX, y: touch.clientY };
+
+      // Check handle hit on active layer first
+      if (activeLayerId) {
+        const activeL = layers.find((l) => l.id === activeLayerId);
+        if (activeL && activeL.visible) {
+          const centerX = activeL.x + activeL.width / 2;
+          const centerY = activeL.y + activeL.height / 2;
+          const rad = (-activeL.rotation * Math.PI) / 180;
+          const dx = touchX - centerX;
+          const dy = touchY - centerY;
+          const localX = dx * Math.cos(rad) - dy * Math.sin(rad) + activeL.width / 2;
+          const localY = dx * Math.sin(rad) + dy * Math.cos(rad) + activeL.height / 2;
+
+          const hitHandle = getHandleAtLocalPos(localX, localY, activeL.width, activeL.height);
+          if (hitHandle) {
+            isResizingModeRef.current = hitHandle;
+            resizeStartRef.current = {
+              mouseX: touchX,
+              mouseY: touchY,
+              x: activeL.x,
+              y: activeL.y,
+              w: activeL.width,
+              h: activeL.height,
+              rot: activeL.rotation,
+              aspect: activeL.width / (activeL.height || 1),
+            };
+            return;
+          }
+        }
+      }
+
       // Find touched layer top-to-bottom
       const touchedLayer = [...layers].reverse().find((l) => {
         if (!l.visible) return false;
@@ -513,6 +571,15 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           touchY <= l.y + l.height
         );
       });
+
+      if (touchedLayer) {
+        onSelectLayer(touchedLayer.id);
+        isDraggingLayerRef.current = true;
+        layerDragOffsetRef.current = {
+          x: touchX - touchedLayer.x,
+          y: touchY - touchedLayer.y,
+        };
+      }
 
       // Start Long-Press Timer (500ms for Context Menu)
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
@@ -549,10 +616,17 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const handleTouchMoveContainer = (e: React.TouchEvent<HTMLDivElement>) => {
     const touches = Array.from(e.touches) as React.Touch[];
 
-    // If moved, cancel long press context menu
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
+    // If moved > 8px, cancel long press context menu
+    if (touches.length === 1 && touchStartPosRef.current) {
+      const touch = touches[0];
+      const distMoved = Math.hypot(
+        touch.clientX - touchStartPosRef.current.x,
+        touch.clientY - touchStartPosRef.current.y
+      );
+      if (distMoved > 8 && longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
     }
 
     // 2 Finger Pinch / Pan / Rotate
@@ -580,6 +654,147 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           onUpdateLayer({ ...activeL, rotation: newRot % 360 });
         }
       }
+      return;
+    }
+
+    // 1 Finger Touch Move -> Resizing via Handle or Dragging Layer
+    if (touches.length === 1) {
+      const touch = touches[0];
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const touchX = (touch.clientX - rect.left) * scaleX;
+      const touchY = (touch.clientY - rect.top) * scaleY;
+
+      // 1. Resizing active layer via touch handle
+      if (isResizingModeRef.current && activeLayerId && resizeStartRef.current) {
+        const activeLayer = layers.find((l) => l.id === activeLayerId);
+        if (activeLayer) {
+          const init = resizeStartRef.current;
+          if (isResizingModeRef.current === 'rotate') {
+            const centerX = init.x + init.w / 2;
+            const centerY = init.y + init.h / 2;
+            let angle = Math.atan2(touchY - centerY, touchX - centerX) * (180 / Math.PI) + 90;
+            if (angle < 0) angle += 360;
+            onUpdateLayer({ ...activeLayer, rotation: Math.round(angle) });
+            return;
+          }
+
+          const handle = isResizingModeRef.current;
+          const rad = (init.rot * Math.PI) / 180;
+          const dx = touchX - init.mouseX;
+          const dy = touchY - init.mouseY;
+
+          const localDx = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+          const localDy = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+
+          let newW = init.w;
+          let newH = init.h;
+          let localOffsetX = 0;
+          let localOffsetY = 0;
+
+          const isImage = activeLayer.type === 'image' || activeLayer.type === 'smart';
+          const keepAspect = isImage;
+
+          switch (handle) {
+            case 'br': {
+              newW = Math.max(20, Math.round(init.w + localDx));
+              newH = keepAspect ? Math.max(20, Math.round(newW / init.aspect)) : Math.max(20, Math.round(init.h + localDy));
+              break;
+            }
+            case 'tl': {
+              newW = Math.max(20, Math.round(init.w - localDx));
+              newH = keepAspect ? Math.max(20, Math.round(newW / init.aspect)) : Math.max(20, Math.round(init.h - localDy));
+              localOffsetX = -(newW - init.w);
+              localOffsetY = -(newH - init.h);
+              break;
+            }
+            case 'tr': {
+              newW = Math.max(20, Math.round(init.w + localDx));
+              newH = keepAspect ? Math.max(20, Math.round(newW / init.aspect)) : Math.max(20, Math.round(init.h - localDy));
+              localOffsetX = 0;
+              localOffsetY = -(newH - init.h);
+              break;
+            }
+            case 'bl': {
+              newW = Math.max(20, Math.round(init.w - localDx));
+              newH = keepAspect ? Math.max(20, Math.round(newW / init.aspect)) : Math.max(20, Math.round(init.h + localDy));
+              localOffsetX = -(newW - init.w);
+              localOffsetY = 0;
+              break;
+            }
+            case 'tc': {
+              newH = Math.max(20, Math.round(init.h - localDy));
+              localOffsetY = -(newH - init.h);
+              break;
+            }
+            case 'bc': {
+              newH = Math.max(20, Math.round(init.h + localDy));
+              break;
+            }
+            case 'lc': {
+              newW = Math.max(20, Math.round(init.w - localDx));
+              localOffsetX = -(newW - init.w);
+              break;
+            }
+            case 'rc': {
+              newW = Math.max(20, Math.round(init.w + localDx));
+              break;
+            }
+          }
+
+          const worldDx = localOffsetX * Math.cos(rad) - localOffsetY * Math.sin(rad);
+          const worldDy = localOffsetX * Math.sin(rad) + localOffsetY * Math.cos(rad);
+
+          onUpdateLayer({
+            ...activeLayer,
+            x: Math.round(init.x + worldDx),
+            y: Math.round(init.y + worldDy),
+            width: newW,
+            height: newH,
+          });
+          return;
+        }
+      }
+
+      // 2. Dragging active layer on touch move
+      if (isDraggingLayerRef.current && activeLayerId) {
+        const activeLayer = layers.find((l) => l.id === activeLayerId);
+        if (activeLayer) {
+          let newX = Math.round(touchX - layerDragOffsetRef.current.x);
+          let newY = Math.round(touchY - layerDragOffsetRef.current.y);
+
+          // Snap guidelines
+          const centerX = newX + activeLayer.width / 2;
+          const centerY = newY + activeLayer.height / 2;
+          const canvasCenterX = baseCanvasWidth / 2;
+          const canvasCenterY = baseCanvasHeight / 2;
+
+          const snapThreshold = 10;
+          const guides: { x?: number; y?: number } = {};
+
+          if (Math.abs(centerX - canvasCenterX) < snapThreshold) {
+            newX = Math.round(canvasCenterX - activeLayer.width / 2);
+            guides.x = canvasCenterX;
+          }
+          if (Math.abs(centerY - canvasCenterY) < snapThreshold) {
+            newY = Math.round(canvasCenterY - activeLayer.height / 2);
+            guides.y = canvasCenterY;
+          }
+
+          activeGuidesRef.current = guides;
+
+          onUpdateLayer({
+            ...activeLayer,
+            x: newX,
+            y: newY,
+          });
+        }
+      }
     }
   };
 
@@ -588,9 +803,14 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
+    isDraggingLayerRef.current = false;
+    isResizingModeRef.current = null;
+    resizeStartRef.current = null;
+    activeGuidesRef.current = {};
     initialPinchDistRef.current = null;
     initialPinchAngleRef.current = null;
     initialTouchLayerRotRef.current = null;
+    touchStartPosRef.current = null;
   };
 
   useEffect(() => {
@@ -1769,24 +1989,76 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         </button>
       </div>
 
-      {/* Mobile Floating Touch Quick Scale Controls (+ / -) for Selected Element */}
+      {/* Mobile Floating Touch Controls (Mover & Redimensionar) for Selected Element */}
       {activeLayerId && (
-        <div className="absolute bottom-16 right-3 sm:hidden flex flex-col items-center gap-1.5 bg-[#181920]/95 backdrop-blur-xl border border-purple-500/50 p-2 rounded-2xl shadow-2xl z-30 animate-in fade-in slide-in-from-right-3">
-          <span className="text-[9px] font-extrabold text-purple-300 uppercase tracking-wider">Item</span>
-          <button
-            onClick={() => handleScaleActiveLayer(10)}
-            className="w-11 h-11 bg-purple-600 active:bg-purple-700 text-white rounded-xl flex items-center justify-center font-bold shadow-lg transition-transform active:scale-90 cursor-pointer"
-            title="Aumentar Tamanho do Item (+10%)"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => handleScaleActiveLayer(-10)}
-            className="w-11 h-11 bg-[#23242e] active:bg-purple-900/50 text-rose-400 border border-[#383945] rounded-xl flex items-center justify-center font-bold shadow-lg transition-transform active:scale-90 cursor-pointer"
-            title="Diminuir Tamanho do Item (-10%)"
-          >
-            <Minus className="w-5 h-5" />
-          </button>
+        <div className="absolute bottom-16 right-3 sm:hidden flex flex-col items-center gap-2 bg-[#181920]/95 backdrop-blur-xl border border-purple-500/50 p-2.5 rounded-2xl shadow-2xl z-30 animate-in fade-in slide-in-from-right-3">
+          <div className="flex items-center justify-between w-full text-[9px] font-extrabold text-purple-300 uppercase tracking-wider px-0.5">
+            <span>Mover & Ajustar</span>
+            <span className="text-[8px] text-emerald-400">Touch ON</span>
+          </div>
+
+          {/* Scale Buttons (+ / -) */}
+          <div className="flex items-center gap-1.5 w-full">
+            <button
+              onClick={() => handleScaleActiveLayer(10)}
+              className="flex-1 h-9 bg-purple-600 active:bg-purple-700 text-white rounded-xl flex items-center justify-center font-bold shadow-md transition-transform active:scale-95 cursor-pointer"
+              title="Aumentar Tamanho (+10%)"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleScaleActiveLayer(-10)}
+              className="flex-1 h-9 bg-[#23242e] active:bg-purple-900/50 text-rose-400 border border-[#383945] rounded-xl flex items-center justify-center font-bold shadow-md transition-transform active:scale-95 cursor-pointer"
+              title="Diminuir Tamanho (-10%)"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* D-Pad Directional Move Arrows */}
+          <div className="grid grid-cols-3 gap-1 w-28 h-28 bg-[#121318] border border-[#2d2e38] p-1 rounded-xl items-center justify-center">
+            <div></div>
+            <button
+              onClick={() => handleMoveActiveLayer(0, -15)}
+              className="w-8 h-8 bg-[#23242e] active:bg-purple-600 text-purple-300 active:text-white rounded-lg flex items-center justify-center shadow transition-all active:scale-90 cursor-pointer mx-auto"
+              title="Mover para Cima (15px)"
+            >
+              <ArrowUp className="w-4 h-4" />
+            </button>
+            <div></div>
+
+            <button
+              onClick={() => handleMoveActiveLayer(-15, 0)}
+              className="w-8 h-8 bg-[#23242e] active:bg-purple-600 text-purple-300 active:text-white rounded-lg flex items-center justify-center shadow transition-all active:scale-90 cursor-pointer mx-auto"
+              title="Mover para Esquerda (15px)"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleCenterLayer(activeLayerId)}
+              className="w-8 h-8 bg-purple-600/30 active:bg-purple-600 text-sky-400 active:text-white border border-sky-500/30 rounded-lg flex items-center justify-center shadow transition-all active:scale-90 cursor-pointer mx-auto"
+              title="Centralizar Item"
+            >
+              <Target className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => handleMoveActiveLayer(15, 0)}
+              className="w-8 h-8 bg-[#23242e] active:bg-purple-600 text-purple-300 active:text-white rounded-lg flex items-center justify-center shadow transition-all active:scale-90 cursor-pointer mx-auto"
+              title="Mover para Direita (15px)"
+            >
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <div></div>
+            <button
+              onClick={() => handleMoveActiveLayer(0, 15)}
+              className="w-8 h-8 bg-[#23242e] active:bg-purple-600 text-purple-300 active:text-white rounded-lg flex items-center justify-center shadow transition-all active:scale-90 cursor-pointer mx-auto"
+              title="Mover para Baixo (15px)"
+            >
+              <ArrowDown className="w-4 h-4" />
+            </button>
+            <div></div>
+          </div>
         </div>
       )}
 
