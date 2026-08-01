@@ -4,6 +4,12 @@
   "description": "Estúdio profissional de design para sublimação e mockups 3D com ferramentas de IA e camadas no seu Android.",
   "icons": [
     {
+      "src": "/favicon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/favicon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
