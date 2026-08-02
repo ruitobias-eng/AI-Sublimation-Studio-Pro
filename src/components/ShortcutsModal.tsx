@@ -54,7 +54,7 @@ export const ShortcutsModal: React.FC<ShortcutsModalProps> = ({ onClose, darkMod
         </div>
 
         {/* List */}
-        <div className="space-y-1.5 max-h-[320px] touch-scroll-y no-scrollbar pr-1">
+        <div className="space-y-1.5 max-h-[320px] overflow-y-auto no-scrollbar pr-1">
           {SHORTCUTS.map((sc, i) => (
             <div
               key={i}

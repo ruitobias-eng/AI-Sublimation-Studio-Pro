@@ -52,6 +52,7 @@ interface TopBarProps {
   onIncludeStamp?: () => void;
   onSaveLayout?: () => void;
   onOpenSettings?: () => void;
+  onOpenPrinterSettings?: () => void;
   projectName?: string;
   onChangeProjectName?: (name: string) => void;
 }
@@ -80,6 +81,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onIncludeStamp,
   onSaveLayout,
   onOpenSettings,
+  onOpenPrinterSettings,
   projectName = 'Arte Sublimação - Caneca 325ml',
   onChangeProjectName,
 }) => {
@@ -109,14 +111,13 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="flex items-center gap-1.5 bg-slate-900/10 dark:bg-white/5 border border-purple-500/30 px-2 py-1 rounded-xl shadow-sm cursor-pointer hover:brightness-110 transition-all shrink-0 whitespace-nowrap">
           {!logoError ? (
             <img
-              src="/favicon.png"
-              alt="SublimStudio PRO"
+              src="/favicon.svg"
+              alt="Sublim Studio"
               className="w-5 h-5 object-contain rounded-md shrink-0"
-              onError={() => {
-                // If favicon.png fails, try favicon.svg before falling back to icon
-                const img = document.activeElement as HTMLImageElement;
-                if (img && !img.src.endsWith('.svg')) {
-                  img.src = '/favicon.svg';
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.src.endsWith('.png')) {
+                  target.src = '/favicon.png';
                 } else {
                   setLogoError(true);
                 }
@@ -145,6 +146,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           onIncludeStamp={onIncludeStamp}
           onSaveLayout={onSaveLayout}
           onOpenSettings={onOpenSettings}
+          onOpenPrinterSettings={onOpenPrinterSettings}
           onOpenAndroidModal={onOpenAndroidModal}
           onOpenHelp={onOpenHelp}
           onOpenAbout={onOpenAbout}
@@ -331,18 +333,24 @@ export const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         {/* Ergonomic Illuminated LED Print Button */}
-        {onOpenPrintModal ? (
+        {onOpenPrinterSettings || onOpenPrintModal ? (
           <button
-            onClick={onOpenPrintModal}
+            onClick={() => {
+              if (onOpenPrinterSettings) {
+                onOpenPrinterSettings();
+              } else if (onOpenPrintModal) {
+                onOpenPrintModal();
+              }
+            }}
             className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:brightness-110 text-slate-950 font-black rounded-xl shadow-md shadow-emerald-500/25 transition-all cursor-pointer active:scale-95 shrink-0 text-xs uppercase tracking-wide border border-emerald-400/50"
-            title="Central de Impressão e Exportação Sublimática (RIP 1200 DPI, Perfis ICC, Timer)"
+            title="Central Unificada de Impressão e Configurações (RIP 1200 DPI, Perfis ICC, Spooler)"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-950 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-950"></span>
             </span>
             <Printer className="w-3.5 h-3.5 text-slate-950 shrink-0" />
-            <span>Imprimir / Exportar</span>
+            <span>Imprimir / Configurações</span>
           </button>
         ) : (
           <button
@@ -380,7 +388,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 ? 'bg-purple-50 hover:bg-purple-100 text-purple-800 border-purple-300'
                 : 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border-purple-500/30'
             }`}
-            title="Sobre o SublimStudio PRO"
+            title="Sobre o Sublim Studio"
           >
             <Info className="w-3.5 h-3.5 text-purple-400 shrink-0" />
             <span className="hidden xl:inline">Sobre</span>

@@ -28,7 +28,7 @@ export const GangModal: React.FC<GangModalProps> = ({ onClose, darkMode = true }
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 select-none p-4 animate-fade-in">
       <div
-        className={`w-full max-w-2xl max-h-[90dvh] touch-scroll-y rounded-2xl p-5 shadow-2xl space-y-4 border transition-colors ${
+        className={`w-full max-w-2xl rounded-2xl p-5 shadow-2xl space-y-4 border transition-colors ${
           darkMode ? 'bg-[#101522] border-[#232D3F] text-slate-100' : 'bg-white border-slate-200 text-slate-800'
         }`}
       >
