@@ -1837,6 +1837,68 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                   </button>
                 </div>
 
+                <div className="w-[1px] h-4 bg-white/20 shrink-0"></div>
+
+                {/* Fill Color Circle (Preenchimento) */}
+                <div
+                  className="relative w-6 h-6 rounded-full border-2 border-white/60 shadow-md flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 transition-transform"
+                  style={{ backgroundColor: activeL.color || activeColor || '#00D9FF' }}
+                  title={`Preenchimento (${activeL.color || activeColor || '#00D9FF'})`}
+                >
+                  <input
+                    type="color"
+                    value={activeL.color || activeColor || '#00D9FF'}
+                    onChange={(e) => {
+                      const newCol = e.target.value;
+                      const updated = { ...activeL, color: newCol };
+                      onUpdateLayer(updated);
+                      if (onChangeColor) onChangeColor(newCol);
+                      if (pushHistoryStep) pushHistoryStep('Cor de Preenchimento Alterada', 'Cor', layers.map(l => l.id === updated.id ? updated : l));
+                    }}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  />
+                </div>
+
+                {/* Stroke/Border Color Circle & Width Controls (Linha) */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <div
+                    className="relative w-6 h-6 rounded-full border-2 border-white/80 shadow-md flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 transition-transform"
+                    style={{ backgroundColor: activeL.strokeColor || '#000000' }}
+                    title={`Linha/Borda (${activeL.strokeColor || '#000000'})`}
+                  >
+                    <input
+                      type="color"
+                      value={activeL.strokeColor || '#000000'}
+                      onChange={(e) => {
+                        const newStroke = e.target.value;
+                        const updated = { ...activeL, strokeColor: newStroke, strokeWidth: activeL.strokeWidth || 2 };
+                        onUpdateLayer(updated);
+                        if (pushHistoryStep) pushHistoryStep('Cor de Linha Alterada', 'Linha', layers.map(l => l.id === updated.id ? updated : l));
+                      }}
+                      className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                    />
+                  </div>
+                  <select
+                    value={activeL.strokeWidth ?? 0}
+                    onChange={(e) => {
+                      const sw = parseInt(e.target.value, 10);
+                      const updated = { ...activeL, strokeWidth: sw };
+                      onUpdateLayer(updated);
+                      if (pushHistoryStep) pushHistoryStep('Espessura da Linha Alterada', 'Linha', layers.map(l => l.id === updated.id ? updated : l));
+                    }}
+                    className="bg-[#181920] text-sky-300 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-lg border border-[#383945] focus:outline-none cursor-pointer shrink-0"
+                    title="Espessura da Linha em Pixels"
+                  >
+                    <option value="0">0px</option>
+                    <option value="1">1px</option>
+                    <option value="2">2px</option>
+                    <option value="4">4px</option>
+                    <option value="6">6px</option>
+                    <option value="8">8px</option>
+                    <option value="12">12px</option>
+                  </select>
+                </div>
+
                 {/* Align Center Button */}
                 <button
                   onClick={() => handleCenterLayer(activeL.id)}
