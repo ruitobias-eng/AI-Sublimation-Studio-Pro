@@ -112,12 +112,14 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="flex items-center gap-1.5 bg-slate-900/10 dark:bg-white/5 border border-purple-500/30 px-2 py-1 rounded-xl shadow-sm cursor-pointer hover:brightness-110 transition-all shrink-0 whitespace-nowrap">
           {!logoError ? (
             <img
-              src="/favicon.svg"
+              src="/logo.svg"
               alt="Sublim Studio"
               className="w-5 h-5 object-contain rounded-md shrink-0"
               onError={(e) => {
                 const target = e.currentTarget;
                 if (!target.src.endsWith('.png')) {
+                  target.src = '/logo.png';
+                } else if (!target.src.includes('favicon')) {
                   target.src = '/favicon.png';
                 } else {
                   setLogoError(true);
