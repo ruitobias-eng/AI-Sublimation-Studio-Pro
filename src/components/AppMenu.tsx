@@ -70,11 +70,17 @@ export function AppMenu({
       </button>
 
       {isOpen && (
-        <div className={`fixed top-12 left-2 sm:left-28 mt-1 w-64 rounded-2xl shadow-2xl border overflow-hidden z-[100] transition-all touch-scroll-y max-h-[calc(100dvh-3.5rem)] ${
-          theme === 'light' 
-            ? 'bg-white border-slate-200 text-slate-800 shadow-slate-300/50' 
-            : 'bg-[#161720] border-[#2d2f3e] text-gray-200 shadow-black/80'
-        }`}>
+        <>
+          <div
+            className="fixed inset-0 z-[90] bg-black/20 backdrop-blur-[1px]"
+            onClick={() => setIsOpen(false)}
+            onTouchStart={() => setIsOpen(false)}
+          />
+          <div className={`fixed top-12 left-2 sm:left-28 mt-1 w-64 rounded-2xl shadow-2xl border overflow-y-auto z-[100] transition-all touch-scroll-y max-h-[calc(100dvh-3.5rem)] ${
+            theme === 'light' 
+              ? 'bg-white border-slate-200 text-slate-800 shadow-slate-300/50' 
+              : 'bg-[#161720] border-[#2d2f3e] text-gray-200 shadow-black/80'
+          }`}>
           <div className="flex flex-col py-1">
             <button
               onClick={() => {
@@ -225,6 +231,7 @@ export function AppMenu({
             </button>
           </div>
         </div>
+        </>
       )}
     </div>
   );

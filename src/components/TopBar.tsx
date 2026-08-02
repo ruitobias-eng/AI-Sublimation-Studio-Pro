@@ -100,12 +100,13 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`h-12 border-b flex items-center justify-between px-2 sm:px-3 select-none text-xs z-40 shadow-md transition-colors gap-1.5 sm:gap-2 relative overflow-x-auto no-scrollbar max-w-full shrink-0 touch-scroll-x ${
+    <header className={`h-12 border-b select-none text-xs z-40 shadow-md transition-colors relative overflow-x-auto no-scrollbar max-w-full shrink-0 touch-scroll-x px-2 sm:px-3 ${
       theme === 'light'
         ? 'bg-white border-slate-200 text-slate-800'
         : 'bg-[#0e0f14] border-[#23242c] text-gray-200'
     }`}>
-      {/* 1. Left Group: Logo, Menu, Undo/Redo, Project Name, Product Switcher, Cloud Status */}
+      <div className="flex items-center justify-between min-w-max w-full h-full gap-2">
+        {/* 1. Left Group: Logo, Menu, Undo/Redo, Project Name, Product Switcher, Cloud Status */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Brand Logo */}
         <div className="flex items-center gap-1.5 bg-slate-900/10 dark:bg-white/5 border border-purple-500/30 px-2 py-1 rounded-xl shadow-sm cursor-pointer hover:brightness-110 transition-all shrink-0 whitespace-nowrap">
@@ -395,6 +396,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
       </div>
-    </header>
-  );
+    </div>
+  </header>
+);
 };

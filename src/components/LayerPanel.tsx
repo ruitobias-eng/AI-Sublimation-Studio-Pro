@@ -185,7 +185,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
           </div>
 
           {/* Layer Items List Stack (Top to Bottom) */}
-          <div className="flex-1 touch-scroll-y p-2 flex flex-col gap-1">
+          <div className="flex-1 overflow-y-auto touch-scroll-y p-2 flex flex-col gap-1">
             {layers.length === 0 ? (
               <div className="p-4 text-center text-gray-500 font-mono text-[11px]">
                 Nenhuma camada criada. Adicione imagens, textos ou formas.

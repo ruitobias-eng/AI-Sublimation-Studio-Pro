@@ -43,20 +43,53 @@
   scrollbar-width: none;
 }
 
-/* Custom sleek dark scrollbars for Android & Web */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+/* Prevent horizontal page overflow globally */
+html, body {
+  margin: 0;
+  padding: 0;
+  max-width: 100vw;
+  overflow-x: hidden;
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f4e transparent;
 }
-::-webkit-scrollbar-track {
+
+#root {
+  height: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Touch scroll utilities with momentum scrolling for iOS & Android */
+.touch-scroll-y {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.touch-scroll-x {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+}
+
+/* Custom scrollbar styling for Chrome, Edge, Firefox, Safari */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-::-webkit-scrollbar-thumb {
-  background: #3f3f4e;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
   border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #10b981;
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.8);
 }
 
 /* Touch optimization for mobile canvas */

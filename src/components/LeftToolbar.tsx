@@ -396,11 +396,22 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
 
       {/* 2. Canva Sliding Side Drawer Panel */}
       {isDrawerOpen && !externalSetActiveSidebarTab && (
-        <div className={`w-80 border-r flex flex-col h-full text-xs z-30 shadow-2xl relative animate-in slide-in-from-left duration-200 transition-colors ${
-          theme === 'light'
-            ? 'bg-white border-slate-200 text-slate-800'
-            : 'bg-[#16171d] border-[#26272e] text-gray-200'
-        }`}>
+        <>
+          <div
+            className="fixed inset-0 bg-black/40 z-20 sm:hidden backdrop-blur-[1px]"
+            onClick={() => {
+              if (externalSetActiveSidebarTab) {
+                externalSetActiveSidebarTab(null);
+              } else {
+                setInternalIsDrawerOpen(false);
+              }
+            }}
+          />
+          <div className={`w-[calc(100vw-4.5rem)] sm:w-80 border-r flex flex-col h-full text-xs z-30 shadow-2xl relative animate-in slide-in-from-left duration-200 transition-colors ${
+            theme === 'light'
+              ? 'bg-white border-slate-200 text-slate-800'
+              : 'bg-[#16171d] border-[#26272e] text-gray-200'
+          }`}>
           {/* Drawer Close Button Header */}
           <div className={`p-4 border-b flex items-center justify-between ${
             theme === 'light' ? 'border-slate-200' : 'border-[#26272e]'
@@ -462,7 +473,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
           )}
 
           {/* Drawer Body Content based on Active Tab */}
-          <div className="flex-1 touch-scroll-y p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto touch-scroll-y p-4 space-y-4 min-h-0">
             {/* TAB 1: TEMPLATES */}
             {activeTab === 'templates' && (
               <div className="space-y-3">
@@ -1279,6 +1290,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

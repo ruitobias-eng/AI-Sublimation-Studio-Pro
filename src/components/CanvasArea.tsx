@@ -131,6 +131,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const longPressTimerRef = useRef<any>(null);
   const lastTapTimeRef = useRef<number>(0);
   const lastTapLayerIdRef = useRef<string | null>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Image Adjustment Modal State
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);

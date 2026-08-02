@@ -37,7 +37,7 @@ export function MD3BottomSheet({ isOpen, onClose, title, subtitle, children }: M
         </div>
 
         {/* Content */}
-        <div className="p-4 touch-scroll-y max-h-[70dvh] flex-1">
+        <div className="p-4 overflow-y-auto touch-scroll-y max-h-[70dvh] flex-1 min-h-0">
           {children}
         </div>
       </div>
