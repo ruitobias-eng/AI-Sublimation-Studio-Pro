@@ -1,6 +1,17 @@
-import React, { useState } from 'react';
+// ============================================================================
+// HeaderBar.tsx
+// SublimStudio PRO Enterprise
+// Version: 4.0
+// ============================================================================
+
+import React, {
+  FC,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
+
 import {
-  Sparkles,
   RotateCcw,
   RotateCw,
   Share2,
@@ -12,388 +23,998 @@ import {
   Grid,
   Zap,
   Cpu,
-  User,
   LogIn,
-  LogOut
-} from 'lucide-react';
-import { PrintableProduct } from '../types';
-import { AppMenu } from './AppMenu';
+  LogOut,
+  Sparkles,
+} from "lucide-react";
 
-interface HeaderBarProps {
-  projectTitle: string;
-  setProjectTitle: (title: string) => void;
-  canvasWidth: number;
-  canvasHeight: number;
-  setCanvasSize: (w: number, h: number) => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
-  onNewProject: () => void;
-  onOpenTemplates: () => void;
-  onExportPNG: () => void;
-  onOpenAIConsole: () => void;
-  onOpenWordArtModal?: () => void;
-  onOpenTestRunner?: () => void;
-  onOpenShortcuts: () => void;
-  onOpenPrintModal: () => void;
-  onOpenGangModal: () => void;
-  onOpenAndroidModal?: () => void;
-  darkMode: boolean;
-  setDarkMode: (val: boolean) => void;
-  show3DViewport: boolean;
-  setShow3DViewport: (val: boolean) => void;
-  currentProduct: PrintableProduct;
-  setProduct: (prod: PrintableProduct) => void;
-  currentUser?: { name: string; email: string; isPro?: boolean } | null;
-  onOpenAuthModal?: () => void;
-  onLogout?: () => void;
+import { PrintableProduct } from "../types";
+import { AppMenu } from "./AppMenu";
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface UserInfo {
+  name: string;
+  email: string;
+  isPro?: boolean;
 }
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({
+export interface HeaderBarProps {
+  projectTitle: string;
+  setProjectTitle: (title: string) => void;
+
+  canvasWidth: number;
+  canvasHeight: number;
+  setCanvasSize: (width: number, height: number) => void;
+
+  canUndo: boolean;
+  canRedo: boolean;
+
+  onUndo(): void;
+  onRedo(): void;
+
+  onNewProject(): void;
+  onOpenTemplates(): void;
+
+  onExportPNG(): void;
+
+  onOpenAIConsole(): void;
+
+  onOpenWordArtModal?(): void;
+
+  onOpenTestRunner?(): void;
+
+  onOpenShortcuts(): void;
+
+  onOpenPrintModal(): void;
+
+  onOpenGangModal(): void;
+
+  onOpenAndroidModal?(): void;
+
+  darkMode: boolean;
+
+  setDarkMode(value: boolean): void;
+
+  show3DViewport: boolean;
+
+  setShow3DViewport(value: boolean): void;
+
+  currentProduct: PrintableProduct;
+
+  setProduct(product: PrintableProduct): void;
+
+  currentUser?: UserInfo | null;
+
+  onOpenAuthModal?(): void;
+
+  onLogout?(): void;
+}
+
+// ============================================================================
+// PRESETS
+// ============================================================================
+
+const CANVAS_PRESETS = [
+  {
+    label: "A3 Sublimático",
+    width: 1080,
+    height: 1350,
+  },
+  {
+    label: "Caneca 11oz",
+    width: 1200,
+    height: 530,
+  },
+  {
+    label: "Camiseta A3",
+    width: 1200,
+    height: 1600,
+  },
+  {
+    label: "Squeeze",
+    width: 1000,
+    height: 800,
+  },
+  {
+    label: "Almofada",
+    width: 1200,
+    height: 1200,
+  },
+];
+
+// ============================================================================
+// DROPDOWNS
+// ============================================================================
+
+type DropdownType =
+  | null
+  | "view"
+  | "press"
+  | "tools"
+  | "window";
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+export const HeaderBar: FC<HeaderBarProps> = ({
   projectTitle,
   setProjectTitle,
+
   canvasWidth,
   canvasHeight,
   setCanvasSize,
+
   canUndo,
   canRedo,
+
   onUndo,
   onRedo,
+
   onNewProject,
   onOpenTemplates,
+
   onExportPNG,
+
   onOpenAIConsole,
+
   onOpenWordArtModal,
+
   onOpenTestRunner,
+
   onOpenShortcuts,
+
   onOpenPrintModal,
+
   onOpenGangModal,
+
   onOpenAndroidModal,
+
   darkMode,
   setDarkMode,
+
   show3DViewport,
   setShow3DViewport,
+
+  currentProduct,
+  setProduct,
+
   currentUser = null,
+
   onOpenAuthModal,
   onLogout,
 }) => {
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  const toggleDropdown = (name: string) => {
-    setActiveDropdown((prev) => (prev === name ? null : name));
-  };
+  // =========================================================================
+  // STATES
+  // =========================================================================
+
+  const [dropdown, setDropdown] =
+    useState<DropdownType>(null);
+
+  // =========================================================================
+  // MEMOS
+  // =========================================================================
+
+  const currentPreset = useMemo(() => {
+    return `${canvasWidth}x${canvasHeight}`;
+  }, [canvasWidth, canvasHeight]);
+
+  // =========================================================================
+  // CALLBACKS
+  // =========================================================================
+
+  const toggleDropdown = useCallback(
+    (menu: DropdownType) => {
+      setDropdown((old) => (old === menu ? null : menu));
+    },
+    []
+  );
+
+  const closeDropdown = useCallback(() => {
+    setDropdown(null);
+  }, []);
+
+  const changePreset = useCallback(
+    (value: string) => {
+      const [w, h] = value.split("x").map(Number);
+
+      setCanvasSize(w, h);
+    },
+    [setCanvasSize]
+  );
+
+  const saveLayout = useCallback(() => {
+    const json = JSON.stringify(
+      {
+        project: projectTitle,
+        created: new Date().toISOString(),
+        canvas: {
+          width: canvasWidth,
+          height: canvasHeight,
+        },
+        product: currentProduct,
+      },
+      null,
+      2
+    );
+
+    const blob = new Blob([json], {
+      type: "application/json",
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+      projectTitle.replace(/\s+/g, "_") +
+      ".sublim";
+
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }, [
+    projectTitle,
+    canvasWidth,
+    canvasHeight,
+    currentProduct,
+  ]);
+
+  const openProject = useCallback(() => {
+    const input =
+      document.createElement("input");
+
+    input.type = "file";
+
+    input.accept =
+      "image/*,.json,.sublim";
+
+    input.click();
+  }, []);
+
+  const importImage = useCallback(() => {
+    const input =
+      document.createElement("input");
+
+    input.type = "file";
+
+    input.accept = "image/*";
+
+    input.click();
+  }, []);
+
+  // =========================================================================
+  // RENDER
+  // =========================================================================
 
   return (
     <header
-      className={`h-12 border-b px-3 flex items-center justify-between select-none z-40 text-xs shrink-0 shadow-md transition-colors overflow-x-auto custom-scrollbar max-w-full touch-scroll-x ${
-        darkMode ? 'bg-[#0B0F17] border-[#1F2937] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-      }`}
-    >
-      {/* Left: Brand Logo & IDE Menus */}
+      className={[
+        "h-12",
+        "flex",
+        "items-center",
+        "justify-between",
+        "px-3",
+        "border-b",
+        "shadow-md",
+        "text-xs",
+        "select-none",
+        "overflow-x-auto",
+        "custom-scrollbar",
+        darkMode
+          ? "bg-[#0B0F17] border-[#1F2937] text-slate-200"
+          : "bg-white border-slate-200 text-slate-800",
+      ].join(" ")}
+    >      {/* ==================================================================== */}
+      {/* LEFT AREA */}
+      {/* ==================================================================== */}
+
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        {/* Logo Badge & Main Application Menu */}
+
+        {/* ================================================================ */}
+        {/* Logo */}
+        {/* ================================================================ */}
+
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-slate-900/40 dark:bg-slate-800/80 border border-purple-500/40 px-2 py-1 rounded-xl shadow-md cursor-pointer hover:brightness-110 transition-all">
+
+          <div
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-xl
+              border
+              border-purple-500/40
+              bg-slate-900/40
+              px-2
+              py-1
+              shadow-md
+              transition-all
+              hover:brightness-110
+              dark:bg-slate-800/80
+            "
+          >
             <img
               src="/logo.svg"
               alt="SublimStudio PRO"
-              className="w-6 h-6 object-contain rounded-md"
+              className="h-6 w-6 rounded object-contain"
               onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.src.endsWith('.png')) {
-                  target.src = '/logo.png';
-                } else if (!target.src.includes('favicon')) {
-                  target.src = '/favicon.png';
+                const img = e.currentTarget;
+
+                if (!img.src.endsWith(".png")) {
+                  img.src = "/logo.png";
+                } else {
+                  img.src = "/favicon.png";
                 }
               }}
             />
-            <span className="text-[11px] sm:text-xs font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-amber-300">
-              SublimStudio <span className="text-white bg-purple-600 px-1 py-0.5 rounded text-[9px] font-mono">PRO</span>
+
+            <span
+              className="
+                bg-gradient-to-r
+                from-purple-400
+                via-pink-400
+                to-amber-300
+                bg-clip-text
+                text-xs
+                font-black
+                text-transparent
+              "
+            >
+              SublimStudio
+
+              <span
+                className="
+                  ml-1
+                  rounded
+                  bg-purple-600
+                  px-1
+                  py-0.5
+                  text-[9px]
+                  text-white
+                "
+              >
+                PRO
+              </span>
             </span>
+
           </div>
 
+          {/* ============================================================ */}
+          {/* Main Menu */}
+          {/* ============================================================ */}
+
           <AppMenu
-            theme={darkMode ? 'dark' : 'light'}
+            theme={darkMode ? "dark" : "light"}
             onExport={onExportPNG}
             onNewProject={onNewProject}
-            onOpenProject={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = 'image/*,.json,.sublim';
-              input.click();
-            }}
-            onIncludeStamp={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = 'image/*';
-              input.click();
-            }}
-            onSaveLayout={() => {
-              const jsonStr = JSON.stringify({ title: projectTitle, date: new Date().toISOString() }, null, 2);
-              const blob = new Blob([jsonStr], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `${projectTitle.replace(/\s+/g, '_')}.sublim`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
+            onOpenProject={openProject}
+            onIncludeStamp={importImage}
+            onSaveLayout={saveLayout}
             onOpenSettings={onOpenShortcuts}
             onOpenAndroidModal={onOpenAndroidModal}
           />
+
         </div>
 
-        {/* IDE Top Dropdown Menus */}
+        {/* ================================================================ */}
+        {/* IDE MENUS */}
+        {/* ================================================================ */}
+
         <div
-          className={`hidden lg:flex items-center gap-1 text-[11px] font-medium ${
-            darkMode ? 'text-slate-300' : 'text-slate-700'
-          }`}
+          className={`
+            hidden
+            lg:flex
+            items-center
+            gap-1
+            text-[11px]
+            font-medium
+            ${
+              darkMode
+                ? "text-slate-300"
+                : "text-slate-700"
+            }
+          `}
         >
-          {/* Menu: Exibir */}
+
+          {/* ============================================================ */}
+          {/* VIEW */}
+          {/* ============================================================ */}
+
           <div className="relative">
+
             <button
-              onClick={() => toggleDropdown('exibir')}
-              className={`px-2 py-1 rounded transition-colors ${
-                darkMode ? 'hover:bg-[#1E293B]' : 'hover:bg-slate-100'
-              }`}
+              onClick={() => toggleDropdown("view")}
+              className="
+                rounded
+                px-2
+                py-1
+                transition-colors
+                hover:bg-slate-700/20
+              "
             >
               Exibir
             </button>
-            {activeDropdown === 'exibir' && (
+
+            {dropdown === "view" && (
+
               <div
-                className={`fixed top-12 left-44 mt-1 w-48 border rounded-xl shadow-2xl py-1 z-[100] animate-fade-in ${
-                  darkMode ? 'bg-[#161B26] border-[#2A3447] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-                }`}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseLeave={closeDropdown}
+                className="
+                  absolute
+                  top-8
+                  left-0
+                  z-50
+                  w-56
+                  rounded-xl
+                  border
+                  bg-[#161B26]
+                  shadow-2xl
+                "
               >
+
                 <button
                   onClick={() => {
                     setShow3DViewport(!show3DViewport);
-                    setActiveDropdown(null);
+                    closeDropdown();
                   }}
-                  className={`w-full text-left px-3 py-1.5 flex items-center justify-between ${
-                    darkMode ? 'hover:bg-[#232D3F]' : 'hover:bg-slate-100'
-                  }`}
+                  className="
+                    flex
+                    w-full
+                    items-center
+                    justify-between
+                    px-3
+                    py-2
+                    hover:bg-slate-700/30
+                  "
                 >
+
                   <span className="flex items-center gap-2">
-                    <Box className="w-3.5 h-3.5 text-purple-500" /> Simulador 3D HD
+
+                    <Box
+                      className="
+                        h-4
+                        w-4
+                        text-purple-400
+                      "
+                    />
+
+                    Simulador 3D
+
                   </span>
-                  <span className="text-[10px] text-cyan-500 font-bold">{show3DViewport ? 'ON' : 'OFF'}</span>
+
+                  <span
+                    className="
+                      rounded
+                      bg-cyan-600
+                      px-2
+                      py-0.5
+                      text-[10px]
+                      text-white
+                    "
+                  >
+                    {show3DViewport ? "ON" : "OFF"}
+                  </span>
+
                 </button>
+
               </div>
+
             )}
+
           </div>
 
-          {/* Menu: Pré-Prensa */}
+          {/* ============================================================ */}
+          {/* PRE PRESS */}
+          {/* ============================================================ */}
+
           <div className="relative">
+
             <button
-              onClick={() => toggleDropdown('prensa')}
-              className={`px-2 py-1 rounded font-bold transition-colors ${
-                darkMode ? 'hover:bg-[#1E293B] text-amber-400' : 'hover:bg-slate-100 text-amber-600'
-              }`}
+              onClick={() => toggleDropdown("press")}
+              className="
+                rounded
+                px-2
+                py-1
+                font-bold
+                text-amber-400
+                hover:bg-slate-700/20
+              "
             >
               Pré-Prensa
             </button>
-            {activeDropdown === 'prensa' && (
+
+            {dropdown === "press" && (
+
               <div
-                className={`fixed top-12 left-64 mt-1 w-56 border rounded-xl shadow-2xl py-1 z-[100] animate-fade-in ${
-                  darkMode ? 'bg-[#161B26] border-[#2A3447] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-                }`}
-                onMouseLeave={() => setActiveDropdown(null)}
+                onMouseLeave={closeDropdown}
+                className="
+                  absolute
+                  top-8
+                  left-0
+                  z-50
+                  w-64
+                  rounded-xl
+                  border
+                  bg-[#161B26]
+                  shadow-2xl
+                "
               >
+
                 <button
                   onClick={() => {
                     onOpenPrintModal();
-                    setActiveDropdown(null);
+                    closeDropdown();
                   }}
-                  className={`w-full text-left px-3 py-1.5 flex items-center gap-2 font-semibold ${
-                    darkMode ? 'hover:bg-[#232D3F] text-amber-300' : 'hover:bg-slate-100 text-amber-600'
-                  }`}
+                  className="
+                    flex
+                    w-full
+                    items-center
+                    gap-2
+                    px-3
+                    py-2
+                    hover:bg-slate-700/30
+                  "
                 >
-                  <Printer className="w-3.5 h-3.5" /> Calculadora & Timer de Prensa
+                  <Printer className="h-4 w-4" />
+
+                  Calculadora de Prensa
+
                 </button>
+
                 <button
                   onClick={() => {
                     onOpenGangModal();
-                    setActiveDropdown(null);
+                    closeDropdown();
                   }}
-                  className={`w-full text-left px-3 py-1.5 flex items-center gap-2 font-semibold ${
-                    darkMode ? 'hover:bg-[#232D3F] text-cyan-300' : 'hover:bg-slate-100 text-cyan-600'
-                  }`}
+                  className="
+                    flex
+                    w-full
+                    items-center
+                    gap-2
+                    px-3
+                    py-2
+                    hover:bg-slate-700/30
+                  "
                 >
-                  <Grid className="w-3.5 h-3.5" /> Nesting de Folhas (Gang Sheet)
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+                  <Grid className="h-4 w-4" />
 
+                  Gang Sheet
+
+                </button>
+
+              </div>
+
+            )}
+
+          </div>
+
+          {/* ============================================================ */}
+          {/* TOOLS */}
+          {/* ============================================================ */}
+
+          <div className="relative">
+
+            <button
+              onClick={() => toggleDropdown("tools")}
+              className="
+                rounded
+                px-2
+                py-1
+                hover:bg-slate-700/20
+              "
+            >
+              Ferramentas
+            </button>
+
+            {dropdown === "tools" && (
+
+              <div
+                onMouseLeave={closeDropdown}
+                className="
+                  absolute
+                  top-8
+                  left-0
+                  z-50
+                  w-72
+                  rounded-xl
+                  border
+                  bg-[#161B26]
+                  shadow-2xl
+                "
+              >
+
+                {onOpenWordArtModal && (
+
+                  <button
+                    onClick={() => {
+                      onOpenWordArtModal();
+                      closeDropdown();
+                    }}
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      gap-2
+                      px-3
+                      py-2
+                      hover:bg-slate-700/30
+                    "
+                  >
+                    <Sparkles className="h-4 w-4" />
+
+                    WordArt Studio
+
+                  </button>
+
+                )}
+
+                {onOpenTestRunner && (
+
+                  <button
+                    onClick={() => {
+                      onOpenTestRunner();
+                      closeDropdown();
+                    }}
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      gap-2
+                      px-3
+                      py-2
+                      hover:bg-slate-700/30
+                    "
+                  >
+                    <Cpu className="h-4 w-4" />
+
+                    Executar Testes QA
+
+                  </button>
+
+                )}
+
+              </div>
+
+            )}
+
+          </div>
+
+        </div>
+                {/* ================================================================ */}
         {/* Undo / Redo */}
+        {/* ================================================================ */}
+
         <div
-          className={`flex items-center border rounded-lg p-0.5 shrink-0 ${
-            darkMode ? 'bg-[#131822] border-[#232D3F]' : 'bg-slate-100 border-slate-200'
-          }`}
+          className={`
+            flex
+            items-center
+            rounded-lg
+            border
+            p-0.5
+            ${
+              darkMode
+                ? "border-[#232D3F] bg-[#131822]"
+                : "border-slate-200 bg-slate-100"
+            }
+          `}
         >
           <button
             onClick={onUndo}
             disabled={!canUndo}
-            className={`p-1.5 rounded disabled:opacity-30 cursor-pointer ${
-              darkMode ? 'hover:bg-[#1E293B] text-slate-300' : 'hover:bg-slate-200 text-slate-700'
-            }`}
+            className="
+              rounded
+              p-1.5
+              transition
+              hover:bg-slate-700/20
+              disabled:cursor-not-allowed
+              disabled:opacity-30
+            "
             title="Desfazer (Ctrl+Z)"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="h-4 w-4" />
           </button>
+
           <button
             onClick={onRedo}
             disabled={!canRedo}
-            className={`p-1.5 rounded disabled:opacity-30 cursor-pointer ${
-              darkMode ? 'hover:bg-[#1E293B] text-slate-300' : 'hover:bg-slate-200 text-slate-700'
-            }`}
+            className="
+              rounded
+              p-1.5
+              transition
+              hover:bg-slate-700/20
+              disabled:cursor-not-allowed
+              disabled:opacity-30
+            "
             title="Refazer (Ctrl+Y)"
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            <RotateCw className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Project Title Input */}
+        {/* ================================================================ */}
+        {/* Nome do Projeto */}
+        {/* ================================================================ */}
+
         <input
           type="text"
           value={projectTitle}
           onChange={(e) => setProjectTitle(e.target.value)}
-          className={`px-2 py-0.5 rounded text-xs font-bold border border-transparent focus:border-cyan-500/50 outline-none max-w-[130px] sm:max-w-[200px] truncate ${
-            darkMode
-              ? 'bg-transparent text-slate-100 hover:bg-[#131822] focus:bg-[#131822]'
-              : 'bg-transparent text-slate-800 hover:bg-slate-100 focus:bg-slate-100'
-          }`}
+          placeholder="Projeto sem título"
+          className={`
+            max-w-[220px]
+            rounded
+            border
+            border-transparent
+            bg-transparent
+            px-2
+            py-1
+            text-xs
+            font-bold
+            outline-none
+            transition
+            focus:border-cyan-500
+            ${
+              darkMode
+                ? "text-slate-100 hover:bg-[#131822]"
+                : "text-slate-700 hover:bg-slate-100"
+            }
+          `}
         />
+
       </div>
 
-      {/* Right Controls: Presets, 3D Toggle, Shortcuts, Theme, Action Buttons */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* Preset Selector */}
+      {/* ==================================================================== */}
+      {/* RIGHT AREA */}
+      {/* ==================================================================== */}
+
+      <div className="flex items-center gap-2">
+
+        {/* Canvas Presets */}
+
         <select
-          value={`${canvasWidth}x${canvasHeight}`}
-          onChange={(e) => {
-            const [w, h] = e.target.value.split('x').map(Number);
-            setCanvasSize(w, h);
-          }}
-          className={`border text-[11px] font-semibold rounded-lg px-2 py-1 outline-none hidden md:block ${
-            darkMode ? 'bg-[#131822] border-[#232D3F] text-slate-300' : 'bg-slate-100 border-slate-300 text-slate-800'
-          }`}
+          value={currentPreset}
+          onChange={(e) => changePreset(e.target.value)}
+          className={`
+            hidden
+            rounded-lg
+            border
+            px-2
+            py-1
+            text-[11px]
+            font-semibold
+            md:block
+            ${
+              darkMode
+                ? "border-[#232D3F] bg-[#131822]"
+                : "border-slate-300 bg-slate-100"
+            }
+          `}
         >
-          <option value="1080x1350">A3 Sublimático (1080x1350px)</option>
-          <option value="1200x530">Caneca 11oz (204x90mm / 1200x530px)</option>
-          <option value="1200x1600">Camiseta A3 (300x400mm / 1200x1600px)</option>
-          <option value="1000x800">Squeeze Alumínio (200x160mm)</option>
-          <option value="1200x1200">Almofada 40x40cm Quadrada</option>
+          {CANVAS_PRESETS.map((preset) => (
+            <option
+              key={`${preset.width}x${preset.height}`}
+              value={`${preset.width}x${preset.height}`}
+            >
+              {preset.label}
+            </option>
+          ))}
         </select>
 
-        {/* 3D Viewport Toggle */}
+        {/* 3D */}
+
         <button
-          onClick={() => setShow3DViewport(!show3DViewport)}
-          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer ${
-            show3DViewport
-              ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-600/30'
-              : darkMode
-              ? 'bg-[#131822] border-[#232D3F] text-slate-400 hover:text-slate-200'
-              : 'bg-slate-100 border-slate-300 text-slate-600 hover:text-slate-900'
-          }`}
-          title="Alternar Visualizador 3D"
+          onClick={() =>
+            setShow3DViewport(!show3DViewport)
+          }
+          className={`
+            flex
+            items-center
+            gap-1
+            rounded-lg
+            border
+            px-2.5
+            py-1
+            text-[11px]
+            font-bold
+            transition-all
+            ${
+              show3DViewport
+                ? "border-purple-500 bg-purple-600 text-white"
+                : darkMode
+                ? "border-[#232D3F] bg-[#131822]"
+                : "border-slate-300 bg-slate-100"
+            }
+          `}
         >
-          <Box className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Simulador 3D</span>
+          <Box className="h-4 w-4" />
+
+          <span className="hidden md:inline">
+            Simulador 3D
+          </span>
         </button>
 
-        {/* AI Assistant Console Launch */}
+        {/* IA */}
+
         <button
           onClick={onOpenAIConsole}
-          className="flex items-center gap-1 px-2.5 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-white text-[11px] font-bold rounded-lg shadow-md cursor-pointer"
+          className="
+            flex
+            items-center
+            gap-1
+            rounded-lg
+            bg-gradient-to-r
+            from-cyan-500
+            to-blue-600
+            px-3
+            py-1
+            text-[11px]
+            font-bold
+            text-white
+          "
         >
-          <Zap className="w-3.5 h-3.5 fill-current text-amber-300" />
-          <span className="hidden sm:inline">IA Studio</span>
+          <Zap className="h-4 w-4 text-amber-300" />
+
+          <span className="hidden sm:inline">
+            IA Studio
+          </span>
         </button>
 
-        {/* QA Test Runner Launch */}
+        {/* QA */}
+
         {onOpenTestRunner && (
           <button
             onClick={onOpenTestRunner}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer ${
-              darkMode
-                ? 'bg-purple-950/40 border-purple-500/30 text-purple-300 hover:bg-purple-900/50 hover:text-purple-200'
-                : 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100'
-            }`}
-            title="Bateria de Testes QA Automatizados"
+            className="
+              hidden
+              sm:flex
+              items-center
+              gap-1
+              rounded-lg
+              border
+              border-purple-600
+              px-3
+              py-1
+              text-[11px]
+              font-bold
+            "
           >
-            <Cpu className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden sm:inline">Testes QA</span>
+            <Cpu className="h-4 w-4" />
+
+            QA
           </button>
         )}
 
+        {/* Atalhos */}
 
-        {/* Shortcuts Modal Button */}
         <button
           onClick={onOpenShortcuts}
-          className={`p-1.5 border rounded-lg cursor-pointer hidden sm:block ${
-            darkMode
-              ? 'bg-[#131822] border-[#232D3F] hover:bg-[#1E293B] text-slate-400 hover:text-slate-200'
-              : 'bg-slate-100 border-slate-300 hover:bg-slate-200 text-slate-600 hover:text-slate-900'
-          }`}
-          title="Atalhos de Teclado"
+          className="
+            hidden
+            rounded-lg
+            border
+            p-1.5
+            sm:block
+          "
+          title="Atalhos"
         >
-          <Keyboard className="w-4 h-4" />
+          <Keyboard className="h-4 w-4" />
         </button>
 
-        {/* Theme Toggle */}
+        {/* Tema */}
+
         <button
-          onClick={() => setDarkMode(!darkMode)}
-          className={`p-1.5 border rounded-lg cursor-pointer hidden sm:block transition-all ${
-            darkMode
-              ? 'bg-[#131822] border-[#232D3F] hover:bg-[#1E293B] text-amber-400'
-              : 'bg-amber-100 border-amber-300 hover:bg-amber-200 text-amber-600'
-          }`}
-          title="Alternar Tema Claro / Escuro"
+          onClick={() =>
+            setDarkMode(!darkMode)
+          }
+          className="
+            hidden
+            rounded-lg
+            border
+            p-1.5
+            sm:block
+          "
         >
-          {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {darkMode ? (
+            <Sun className="h-4 w-4" />
+          ) : (
+            <Moon className="h-4 w-4" />
+          )}
         </button>
 
-        {/* User Login / Logout Button */}
+        {/* Login */}
+
         {currentUser ? (
           <button
             onClick={onOpenAuthModal}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${
-              darkMode
-                ? 'bg-purple-950/40 border-purple-500/40 text-purple-300 hover:bg-purple-900/60'
-                : 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100'
-            }`}
-            title={`Conectado como ${currentUser.name} (${currentUser.email}). Clique para ver perfil ou sair.`}
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-lg
+              border
+              border-purple-500
+              px-2
+              py-1
+            "
           >
-            <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[9px] font-black uppercase">
+            <div
+              className="
+                flex
+                h-5
+                w-5
+                items-center
+                justify-center
+                rounded-full
+                bg-purple-600
+                text-[10px]
+                font-black
+                text-white
+              "
+            >
               {currentUser.name.charAt(0)}
             </div>
-            <span className="hidden md:inline max-w-[90px] truncate">{currentUser.name}</span>
-            <LogOut className="w-3 h-3 text-rose-400 ml-0.5" />
+
+            <span className="hidden md:block">
+              {currentUser.name}
+            </span>
+
+            <LogOut className="h-3 w-3" />
           </button>
         ) : (
           <button
             onClick={onOpenAuthModal}
-            className="flex items-center gap-1 px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-extrabold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer"
+            className="
+              flex
+              items-center
+              gap-1
+              rounded-lg
+              bg-purple-600
+              px-3
+              py-1
+              text-[11px]
+              font-bold
+              text-white
+            "
           >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Login</span>
+            <LogIn className="h-4 w-4" />
+
+            Login
           </button>
         )}
 
-        {/* Primary Sublimation / Export Button */}
+        {/* Exportar */}
+
         <button
           onClick={onExportPNG}
-          className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 text-slate-950 font-black rounded-lg shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
+          className="
+            flex
+            items-center
+            gap-1.5
+            rounded-lg
+            bg-gradient-to-r
+            from-emerald-500
+            to-teal-600
+            px-3
+            py-1
+            font-black
+            text-slate-900
+            shadow-lg
+          "
         >
-          <Share2 className="w-3.5 h-3.5" />
-          <span>Exportar</span>
+          <Share2 className="h-4 w-4" />
+
+          Exportar
         </button>
+
       </div>
+
     </header>
+
   );
-};
