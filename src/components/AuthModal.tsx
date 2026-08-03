@@ -48,7 +48,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       name: name || email.split('@')[0],
       email: email,
       isPro: true,
-      avatarUrl: '/logo.png',
+      avatarUrl: '/logo-sublimstudio.png',
     });
     onClose();
   };
@@ -72,8 +72,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Header */}
         <div className="flex items-center gap-3 border-b pb-4 border-purple-500/20">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg text-white">
-            <User className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg text-white p-1">
+            <img
+              src="/logo-sublimstudio.svg"
+              alt="SublimStudio"
+              className="w-full h-full object-contain rounded-xl"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (target.src.endsWith('/logo-sublimstudio.svg')) {
+                  target.src = '/logo-sublimstudio.png';
+                } else if (!target.src.endsWith('/logo.svg')) {
+                  target.src = '/logo.svg';
+                } else if (!target.src.endsWith('/logo.png')) {
+                  target.src = '/logo.png';
+                }
+              }}
+            />
           </div>
           <div>
             <h2 className="text-lg font-extrabold flex items-center gap-1.5">

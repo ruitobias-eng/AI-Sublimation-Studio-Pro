@@ -345,13 +345,17 @@ export const HeaderBar: FC<HeaderBarProps> = ({
             "
           >
             <img
-              src="/logo.svg"
+              src="/logo-sublimstudio.svg"
               alt="SublimStudio PRO"
               className="h-6 w-6 rounded object-contain"
               onError={(e) => {
                 const img = e.currentTarget;
 
-                if (!img.src.endsWith(".png")) {
+                if (img.src.endsWith("/logo-sublimstudio.svg")) {
+                  img.src = "/logo-sublimstudio.png";
+                } else if (!img.src.endsWith("/logo.svg")) {
+                  img.src = "/logo.svg";
+                } else if (!img.src.endsWith("/logo.png")) {
                   img.src = "/logo.png";
                 } else {
                   img.src = "/favicon.png";

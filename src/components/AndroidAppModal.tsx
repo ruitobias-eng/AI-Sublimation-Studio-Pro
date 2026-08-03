@@ -131,12 +131,16 @@ export function AndroidAppModal({
           <div className="relative group mb-2">
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-2xl blur-md opacity-75"></div>
             <img
-              src="/logo.svg"
+              src="/logo-sublimstudio.svg"
               alt="Sublim Studio Android"
               className="relative w-16 h-16 rounded-2xl object-contain bg-slate-900 border border-emerald-500/40 p-1 shadow-2xl"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (!target.src.endsWith('.png')) {
+                if (target.src.endsWith('/logo-sublimstudio.svg')) {
+                  target.src = '/logo-sublimstudio.png';
+                } else if (!target.src.endsWith('/logo.svg')) {
+                  target.src = '/logo.svg';
+                } else if (!target.src.endsWith('/logo.png')) {
                   target.src = '/logo.png';
                 } else if (!target.src.includes('favicon')) {
                   target.src = '/favicon.png';
