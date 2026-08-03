@@ -56,7 +56,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
       <div
-        className={`w-full max-w-md rounded-2xl shadow-2xl border p-6 relative flex flex-col gap-5 ${
+        className={`w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl shadow-2xl border p-6 relative flex flex-col gap-5 ${
           darkMode ? 'bg-[#121620] border-[#2A3447] text-slate-100' : 'bg-white border-slate-200 text-slate-800'
         }`}
       >

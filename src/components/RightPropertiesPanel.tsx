@@ -43,7 +43,7 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
 
   if (!activeLayer) {
     return (
-      <div className={`flex flex-col h-full text-xs p-4 select-none border-l transition-colors ${
+      <div className={`flex flex-col h-full overflow-y-auto custom-scrollbar text-xs p-4 select-none border-l transition-colors ${
         theme === 'light' ? 'bg-white text-slate-700 border-slate-200' : 'bg-[#1e1e20] text-gray-300 border-[#2d2d30]'
       }`}>
         <div className={`flex items-center gap-2 font-semibold mb-4 pb-2 border-b ${
@@ -96,7 +96,7 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
   }
 
   return (
-    <div className={`flex flex-col h-full text-xs p-3 overflow-y-auto touch-scroll-y select-none gap-4 border-l transition-colors ${
+    <div className={`flex flex-col h-full overflow-y-auto custom-scrollbar text-xs p-3 touch-scroll-y select-none gap-4 border-l transition-colors ${
       theme === 'light' ? 'bg-white text-slate-800 border-slate-200' : 'bg-[#1e1e20] text-gray-300 border-[#2d2d30]'
     }`}>
       {/* Header */}

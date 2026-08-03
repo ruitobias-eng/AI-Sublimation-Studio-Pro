@@ -490,7 +490,7 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
         </div>
 
         {/* Categories / Navigation Tabs */}
-        <div className={`px-4 sm:px-6 py-2 border-b flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 text-xs font-bold ${
+        <div className={`px-4 sm:px-6 py-2 border-b flex items-center gap-1.5 overflow-x-auto custom-scrollbar shrink-0 text-xs font-bold ${
           darkMode ? 'bg-[#11131f] border-[#222638]' : 'bg-slate-100 border-slate-200'
         }`}>
           <button
@@ -558,7 +558,7 @@ export const PrintSublimationModal: React.FC<PrintSublimationModalProps> = ({
         </div>
 
         {/* Tab Content Container */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto custom-scrollbar touch-scroll-y min-h-0 p-4 sm:p-6 space-y-6">
           {/* TAB 1: RIP & Preview Touchscreen */}
           {activeTab === 'rip' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

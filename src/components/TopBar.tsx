@@ -35,6 +35,7 @@ interface TopBarProps {
   onOpenExportModal: () => void;
   onOpenPrintModal?: () => void;
   onOpenAIPanel: () => void;
+  onOpenWordArtModal?: () => void;
   onOpenAndroidModal?: () => void;
   onOpenHelp?: () => void;
   onOpenAbout?: () => void;
@@ -73,6 +74,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenExportModal,
   onOpenPrintModal,
   onOpenAIPanel,
+  onOpenWordArtModal,
   onOpenAndroidModal,
   onOpenHelp,
   onOpenAbout,
@@ -109,7 +111,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <header className={`h-12 border-b select-none text-xs z-40 shadow-md transition-colors relative overflow-x-auto no-scrollbar max-w-full shrink-0 touch-scroll-x px-2 sm:px-3 ${
+    <header className={`h-12 border-b select-none text-xs z-40 shadow-md transition-colors relative overflow-x-auto custom-scrollbar max-w-full shrink-0 touch-scroll-x px-2 sm:px-3 ${
       theme === 'light'
         ? 'bg-white border-slate-200 text-slate-800'
         : 'bg-[#0e0f14] border-[#23242c] text-gray-200'
@@ -343,6 +345,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <Wand2 className="w-3.5 h-3.5 text-purple-500 shrink-0" />
           <span className="hidden lg:inline text-[11px]">IA Studio</span>
         </button>
+
 
         {/* Ergonomic Illuminated LED Print Button */}
         {onOpenPrinterSettings || onOpenPrintModal ? (

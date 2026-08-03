@@ -46,7 +46,7 @@ export const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
       className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 select-none p-4 animate-fade-in"
     >
       <div
-        className={`w-full max-w-sm rounded-2xl p-4 shadow-2xl space-y-4 border transition-colors ${
+        className={`w-full max-w-sm max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl p-4 shadow-2xl space-y-4 border transition-colors ${
           darkMode ? 'bg-[#101522] border-[#232D3F] text-slate-100' : 'bg-white border-slate-200 text-slate-800'
         }`}
       >

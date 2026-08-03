@@ -28,6 +28,8 @@ import { AndroidMobileNav } from './components/AndroidMobileNav';
 import { MD3Snackbar, SnackbarMessage } from './components/MD3Snackbar';
 import { MD3BottomSheet } from './components/MD3BottomSheet';
 import { AuthModal, UserSession } from './components/AuthModal';
+import { WordArtModal } from './components/WordArtModal';
+import { TestRunnerModal } from './components/TestRunnerModal';
 
 import {
   Layers,
@@ -144,6 +146,33 @@ export default function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isWordArtModalOpen, setIsWordArtModalOpen] = useState(false);
+  const [isTestRunnerOpen, setIsTestRunnerOpen] = useState(false);
+
+  const handleAddWordArtImageToCanvas = (dataUrl: string, title?: string) => {
+    const newLayer: Layer = {
+      id: 'layer-wordart-' + Date.now(),
+      name: title || 'WordArt Tipográfico',
+      type: 'image',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      blendMode: 'normal',
+      x: 250,
+      y: 150,
+      width: 700,
+      height: 700,
+      rotation: 0,
+      content: dataUrl,
+      filters: { brightness: 0, contrast: 0, saturation: 0, hue: 0, blur: 0, vibrance: 0 },
+    };
+    const updated = [...layers, newLayer];
+    setLayers(updated);
+    setActiveLayerId(newLayer.id);
+    pushHistoryStep(`Adicionado ${newLayer.name}`, 'WordArt', updated);
+    setCanvasVersion((v) => v + 1);
+    showSnackbar('WordArt adicionado com sucesso à estampa!', 'success');
+  };
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
     try {
       const saved = localStorage.getItem('sublimstudio_user_session');
@@ -1026,6 +1055,8 @@ export default function App() {
           setActiveRightTab('ai');
           setIsRightSidebarCollapsed(false);
         }}
+        onOpenWordArtModal={() => setIsWordArtModalOpen(true)}
+        onOpenTestRunner={() => setIsTestRunnerOpen(true)}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
         onOpenHelp={() => setIsHelpModalOpen(true)}
         onOpenAbout={() => setIsAboutModalOpen(true)}
@@ -1097,6 +1128,7 @@ export default function App() {
             setActiveRightTab('ai');
             setIsRightSidebarCollapsed(false);
           }}
+          onOpenWordArtModal={() => setIsWordArtModalOpen(true)}
           theme={theme}
           currentUser={currentUser}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
@@ -1755,6 +1787,21 @@ export default function App() {
         currentUser={currentUser}
         onLogin={handleLogin}
         onLogout={handleLogout}
+        darkMode={theme === 'dark'}
+      />
+
+      {/* WordArt & Nuvem de Palavras Modal */}
+      <WordArtModal
+        isOpen={isWordArtModalOpen}
+        onClose={() => setIsWordArtModalOpen(false)}
+        onAddWordArtImage={handleAddWordArtImageToCanvas}
+        darkMode={theme === 'dark'}
+      />
+
+      {/* Testes Automatizados QA Modal */}
+      <TestRunnerModal
+        isOpen={isTestRunnerOpen}
+        onClose={() => setIsTestRunnerOpen(false)}
         darkMode={theme === 'dark'}
       />
     </div>

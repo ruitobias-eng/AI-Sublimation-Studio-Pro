@@ -521,7 +521,7 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
         </div>
 
         {/* Modal Navigation Tabs */}
-        <div className="flex items-center border-b border-[#282a36] bg-[#121318] px-4 gap-2 overflow-x-auto">
+        <div className="flex items-center border-b border-[#282a36] bg-[#121318] px-4 gap-2 overflow-x-auto custom-scrollbar">
           <button
             onClick={() => setActiveTab('adjustments')}
             className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
@@ -572,7 +572,7 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
         </div>
 
         {/* Modal Main Content (Preview + Sliders) */}
-        <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-12 p-4 gap-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar grid grid-cols-1 md:grid-cols-12 p-4 gap-4">
           {/* Left Canvas Live Preview (5 cols) */}
           <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-[#0a0b0e] border border-[#282a36] rounded-2xl relative min-h-[220px]">
             <span className="absolute top-3 left-3 text-[10px] font-mono uppercase font-bold text-purple-400 bg-purple-950/80 px-2.5 py-1 rounded-lg border border-purple-500/30">

@@ -101,7 +101,7 @@ export const ProductLibrary: React.FC<ProductLibraryProps> = ({
         </div>
 
         {/* Product Grid */}
-        <div className="p-4 touch-scroll-y grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 flex-1">
+        <div className="p-4 touch-scroll-y custom-scrollbar min-h-0 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 flex-1">
           {filteredProducts.map((product) => {
             const isSelected = selectedProduct.id === product.id;
 

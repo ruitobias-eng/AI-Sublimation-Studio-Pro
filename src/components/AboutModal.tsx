@@ -73,7 +73,7 @@ export function AboutModal({ isOpen, onClose, theme = 'dark', onOpenHelp }: Abou
         </div>
 
         {/* Features & Specifications Body */}
-        <div className="p-6 space-y-5 text-xs">
+        <div className="p-6 space-y-5 text-xs touch-scroll-y flex-1 overflow-y-auto custom-scrollbar">
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-start gap-2.5">
               <Box className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />

@@ -55,6 +55,7 @@ interface LeftSidebarContainerProps {
   currentProduct?: SublimationProduct;
   setProduct?: (product: SublimationProduct) => void;
   onOpenAIConsole?: () => void;
+  onOpenPresetGallery?: () => void;
   activeSidebarTab: SidebarTabType | null;
   setActiveSidebarTab: (tab: SidebarTabType | null) => void;
   darkMode?: boolean;
@@ -87,6 +88,7 @@ export const LeftSidebarContainer: React.FC<LeftSidebarContainerProps> = ({
   currentProduct,
   setProduct,
   onOpenAIConsole,
+  onOpenPresetGallery,
   activeSidebarTab,
   setActiveSidebarTab,
   darkMode = true
@@ -427,7 +429,7 @@ export const LeftSidebarContainer: React.FC<LeftSidebarContainerProps> = ({
 
       {/* PANEL 2: PRODUTOS SUBLIMÁVEIS */}
       {activeSidebarTab === 'products' && (
-        <div className="flex-1 overflow-y-auto p-3 space-y-3 no-scrollbar">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-3">
           {/* Search Box */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -505,7 +507,7 @@ export const LeftSidebarContainer: React.FC<LeftSidebarContainerProps> = ({
 
       {/* PANEL 3: FOTOS E UPLOADS */}
       {activeSidebarTab === 'uploads' && (
-        <div className="flex-1 overflow-y-auto p-3 space-y-4 no-scrollbar">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4">
           {/* Search Box */}
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -787,6 +789,17 @@ export const LeftSidebarContainer: React.FC<LeftSidebarContainerProps> = ({
       {/* PANEL 6: MODELOS & PRESETS */}
       {activeSidebarTab === 'models' && (
         <div className="flex-1 overflow-y-auto p-3 space-y-3 no-scrollbar">
+          {/* Full Preset Gallery Banner Button */}
+          {onOpenPresetGallery && (
+            <button
+              onClick={onOpenPresetGallery}
+              className="w-full py-2.5 px-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:brightness-110 text-white font-extrabold rounded-xl shadow-lg shadow-purple-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 text-xs border border-purple-400/40"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+              <span>Abrir Galeria de Modelos HD</span>
+            </button>
+          )}
+
           {/* Category Chips */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
             {TEMPLATE_CATEGORIES.map((cat) => (

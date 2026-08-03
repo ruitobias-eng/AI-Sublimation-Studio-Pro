@@ -218,7 +218,7 @@ export const AIPanel: React.FC<AIPanelProps> = ({
   };
 
   return (
-    <div className={`flex flex-col h-full text-xs p-3.5 touch-scroll-y select-none gap-4 transition-colors ${
+    <div className={`flex flex-col h-full overflow-y-auto custom-scrollbar text-xs p-3.5 touch-scroll-y select-none gap-4 transition-colors ${
       theme === 'light' ? 'bg-white text-slate-800 border-slate-200' : 'bg-[#1e1e20] text-gray-300 border-[#2d2d30]'
     }`}>
       {/* Header */}

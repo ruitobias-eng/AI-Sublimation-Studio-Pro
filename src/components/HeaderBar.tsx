@@ -11,6 +11,7 @@ import {
   Box,
   Grid,
   Zap,
+  Cpu,
   User,
   LogIn,
   LogOut
@@ -32,6 +33,8 @@ interface HeaderBarProps {
   onOpenTemplates: () => void;
   onExportPNG: () => void;
   onOpenAIConsole: () => void;
+  onOpenWordArtModal?: () => void;
+  onOpenTestRunner?: () => void;
   onOpenShortcuts: () => void;
   onOpenPrintModal: () => void;
   onOpenGangModal: () => void;
@@ -61,6 +64,8 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onOpenTemplates,
   onExportPNG,
   onOpenAIConsole,
+  onOpenWordArtModal,
+  onOpenTestRunner,
   onOpenShortcuts,
   onOpenPrintModal,
   onOpenGangModal,
@@ -81,7 +86,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   return (
     <header
-      className={`h-12 border-b px-3 flex items-center justify-between select-none z-40 text-xs shrink-0 shadow-md transition-colors overflow-x-auto no-scrollbar max-w-full touch-scroll-x ${
+      className={`h-12 border-b px-3 flex items-center justify-between select-none z-40 text-xs shrink-0 shadow-md transition-colors overflow-x-auto custom-scrollbar max-w-full touch-scroll-x ${
         darkMode ? 'bg-[#0B0F17] border-[#1F2937] text-slate-200' : 'bg-white border-slate-200 text-slate-800'
       }`}
     >
@@ -309,6 +314,23 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           <Zap className="w-3.5 h-3.5 fill-current text-amber-300" />
           <span className="hidden sm:inline">IA Studio</span>
         </button>
+
+        {/* QA Test Runner Launch */}
+        {onOpenTestRunner && (
+          <button
+            onClick={onOpenTestRunner}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer ${
+              darkMode
+                ? 'bg-purple-950/40 border-purple-500/30 text-purple-300 hover:bg-purple-900/50 hover:text-purple-200'
+                : 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100'
+            }`}
+            title="Bateria de Testes QA Automatizados"
+          >
+            <Cpu className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden sm:inline">Testes QA</span>
+          </button>
+        )}
+
 
         {/* Shortcuts Modal Button */}
         <button

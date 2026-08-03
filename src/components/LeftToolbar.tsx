@@ -9,6 +9,9 @@ import {
   Layers,
   Search,
   ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Square,
   Circle,
   Hexagon,
@@ -73,6 +76,7 @@ export interface LeftToolbarProps {
   onDuplicateLayer?: (id: string) => void;
   onAddAIGeneratedImage?: (url: string, title: string) => void;
   onOpenAIPanel?: () => void;
+  onOpenWordArtModal?: () => void;
   darkMode?: boolean;
   theme?: 'dark' | 'light';
   currentUser?: { name: string; email: string; isPro?: boolean } | null;
@@ -109,6 +113,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   onDuplicateLayer,
   onAddAIGeneratedImage,
   onOpenAIPanel,
+  onOpenWordArtModal,
   darkMode = true,
   theme = darkMode ? 'dark' : 'light',
   currentUser = null,
@@ -121,6 +126,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   // Canva Active Drawer Tab
   const [internalActiveTab, setInternalActiveTab] = useState<SidebarTabType | null>('templates');
   const [internalIsDrawerOpen, setInternalIsDrawerOpen] = useState<boolean>(true);
+  const [isRailCollapsed, setIsRailCollapsed] = useState<boolean>(false);
 
   const activeTab = externalActiveSidebarTab !== undefined ? externalActiveSidebarTab : internalActiveTab;
   const isDrawerOpen = externalActiveSidebarTab !== undefined ? Boolean(externalActiveSidebarTab) : internalIsDrawerOpen;
@@ -274,145 +280,194 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
 
   return (
     <div className="flex h-full select-none z-30 relative">
-      {/* 1. Canva Left Icon Rail */}
-      <aside className={`w-18 border-r flex flex-col items-center py-3 gap-3 select-none z-40 transition-colors overflow-y-auto no-scrollbar touch-scroll-y shrink-0 ${
+      {/* 1. Canva Left Icon Rail with Scrollbar & Collapse Toggle */}
+      <aside className={`border-r flex flex-col items-center py-2.5 gap-2 select-none z-40 transition-all duration-300 overflow-y-auto custom-scrollbar touch-scroll-y shrink-0 ${
+        isRailCollapsed ? 'w-12' : 'w-18'
+      } ${
         theme === 'light'
           ? 'bg-slate-100 border-slate-300 text-slate-600'
           : 'bg-[#0d0e12] border-[#23242a] text-gray-400'
       }`}>
-        {/* Templates */}
+        {/* Rail Collapse / Expand Toggle Button */}
         <button
-          onClick={() => handleTabClick('templates')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
-            activeTab === 'templates' && isDrawerOpen
-              ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
-              : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
+          onClick={() => setIsRailCollapsed(!isRailCollapsed)}
+          className={`flex flex-col items-center justify-center rounded-xl transition-all cursor-pointer ${
+            isRailCollapsed ? 'w-9 h-9 my-1' : 'w-14 h-8 mb-1 border border-dashed'
+          } ${
+            theme === 'light'
+              ? 'border-slate-300 hover:bg-slate-200 text-slate-600 hover:text-purple-600'
+              : 'border-slate-700 hover:bg-white/10 text-gray-400 hover:text-purple-400'
           }`}
-          title="Modelos de Estampa"
+          title={isRailCollapsed ? "Expandir Barra Lateral" : "Recolher Barra Lateral"}
         >
-          <LayoutTemplate className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Modelos</span>
-        </button>
-
-        {/* Elements / Shapes */}
-        <button
-          onClick={() => handleTabClick('elements')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
-            activeTab === 'elements' && isDrawerOpen
-              ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
-              : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
-          }`}
-          title="Elementos & Formas"
-        >
-          <Shapes className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Elementos</span>
-        </button>
-
-        {/* Text */}
-        <button
-          onClick={() => handleTabClick('text')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
-            activeTab === 'text' && isDrawerOpen
-              ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
-              : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
-          }`}
-          title="Inserir Texto & Arco"
-        >
-          <Type className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Texto</span>
-        </button>
-
-        {/* Uploads / Photos */}
-        <button
-          onClick={() => handleTabClick('uploads')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
-            activeTab === 'uploads' && isDrawerOpen
-              ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
-              : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
-          }`}
-          title="Minhas Imagens & Galeria"
-        >
-          <ImagePlus className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Uploads</span>
-        </button>
-
-        {/* Products */}
-        <button
-          onClick={() => handleTabClick('products')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
-            activeTab === 'products' && isDrawerOpen
-              ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
-              : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
-          }`}
-          title="Produtos Sublimáveis"
-        >
-          <ProductIcon product={currentProduct} className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Produtos</span>
-        </button>
-
-        {/* AI Studio */}
-        <button
-          onClick={() => handleTabClick('ai')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer relative ${
-            activeTab === 'ai' && isDrawerOpen
-              ? 'bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 text-purple-600 border border-purple-500/50 shadow-lg'
-              : theme === 'light' ? 'text-purple-600 hover:bg-purple-100 hover:text-purple-700' : 'text-purple-400 hover:bg-purple-950/30 hover:text-purple-200'
-          }`}
-          title="Estúdio IA Generativo"
-        >
-          <Sparkles className="w-5 h-5 mb-1 text-purple-600" />
-          <span className="text-[10px] font-semibold">Estúdio IA</span>
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
-        </button>
-
-        {/* Layers */}
-        <button
-          onClick={() => handleTabClick('layers')}
-          className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
-            activeTab === 'layers' && isDrawerOpen
-              ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
-              : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
-          }`}
-          title="Camadas & Z-Index"
-        >
-          <Layers className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Camadas</span>
-        </button>
-
-        <div className={`mt-auto w-10 h-[1px] ${theme === 'light' ? 'bg-slate-300' : 'bg-[#23242a]'}`}></div>
-
-        {/* Account / Login Button */}
-        <div className="flex flex-col items-center gap-2 my-1">
-          {currentUser ? (
-            <button
-              onClick={onOpenAuthModal}
-              className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer relative group ${
-                theme === 'light'
-                  ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                  : 'bg-purple-950/40 text-purple-300 border border-purple-500/30 hover:bg-purple-900/50'
-              }`}
-              title={`Conta: ${currentUser.name} (${currentUser.email}) - Clique para ver/sair`}
-            >
-              <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-black uppercase shadow">
-                {currentUser.name.charAt(0)}
-              </div>
-              <span className="text-[9px] font-bold mt-0.5 text-purple-400">Perfil</span>
-            </button>
+          {isRailCollapsed ? (
+            <PanelLeftOpen className="w-5 h-5 text-purple-500" />
           ) : (
-            <button
-              onClick={onOpenAuthModal}
-              className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer ${
-                theme === 'light'
-                  ? 'bg-slate-200 text-slate-700 hover:bg-purple-600 hover:text-white'
-                  : 'bg-slate-800 text-slate-300 hover:bg-purple-600 hover:text-white border border-slate-700'
-              }`}
-              title="Fazer Login / Criar Conta"
-            >
-              <LogIn className="w-4 h-4 mb-0.5 text-purple-400" />
-              <span className="text-[9px] font-bold">Login</span>
-            </button>
+            <div className="flex items-center gap-1">
+              <PanelLeftClose className="w-3.5 h-3.5" />
+              <span className="text-[8px] font-bold uppercase">Recolher</span>
+            </div>
           )}
-        </div>
+        </button>
+
+        {!isRailCollapsed && (
+          <>
+            {/* Templates */}
+            <button
+              onClick={() => handleTabClick('templates')}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
+                activeTab === 'templates' && isDrawerOpen
+                  ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
+                  : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
+              }`}
+              title="Modelos de Estampa"
+            >
+              <LayoutTemplate className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium">Modelos</span>
+            </button>
+
+            {/* Elements / Shapes */}
+            <button
+              onClick={() => handleTabClick('elements')}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
+                activeTab === 'elements' && isDrawerOpen
+                  ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
+                  : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
+              }`}
+              title="Elementos & Formas"
+            >
+              <Shapes className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium">Elementos</span>
+            </button>
+
+            {/* Text */}
+            <button
+              onClick={() => handleTabClick('text')}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
+                activeTab === 'text' && isDrawerOpen
+                  ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
+                  : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
+              }`}
+              title="Inserir Texto & Arco"
+            >
+              <Type className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium">Texto</span>
+            </button>
+
+            {/* WordArt */}
+            <button
+              onClick={() => {
+                if (onOpenWordArtModal) {
+                  onOpenWordArtModal();
+                } else {
+                  handleTabClick('text');
+                }
+              }}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer relative group ${
+                theme === 'light'
+                  ? 'text-rose-600 hover:bg-rose-100'
+                  : 'text-rose-400 hover:bg-rose-950/40 hover:text-rose-300'
+              }`}
+              title="WordArt & Nuvem de Palavras Tipográficas"
+            >
+              <Wand2 className="w-5 h-5 mb-1 text-rose-500" />
+              <span className="text-[10px] font-bold">WordArt</span>
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            </button>
+
+            {/* Uploads / Photos */}
+            <button
+              onClick={() => handleTabClick('uploads')}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
+                activeTab === 'uploads' && isDrawerOpen
+                  ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
+                  : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
+              }`}
+              title="Minhas Imagens & Galeria"
+            >
+              <ImagePlus className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium">Uploads</span>
+            </button>
+
+            {/* Products */}
+            <button
+              onClick={() => handleTabClick('products')}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
+                activeTab === 'products' && isDrawerOpen
+                  ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
+                  : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
+              }`}
+              title="Produtos Sublimáveis"
+            >
+              <ProductIcon product={currentProduct} className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium">Produtos</span>
+            </button>
+
+            {/* AI Studio */}
+            <button
+              onClick={() => handleTabClick('ai')}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer relative ${
+                activeTab === 'ai' && isDrawerOpen
+                  ? 'bg-gradient-to-tr from-purple-600/30 to-indigo-600/30 text-purple-600 border border-purple-500/50 shadow-lg'
+                  : theme === 'light' ? 'text-purple-600 hover:bg-purple-100 hover:text-purple-700' : 'text-purple-400 hover:bg-purple-950/30 hover:text-purple-200'
+              }`}
+              title="Estúdio IA Generativo"
+            >
+              <Sparkles className="w-5 h-5 mb-1 text-purple-600" />
+              <span className="text-[10px] font-semibold">Estúdio IA</span>
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            </button>
+
+            {/* Layers */}
+            <button
+              onClick={() => handleTabClick('layers')}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer ${
+                activeTab === 'layers' && isDrawerOpen
+                  ? 'bg-purple-600/20 text-purple-600 border border-purple-500/40 shadow-lg'
+                  : theme === 'light' ? 'hover:bg-slate-200 hover:text-slate-900' : 'hover:bg-white/5 hover:text-white'
+              }`}
+              title="Camadas & Z-Index"
+            >
+              <Layers className="w-5 h-5 mb-1" />
+              <span className="text-[10px] font-medium">Camadas</span>
+            </button>
+
+            <div className={`mt-auto w-10 h-[1px] ${theme === 'light' ? 'bg-slate-300' : 'bg-[#23242a]'}`}></div>
+
+            {/* Account / Login Button */}
+            <div className="flex flex-col items-center gap-2 my-1">
+              {currentUser ? (
+                <button
+                  onClick={onOpenAuthModal}
+                  className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer relative group ${
+                    theme === 'light'
+                      ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                      : 'bg-purple-950/40 text-purple-300 border border-purple-500/30 hover:bg-purple-900/50'
+                  }`}
+                  title={`Conta: ${currentUser.name} (${currentUser.email}) - Clique para ver/sair`}
+                >
+                  <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-black uppercase shadow">
+                    {currentUser.name.charAt(0)}
+                  </div>
+                  <span className="text-[9px] font-bold mt-0.5 text-purple-400">Perfil</span>
+                </button>
+              ) : (
+                <button
+                  onClick={onOpenAuthModal}
+                  className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer ${
+                    theme === 'light'
+                      ? 'bg-slate-200 text-slate-700 hover:bg-purple-600 hover:text-white'
+                      : 'bg-slate-800 text-slate-300 hover:bg-purple-600 hover:text-white border border-slate-700'
+                  }`}
+                  title="Fazer Login / Criar Conta"
+                >
+                  <LogIn className="w-4 h-4 mb-0.5 text-purple-400" />
+                  <span className="text-[9px] font-bold">Login</span>
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </aside>
 
       {/* 2. Canva Sliding Side Drawer Panel */}
@@ -434,7 +489,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
               : 'bg-[#16171d] border-[#26272e] text-gray-200'
           }`}>
           {/* Drawer Close Button Header */}
-          <div className={`p-4 border-b flex items-center justify-between ${
+          <div className={`p-3.5 border-b flex items-center justify-between ${
             theme === 'light' ? 'border-slate-200' : 'border-[#26272e]'
           }`}>
             <h2 className={`font-bold text-sm capitalize flex items-center gap-2 ${
@@ -462,12 +517,11 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                   setInternalIsDrawerOpen(false);
                 }
               }}
-              className={`p-1 rounded-lg transition-colors cursor-pointer ${
-                theme === 'light' ? 'hover:bg-slate-100 text-slate-500 hover:text-slate-900' : 'hover:bg-white/10 text-gray-400 hover:text-white'
-              }`}
-              title="Recolher Painel"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold cursor-pointer border border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 hover:text-purple-300 transition-all shadow-sm"
+              title="Recolher Painel Lateral"
             >
               <ChevronLeft className="w-4 h-4" />
+              <span>Recolher</span>
             </button>
           </div>
 
@@ -494,7 +548,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
           )}
 
           {/* Drawer Body Content based on Active Tab */}
-          <div className="flex-1 overflow-y-auto touch-scroll-y p-4 space-y-4 min-h-0">
+          <div className="flex-1 overflow-y-auto custom-scrollbar touch-scroll-y p-4 space-y-4 min-h-0">
             {/* TAB 1: TEMPLATES */}
             {activeTab === 'templates' && (
               <div className="space-y-3">
@@ -656,6 +710,27 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             {/* TAB 3: TEXT & VECTOR TYPOGRAPHY */}
             {activeTab === 'text' && (
               <div className="space-y-3">
+                {/* Featured WordArt Studio Launch Banner */}
+                {onOpenWordArtModal && (
+                  <button
+                    onClick={onOpenWordArtModal}
+                    className="w-full p-3 bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:via-purple-500 hover:to-indigo-500 text-white rounded-2xl shadow-lg border border-purple-400/30 flex items-center justify-between cursor-pointer group transition-all transform hover:scale-[1.02]"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold">
+                        <Wand2 className="w-4 h-4 text-amber-300" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-black block leading-tight">WordArt & Nuvem de Palavras</span>
+                        <span className="text-[9px] text-purple-200 font-medium">Silhuetas para Canecas, Camisetas...</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                      Abrir
+                    </span>
+                  </button>
+                )}
+
                 {/* Sub-tab Pills Switcher */}
                 <div className="grid grid-cols-4 gap-1 p-1 bg-[#18191f] rounded-xl border border-[#2d2e36] text-[10px] font-bold">
                   <button
