@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { logoSublimStudioSvg, logoSublimStudioPng, faviconPng } from '../assets/logos';
 import { User, LogOut, LogIn, Mail, Lock, ShieldCheck, CheckCircle2, X, Sparkles, UserCheck } from 'lucide-react';
 
 export interface UserSession {
@@ -48,7 +49,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       name: name || email.split('@')[0],
       email: email,
       isPro: true,
-      avatarUrl: '/logo-sublimstudio.png',
+      avatarUrl: logoSublimStudioPng,
     });
     onClose();
   };
@@ -74,19 +75,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="flex items-center gap-3 border-b pb-4 border-purple-500/20">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-lg text-white p-1">
             <img
-              src="./logo-sublimstudio.svg"
+              src={logoSublimStudioSvg}
               alt="SublimStudio"
               className="w-full h-full object-contain rounded-xl"
               onError={(e) => {
                 const target = e.currentTarget;
+                target.onerror = null;
                 if (!target.dataset.triedPng) {
                   target.dataset.triedPng = 'true';
-                  target.src = './logo-sublimstudio.png';
+                  target.src = logoSublimStudioPng;
                 } else if (!target.dataset.triedFavicon) {
                   target.dataset.triedFavicon = 'true';
-                  target.src = './favicon.png';
-                } else {
-                  target.onerror = null;
+                  target.src = faviconPng;
                 }
               }}
             />

@@ -62,31 +62,18 @@ export class WindowsPrinterAdapter implements PrinterPlatformAdapter {
     }
   ];
 
-  private isBridgeAvailable: boolean | null = null;
-
   async getPrinters(): Promise<Printer[]> {
-    // Attempt connecting to local Windows Print Bridge agent if available and not previously failed
-    if (this.isBridgeAvailable !== false) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300);
-        const response = await fetch('http://localhost:11400/api/printers', {
-          method: 'GET',
-          signal: controller.signal,
-        }).finally(() => clearTimeout(timeoutId));
-
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data.printers) && data.printers.length > 0) {
-            this.isBridgeAvailable = true;
-            return data.printers;
-          }
+    // Attempt connecting to local Windows Print Bridge agent if available
+    try {
+      const response = await fetch('http://localhost:11400/api/printers', { method: 'GET' });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.printers) && data.printers.length > 0) {
+          return data.printers;
         }
-        this.isBridgeAvailable = false;
-      } catch {
-        // Local Win32 bridge agent not active; fallback to detected Windows printers
-        this.isBridgeAvailable = false;
       }
+    } catch {
+      // Local Win32 bridge agent not active; fallback to detected Windows printers
     }
     return this.mockWindowsPrinters;
   }

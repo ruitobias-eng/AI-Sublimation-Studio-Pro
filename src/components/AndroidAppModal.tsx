@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logoSublimStudioSvg, logoSublimStudioPng, faviconPng } from '../assets/logos';
 import { Smartphone, Download, CheckCircle2, ShieldCheck, X, Sparkles, Zap, ExternalLink, QrCode, Monitor } from 'lucide-react';
 
 interface AndroidAppModalProps {
@@ -131,19 +132,18 @@ export function AndroidAppModal({
           <div className="relative group mb-2">
             <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-2xl blur-md opacity-75"></div>
             <img
-              src="./logo-sublimstudio.svg"
+              src={logoSublimStudioSvg}
               alt="Sublim Studio Android"
               className="relative w-16 h-16 rounded-2xl object-contain bg-slate-900 border border-emerald-500/40 p-1 shadow-2xl"
               onError={(e) => {
                 const target = e.currentTarget;
+                target.onerror = null;
                 if (!target.dataset.triedPng) {
                   target.dataset.triedPng = 'true';
-                  target.src = './logo-sublimstudio.png';
+                  target.src = logoSublimStudioPng;
                 } else if (!target.dataset.triedFavicon) {
                   target.dataset.triedFavicon = 'true';
-                  target.src = './favicon.png';
-                } else {
-                  target.onerror = null;
+                  target.src = faviconPng;
                 }
               }}
             />

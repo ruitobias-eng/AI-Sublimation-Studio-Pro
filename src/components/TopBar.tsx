@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logoSublimStudioSvg, logoSublimStudioPng, faviconPng } from '../assets/logos';
 import {
   Sparkles,
   RotateCcw,
@@ -125,19 +126,19 @@ export const TopBar: React.FC<TopBarProps> = ({
         <div className="flex items-center gap-1.5 bg-slate-900/10 dark:bg-white/5 border border-purple-500/30 px-2 py-1 rounded-xl shadow-sm cursor-pointer hover:brightness-110 transition-all shrink-0 whitespace-nowrap">
           {!logoError ? (
             <img
-              src="./logo-sublimstudio.svg"
+              src={logoSublimStudioSvg}
               alt="Sublim Studio"
               className="w-5 h-5 object-contain rounded-md shrink-0"
               onError={(e) => {
                 const target = e.currentTarget;
+                target.onerror = null;
                 if (!target.dataset.triedPng) {
                   target.dataset.triedPng = 'true';
-                  target.src = './logo-sublimstudio.png';
+                  target.src = logoSublimStudioPng;
                 } else if (!target.dataset.triedFavicon) {
                   target.dataset.triedFavicon = 'true';
-                  target.src = './favicon.png';
+                  target.src = faviconPng;
                 } else {
-                  target.onerror = null;
                   setLogoError(true);
                 }
               }}

@@ -10,6 +10,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { logoSublimStudioSvg, logoSublimStudioPng, faviconPng } from "../assets/logos";
 
 import {
   RotateCcw,
@@ -345,19 +346,18 @@ export const HeaderBar: FC<HeaderBarProps> = ({
             "
           >
             <img
-              src="./logo-sublimstudio.svg"
+              src={logoSublimStudioSvg}
               alt="SublimStudio PRO"
               className="h-6 w-6 rounded object-contain"
               onError={(e) => {
                 const img = e.currentTarget;
+                img.onerror = null;
                 if (!img.dataset.triedPng) {
                   img.dataset.triedPng = 'true';
-                  img.src = './logo-sublimstudio.png';
+                  img.src = logoSublimStudioPng;
                 } else if (!img.dataset.triedFavicon) {
                   img.dataset.triedFavicon = 'true';
-                  img.src = './favicon.png';
-                } else {
-                  img.onerror = null;
+                  img.src = faviconPng;
                 }
               }}
             />

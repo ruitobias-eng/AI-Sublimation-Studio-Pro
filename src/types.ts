@@ -219,6 +219,46 @@ export interface SublimationPressPreset {
   notes: string;
 }
 
+export interface PresetTemplate {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  theme: string;
+  character: string;
+  style: string;
+  colors: string;
+  lighting: string;
+  background: string;
+  imageUrl: string;
+  suggestedText?: string;
+}
+
+export interface MugDesignConfig {
+  theme: string;
+  character: string;
+  style: string;
+  colors: string;
+  lighting: string;
+  background: string;
+  negativePrompt: string;
+  imageUrl: string;
+  texts: Array<{
+    id: string;
+    text: string;
+    fontFamily: string;
+    fontSize: number;
+    color: string;
+    strokeColor?: string;
+    strokeWidth?: number;
+    xPercent?: number;
+    yPercent?: number;
+    curveAmount?: number;
+    alignment?: string;
+    shadow?: boolean;
+  }>;
+}
+
 export interface TemplatePreset {
   id: string;
   title: string;
@@ -233,7 +273,7 @@ export interface GangItem {
   widthMm: number;
   heightMm: number;
   quantity: number;
-  color: string;
+  color?: string;
 }
 
 export interface GangPlacedBox {
@@ -304,46 +344,3 @@ export interface Environment3DConfig {
   roughness: number;
   metalness: number;
 }
-
-export interface PresetTemplate {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  theme: string;
-  character: string;
-  style: string;
-  colors: string;
-  lighting: string;
-  background: string;
-  suggestedText?: string;
-  imageUrl: string;
-}
-
-export interface MugDesignConfigText {
-  id: string;
-  text: string;
-  fontFamily: string;
-  fontSize: number;
-  color: string;
-  strokeColor: string;
-  strokeWidth: number;
-  xPercent: number;
-  yPercent: number;
-  curveAmount: number;
-  alignment: 'left' | 'center' | 'right';
-  shadow: boolean;
-}
-
-export interface MugDesignConfig {
-  theme: string;
-  character: string;
-  style: string;
-  colors: string;
-  lighting: string;
-  background: string;
-  negativePrompt: string;
-  imageUrl?: string;
-  texts: MugDesignConfigText[];
-}
-
