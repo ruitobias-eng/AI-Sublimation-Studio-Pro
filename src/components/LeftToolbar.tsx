@@ -23,7 +23,11 @@ import {
   Lock,
   Unlock,
   Plus,
-  Upload
+  Upload,
+  User,
+  LogIn,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 import { ToolType, ShapeType, SublimationProduct, Layer, TextWarpStyle } from '../types';
 import { PRODUCTS_LIBRARY } from '../data/products';
@@ -71,6 +75,9 @@ export interface LeftToolbarProps {
   onOpenAIPanel?: () => void;
   darkMode?: boolean;
   theme?: 'dark' | 'light';
+  currentUser?: { name: string; email: string; isPro?: boolean } | null;
+  onOpenAuthModal?: () => void;
+  onLogout?: () => void;
 }
 
 export const LeftToolbar: React.FC<LeftToolbarProps> = ({
@@ -104,6 +111,9 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   onOpenAIPanel,
   darkMode = true,
   theme = darkMode ? 'dark' : 'light',
+  currentUser = null,
+  onOpenAuthModal,
+  onLogout,
 }) => {
   // Active Color
   const activeColor = externalActiveColor || fillColor;
@@ -371,26 +381,37 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
 
         <div className={`mt-auto w-10 h-[1px] ${theme === 'light' ? 'bg-slate-300' : 'bg-[#23242a]'}`}></div>
 
-        {/* Active Color Swatch */}
-        <div className="flex flex-col items-center gap-1 my-1">
-          <label
-            className="w-7 h-7 rounded-full border-2 border-slate-300 shadow-md cursor-pointer hover:scale-110 transition-transform relative overflow-hidden"
-            style={{ backgroundColor: activeColor }}
-            title="Mudar Cor Principal"
-            onClick={() => {
-              if (onOpenColorPicker) onOpenColorPicker('fill');
-            }}
-          >
-            <input
-              type="color"
-              value={activeColor}
-              onChange={(e) => {
-                if (onChangeColor) onChangeColor(e.target.value);
-                if (setFillColor) setFillColor(e.target.value);
-              }}
-              className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-            />
-          </label>
+        {/* Account / Login Button */}
+        <div className="flex flex-col items-center gap-2 my-1">
+          {currentUser ? (
+            <button
+              onClick={onOpenAuthModal}
+              className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer relative group ${
+                theme === 'light'
+                  ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  : 'bg-purple-950/40 text-purple-300 border border-purple-500/30 hover:bg-purple-900/50'
+              }`}
+              title={`Conta: ${currentUser.name} (${currentUser.email}) - Clique para ver/sair`}
+            >
+              <div className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-black uppercase shadow">
+                {currentUser.name.charAt(0)}
+              </div>
+              <span className="text-[9px] font-bold mt-0.5 text-purple-400">Perfil</span>
+            </button>
+          ) : (
+            <button
+              onClick={onOpenAuthModal}
+              className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all cursor-pointer ${
+                theme === 'light'
+                  ? 'bg-slate-200 text-slate-700 hover:bg-purple-600 hover:text-white'
+                  : 'bg-slate-800 text-slate-300 hover:bg-purple-600 hover:text-white border border-slate-700'
+              }`}
+              title="Fazer Login / Criar Conta"
+            >
+              <LogIn className="w-4 h-4 mb-0.5 text-purple-400" />
+              <span className="text-[9px] font-bold">Login</span>
+            </button>
+          )}
         </div>
       </aside>
 

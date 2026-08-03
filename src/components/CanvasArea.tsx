@@ -1733,36 +1733,6 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                       <span>IA Smart</span>
                     </button>
 
-                    {/* Device Preset Resizing Group */}
-                    <div className="flex items-center bg-[#23242e] rounded-xl border border-[#383945] p-0.5 shrink-0" title="Redimensionar Imagem para Dispositivos">
-                      <span className="px-1.5 text-[10px] font-bold text-gray-400 uppercase hidden md:inline">Tamanho:</span>
-                      <button
-                        onClick={() => handleResizeForDevice(activeL.id, 'tablet')}
-                        className="px-2 py-1 hover:bg-purple-600/30 text-gray-200 hover:text-white rounded-lg flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
-                        title="Redimensionar p/ Tablet / iPad (4:3)"
-                      >
-                        <Tablet className="w-3.5 h-3.5 text-sky-400" />
-                        <span className="hidden lg:inline">Tablet</span>
-                      </button>
-                      <button
-                        onClick={() => handleResizeForDevice(activeL.id, 'android')}
-                        className="px-2 py-1 hover:bg-purple-600/30 text-gray-200 hover:text-white rounded-lg flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
-                        title="Redimensionar p/ Android Mobile (9:16)"
-                      >
-                        <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="hidden lg:inline">Android</span>
-                      </button>
-                      <button
-                        onClick={() => handleResizeForDevice(activeL.id, 'macos')}
-                        className="px-2 py-1 hover:bg-purple-600/30 text-gray-200 hover:text-white rounded-lg flex items-center gap-1 text-[11px] font-semibold transition-all cursor-pointer"
-                        title="Redimensionar p/ macOS Desktop (16:10 Retina)"
-                      >
-                        <Laptop className="w-3.5 h-3.5 text-purple-400" />
-                        <span className="hidden lg:inline">macOS</span>
-                      </button>
-                    </div>
-
-                    <div className="w-[1px] h-4 bg-white/20 shrink-0"></div>
                   </>
                 )}
 

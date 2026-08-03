@@ -10,7 +10,10 @@ import {
   Moon,
   Box,
   Grid,
-  Zap
+  Zap,
+  User,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { PrintableProduct } from '../types';
 import { AppMenu } from './AppMenu';
@@ -39,6 +42,9 @@ interface HeaderBarProps {
   setShow3DViewport: (val: boolean) => void;
   currentProduct: PrintableProduct;
   setProduct: (prod: PrintableProduct) => void;
+  currentUser?: { name: string; email: string; isPro?: boolean } | null;
+  onOpenAuthModal?: () => void;
+  onLogout?: () => void;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
@@ -62,7 +68,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   darkMode,
   setDarkMode,
   show3DViewport,
-  setShow3DViewport
+  setShow3DViewport,
+  currentUser = null,
+  onOpenAuthModal,
+  onLogout,
 }) => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
@@ -326,6 +335,33 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         >
           {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
+
+        {/* User Login / Logout Button */}
+        {currentUser ? (
+          <button
+            onClick={onOpenAuthModal}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold cursor-pointer transition-all ${
+              darkMode
+                ? 'bg-purple-950/40 border-purple-500/40 text-purple-300 hover:bg-purple-900/60'
+                : 'bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100'
+            }`}
+            title={`Conectado como ${currentUser.name} (${currentUser.email}). Clique para ver perfil ou sair.`}
+          >
+            <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[9px] font-black uppercase">
+              {currentUser.name.charAt(0)}
+            </div>
+            <span className="hidden md:inline max-w-[90px] truncate">{currentUser.name}</span>
+            <LogOut className="w-3 h-3 text-rose-400 ml-0.5" />
+          </button>
+        ) : (
+          <button
+            onClick={onOpenAuthModal}
+            className="flex items-center gap-1 px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-extrabold rounded-lg shadow-md active:scale-95 transition-all cursor-pointer"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Login</span>
+          </button>
+        )}
 
         {/* Primary Sublimation / Export Button */}
         <button

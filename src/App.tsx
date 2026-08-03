@@ -27,6 +27,7 @@ import { PrinterSettingsModal } from './components/printer-settings';
 import { AndroidMobileNav } from './components/AndroidMobileNav';
 import { MD3Snackbar, SnackbarMessage } from './components/MD3Snackbar';
 import { MD3BottomSheet } from './components/MD3BottomSheet';
+import { AuthModal, UserSession } from './components/AuthModal';
 
 import {
   Layers,
@@ -142,6 +143,34 @@ export default function App() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
+    try {
+      const saved = localStorage.getItem('sublimstudio_user_session');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      name: 'Usuário',
+      email: 'usuario@meudominio.com',
+      isPro: true,
+    };
+  });
+
+  const handleLogin = (user: UserSession) => {
+    setCurrentUser(user);
+    try {
+      localStorage.setItem('sublimstudio_user_session', JSON.stringify(user));
+    } catch (e) {}
+    showSnackbar(`Bem-vindo, ${user.name}! Login efetuado com sucesso.`, 'success');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('sublimstudio_user_session');
+    } catch (e) {}
+    showSnackbar('Sua sessão foi encerrada com sucesso.', 'info');
+  };
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
 
   useEffect(() => {
@@ -1020,6 +1049,9 @@ export default function App() {
         onOpenPrinterSettings={() => setIsPrinterSettingsOpen(true)}
         projectName={projectName}
         onChangeProjectName={setProjectName}
+        currentUser={currentUser}
+        onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Workspace Grid (Left Toolbar | Central Canvas or 3D Stage | Right Sidepanels) */}
@@ -1066,6 +1098,9 @@ export default function App() {
             setIsRightSidebarCollapsed(false);
           }}
           theme={theme}
+          currentUser={currentUser}
+          onOpenAuthModal={() => setIsAuthModalOpen(true)}
+          onLogout={handleLogout}
         />
 
         {/* Center Main Editing Area based on Workspace View Mode */}
@@ -1711,6 +1746,16 @@ export default function App() {
         onClose={() => setIsAboutModalOpen(false)}
         theme={theme}
         onOpenHelp={() => setIsHelpModalOpen(true)}
+      />
+
+      {/* Login / Logout Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        onLogin={handleLogin}
+        onLogout={handleLogout}
+        darkMode={theme === 'dark'}
       />
     </div>
   );

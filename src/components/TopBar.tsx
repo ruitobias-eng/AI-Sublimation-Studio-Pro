@@ -17,6 +17,9 @@ import {
   Moon,
   Smartphone,
   Printer,
+  User,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { SublimationProduct, WorkspaceViewMode } from '../types';
 import { AppMenu } from './AppMenu';
@@ -55,6 +58,9 @@ interface TopBarProps {
   onOpenPrinterSettings?: () => void;
   projectName?: string;
   onChangeProjectName?: (name: string) => void;
+  currentUser?: { name: string; email: string; isPro?: boolean } | null;
+  onOpenAuthModal?: () => void;
+  onLogout?: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -84,6 +90,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenPrinterSettings,
   projectName = 'Arte Sublimação - Caneca 325ml',
   onChangeProjectName,
+  currentUser = null,
+  onOpenAuthModal,
+  onLogout,
 }) => {
   const [internalProjectName, setInternalProjectName] = useState<string>(projectName);
   const [logoError, setLogoError] = useState(false);
@@ -363,6 +372,34 @@ export const TopBar: React.FC<TopBarProps> = ({
           >
             <Share2 className="w-3.5 h-3.5 shrink-0" />
             <span>Exportar</span>
+          </button>
+        )}
+
+        {/* User Account Login / Logout Button */}
+        {currentUser ? (
+          <button
+            onClick={onOpenAuthModal}
+            className={`p-1.5 sm:px-2 py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer border shrink-0 ${
+              theme === 'light'
+                ? 'bg-purple-100 hover:bg-purple-200 text-purple-900 border-purple-300'
+                : 'bg-purple-950/50 hover:bg-purple-900/60 text-purple-200 border-purple-500/40'
+            }`}
+            title={`Conectado como ${currentUser.name} (${currentUser.email}). Clique para ver perfil ou sair.`}
+          >
+            <div className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
+              {currentUser.name.charAt(0)}
+            </div>
+            <span className="hidden xl:inline max-w-[80px] truncate">{currentUser.name}</span>
+            <LogOut className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+          </button>
+        ) : (
+          <button
+            onClick={onOpenAuthModal}
+            className="p-1.5 sm:px-2.5 py-1 rounded-xl flex items-center gap-1 text-xs font-extrabold bg-purple-600 hover:bg-purple-500 text-white shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
+            title="Fazer Login no SublimStudio"
+          >
+            <LogIn className="w-3.5 h-3.5 shrink-0" />
+            <span>Login</span>
           </button>
         )}
 
