@@ -50,19 +50,19 @@ export function AboutModal({ isOpen, onClose, theme = 'dark', onOpenHelp }: Abou
           <div className="relative group mb-3">
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 rounded-3xl blur-md opacity-75 group-hover:opacity-100 transition duration-500"></div>
             <img
-              src="/logo-sublimstudio.svg"
+              src="./logo-sublimstudio.svg"
               alt="Sublim Studio"
               className="relative w-20 h-20 rounded-2xl object-contain bg-slate-900 border border-purple-500/40 p-1 shadow-2xl"
               onError={(e) => {
                 const target = e.currentTarget;
-                if (target.src.endsWith('/logo-sublimstudio.svg')) {
-                  target.src = '/logo-sublimstudio.png';
-                } else if (!target.src.endsWith('/logo.svg')) {
-                  target.src = '/logo.svg';
-                } else if (!target.src.endsWith('/logo.png')) {
-                  target.src = '/logo.png';
-                } else if (!target.src.includes('favicon')) {
-                  target.src = '/favicon.png';
+                if (!target.dataset.triedPng) {
+                  target.dataset.triedPng = 'true';
+                  target.src = './logo-sublimstudio.png';
+                } else if (!target.dataset.triedFavicon) {
+                  target.dataset.triedFavicon = 'true';
+                  target.src = './favicon.png';
+                } else {
+                  target.onerror = null;
                 }
               }}
             />
