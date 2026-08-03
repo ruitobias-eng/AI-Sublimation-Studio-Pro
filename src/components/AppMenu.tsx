@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu as MenuIcon, FolderPlus, FolderOpen, ImagePlus, Save, Settings, Download, Smartphone, HelpCircle, Info, Sun, Moon, Printer } from 'lucide-react';
+import { Menu as MenuIcon, FolderPlus, FolderOpen, ImagePlus, Save, Settings, Download, Smartphone, HelpCircle, Info, Sun, Moon, Printer, Sparkles } from 'lucide-react';
 
 interface AppMenuProps {
   theme?: 'light' | 'dark' | string;
@@ -12,6 +12,7 @@ interface AppMenuProps {
   onOpenSettings?: () => void;
   onOpenPrinterSettings?: () => void;
   onOpenAndroidModal?: () => void;
+  onOpenPresetGallery?: () => void;
   onOpenHelp?: () => void;
   onOpenAbout?: () => void;
   onToggleTheme?: () => void;
@@ -28,6 +29,7 @@ export function AppMenu({
   onOpenSettings,
   onOpenPrinterSettings,
   onOpenAndroidModal,
+  onOpenPresetGallery,
   onOpenHelp,
   onOpenAbout,
   onToggleTheme,
@@ -108,6 +110,19 @@ export function AppMenu({
               <ImagePlus className="w-4 h-4 text-emerald-400 group-hover:text-white" />
               Incluir Estampa (Imagem)
             </button>
+
+            {onOpenPresetGallery && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenPresetGallery();
+                }}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-purple-600 hover:text-white transition-colors text-sm text-left w-full cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-400 group-hover:text-white" />
+                Galeria de Modelos HD
+              </button>
+            )}
 
             <hr className={`my-1 ${theme === 'light' ? 'border-slate-200' : 'border-[#2d2d30]'}`} />
 

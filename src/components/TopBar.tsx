@@ -36,6 +36,7 @@ interface TopBarProps {
   onOpenPrintModal?: () => void;
   onOpenAIPanel: () => void;
   onOpenWordArtModal?: () => void;
+  onOpenPresetGallery?: () => void;
   onOpenAndroidModal?: () => void;
   onOpenHelp?: () => void;
   onOpenAbout?: () => void;
@@ -75,6 +76,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenPrintModal,
   onOpenAIPanel,
   onOpenWordArtModal,
+  onOpenPresetGallery,
   onOpenAndroidModal,
   onOpenHelp,
   onOpenAbout,
@@ -345,6 +347,18 @@ export const TopBar: React.FC<TopBarProps> = ({
           <Wand2 className="w-3.5 h-3.5 text-purple-500 shrink-0" />
           <span className="hidden lg:inline text-[11px]">IA Studio</span>
         </button>
+
+        {/* Preset Gallery Launcher */}
+        {onOpenPresetGallery && (
+          <button
+            onClick={onOpenPresetGallery}
+            className="flex items-center gap-1 px-2.5 py-1 font-bold rounded-xl transition-all shadow-sm cursor-pointer shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 text-white text-[11px]"
+            title="Galeria de Modelos HD & Presets"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span className="hidden sm:inline">Modelos HD</span>
+          </button>
+        )}
 
 
         {/* Ergonomic Illuminated LED Print Button */}

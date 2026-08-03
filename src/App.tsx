@@ -28,8 +28,8 @@ import { AndroidMobileNav } from './components/AndroidMobileNav';
 import { MD3Snackbar, SnackbarMessage } from './components/MD3Snackbar';
 import { MD3BottomSheet } from './components/MD3BottomSheet';
 import { AuthModal, UserSession } from './components/AuthModal';
-import { WordArtModal } from './components/WordArtModal';
-import { TestRunnerModal } from './components/TestRunnerModal';
+import { PresetGalleryModal } from './components/PresetGalleryModal';
+import { PresetTemplate } from './types';
 
 import {
   Layers,
@@ -146,33 +146,7 @@ export default function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isWordArtModalOpen, setIsWordArtModalOpen] = useState(false);
-  const [isTestRunnerOpen, setIsTestRunnerOpen] = useState(false);
-
-  const handleAddWordArtImageToCanvas = (dataUrl: string, title?: string) => {
-    const newLayer: Layer = {
-      id: 'layer-wordart-' + Date.now(),
-      name: title || 'WordArt Tipográfico',
-      type: 'image',
-      visible: true,
-      locked: false,
-      opacity: 100,
-      blendMode: 'normal',
-      x: 250,
-      y: 150,
-      width: 700,
-      height: 700,
-      rotation: 0,
-      content: dataUrl,
-      filters: { brightness: 0, contrast: 0, saturation: 0, hue: 0, blur: 0, vibrance: 0 },
-    };
-    const updated = [...layers, newLayer];
-    setLayers(updated);
-    setActiveLayerId(newLayer.id);
-    pushHistoryStep(`Adicionado ${newLayer.name}`, 'WordArt', updated);
-    setCanvasVersion((v) => v + 1);
-    showSnackbar('WordArt adicionado com sucesso à estampa!', 'success');
-  };
+  const [isPresetGalleryOpen, setIsPresetGalleryOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
     try {
       const saved = localStorage.getItem('sublimstudio_user_session');
@@ -971,6 +945,35 @@ export default function App() {
     setCanvasVersion((v) => v + 1);
   };
 
+  // Apply Preset Template to Canvas
+  const handleApplyPreset = (preset: PresetTemplate) => {
+    handleAddAIGeneratedImageToCanvas(preset.imageUrl, preset.title);
+    if (preset.suggestedText) {
+      const textId = 'layer-text-' + Date.now();
+      const textLayer: Layer = {
+        id: textId,
+        name: 'Texto Preset: ' + preset.suggestedText,
+        type: 'text',
+        visible: true,
+        locked: false,
+        opacity: 100,
+        blendMode: 'normal',
+        x: 150,
+        y: 380,
+        width: 500,
+        height: 60,
+        rotation: 0,
+        content: preset.suggestedText,
+        color: '#FFFFFF',
+        fontSize: 32,
+        fontFamily: 'Montserrat',
+        fontWeight: 'bold',
+      };
+      setLayers((prev) => [...prev, textLayer]);
+    }
+    showSnackbar(`Modelo "${preset.title}" aplicado com sucesso!`, 'success');
+  };
+
   // Apply AI Edit Tool (Background Remover, Vectorize, Upscale) to active layer
   const handleApplyAIToolToActiveLayer = async (action: 'remove_bg' | 'vectorize' | 'upscale' | 'color_replace') => {
     const activeLayer = layers.find((l) => l.id === activeLayerId);
@@ -1055,9 +1058,8 @@ export default function App() {
           setActiveRightTab('ai');
           setIsRightSidebarCollapsed(false);
         }}
-        onOpenWordArtModal={() => setIsWordArtModalOpen(true)}
-        onOpenTestRunner={() => setIsTestRunnerOpen(true)}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
+        onOpenPresetGallery={() => setIsPresetGalleryOpen(true)}
         onOpenHelp={() => setIsHelpModalOpen(true)}
         onOpenAbout={() => setIsAboutModalOpen(true)}
         mirrorSublimation={mirrorSublimation}
@@ -1128,7 +1130,7 @@ export default function App() {
             setActiveRightTab('ai');
             setIsRightSidebarCollapsed(false);
           }}
-          onOpenWordArtModal={() => setIsWordArtModalOpen(true)}
+          onOpenPresetGallery={() => setIsPresetGalleryOpen(true)}
           theme={theme}
           currentUser={currentUser}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
@@ -1790,18 +1792,11 @@ export default function App() {
         darkMode={theme === 'dark'}
       />
 
-      {/* WordArt & Nuvem de Palavras Modal */}
-      <WordArtModal
-        isOpen={isWordArtModalOpen}
-        onClose={() => setIsWordArtModalOpen(false)}
-        onAddWordArtImage={handleAddWordArtImageToCanvas}
-        darkMode={theme === 'dark'}
-      />
-
-      {/* Testes Automatizados QA Modal */}
-      <TestRunnerModal
-        isOpen={isTestRunnerOpen}
-        onClose={() => setIsTestRunnerOpen(false)}
+      {/* Galeria de Modelos HD & Presets Modal */}
+      <PresetGalleryModal
+        isOpen={isPresetGalleryOpen}
+        onClose={() => setIsPresetGalleryOpen(false)}
+        onApplyPreset={handleApplyPreset}
         darkMode={theme === 'dark'}
       />
     </div>

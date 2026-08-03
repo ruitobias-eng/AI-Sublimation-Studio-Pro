@@ -77,6 +77,7 @@ export interface LeftToolbarProps {
   onAddAIGeneratedImage?: (url: string, title: string) => void;
   onOpenAIPanel?: () => void;
   onOpenWordArtModal?: () => void;
+  onOpenPresetGallery?: () => void;
   darkMode?: boolean;
   theme?: 'dark' | 'light';
   currentUser?: { name: string; email: string; isPro?: boolean } | null;
@@ -114,6 +115,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   onAddAIGeneratedImage,
   onOpenAIPanel,
   onOpenWordArtModal,
+  onOpenPresetGallery,
   darkMode = true,
   theme = darkMode ? 'dark' : 'light',
   currentUser = null,
@@ -279,10 +281,10 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   };
 
   return (
-    <div className="flex h-full select-none z-30 relative">
-      {/* 1. Canva Left Icon Rail with Scrollbar & Collapse Toggle */}
-      <aside className={`border-r flex flex-col items-center py-2.5 gap-2 select-none z-40 transition-all duration-300 overflow-y-auto custom-scrollbar touch-scroll-y shrink-0 ${
-        isRailCollapsed ? 'w-12' : 'w-18'
+    <div className="flex h-full max-h-full select-none z-30 relative min-h-0 overflow-hidden">
+      {/* 1. Canva Left Icon Rail with Touch Scrollbar & Collapse Toggle */}
+      <aside className={`border-r flex flex-col items-center py-2 gap-1.5 sm:gap-2 select-none z-40 transition-all duration-300 overflow-y-auto custom-scrollbar touch-scroll-y shrink-0 min-h-0 max-h-full ${
+        isRailCollapsed ? 'w-12' : 'w-16 sm:w-18'
       } ${
         theme === 'light'
           ? 'bg-slate-100 border-slate-300 text-slate-600'
@@ -483,7 +485,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
               }
             }}
           />
-          <div className={`w-[calc(100vw-4.5rem)] sm:w-80 border-r flex flex-col h-full text-xs z-30 shadow-2xl relative animate-in slide-in-from-left duration-200 transition-colors ${
+          <div className={`w-[calc(100vw-4.5rem)] sm:w-80 border-r flex flex-col h-full max-h-full text-xs z-30 shadow-2xl relative animate-in slide-in-from-left duration-200 transition-colors min-h-0 overflow-hidden ${
             theme === 'light'
               ? 'bg-white border-slate-200 text-slate-800'
               : 'bg-[#16171d] border-[#26272e] text-gray-200'
@@ -552,6 +554,26 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             {/* TAB 1: TEMPLATES */}
             {activeTab === 'templates' && (
               <div className="space-y-3">
+                {onOpenPresetGallery && (
+                  <button
+                    onClick={onOpenPresetGallery}
+                    className="w-full p-3 bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 hover:brightness-110 text-white rounded-2xl shadow-lg border border-purple-400/40 flex items-center justify-between cursor-pointer transition-all transform hover:scale-[1.02]"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold">
+                        <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-xs font-black block leading-tight">Galeria de Modelos HD</span>
+                        <span className="text-[9px] text-purple-200 font-medium">Modelos Prontos Panorâmicos 21×9.5cm</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold bg-white/20 px-2.5 py-1 rounded-full border border-white/30">
+                      Abrir
+                    </span>
+                  </button>
+                )}
+
                 <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
                   Estampas Prontas Recomendadas
                 </span>

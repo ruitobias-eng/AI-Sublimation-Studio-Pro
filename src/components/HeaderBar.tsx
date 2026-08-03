@@ -64,6 +64,8 @@ export interface HeaderBarProps {
 
   onOpenWordArtModal?(): void;
 
+  onOpenPresetGallery?(): void;
+
   onOpenTestRunner?(): void;
 
   onOpenShortcuts(): void;
@@ -162,6 +164,8 @@ export const HeaderBar: FC<HeaderBarProps> = ({
   onOpenAIConsole,
 
   onOpenWordArtModal,
+
+  onOpenPresetGallery,
 
   onOpenTestRunner,
 
@@ -655,6 +659,31 @@ export const HeaderBar: FC<HeaderBarProps> = ({
 
                 )}
 
+                {onOpenPresetGallery && (
+
+                  <button
+                    onClick={() => {
+                      onOpenPresetGallery();
+                      closeDropdown();
+                    }}
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      gap-2
+                      px-3
+                      py-2
+                      hover:bg-slate-700/30
+                    "
+                  >
+                    <Sparkles className="h-4 w-4 text-amber-300" />
+
+                    Galeria de Modelos HD
+
+                  </button>
+
+                )}
+
                 {onOpenTestRunner && (
 
                   <button
@@ -866,6 +895,35 @@ export const HeaderBar: FC<HeaderBarProps> = ({
           </span>
         </button>
 
+        {/* Modelos Preset Gallery */}
+
+        {onOpenPresetGallery && (
+          <button
+            onClick={onOpenPresetGallery}
+            className="
+              hidden
+              sm:flex
+              items-center
+              gap-1
+              rounded-lg
+              bg-gradient-to-r
+              from-purple-600
+              to-pink-600
+              hover:brightness-110
+              px-3
+              py-1
+              text-[11px]
+              font-bold
+              text-white
+              shadow-md
+            "
+          >
+            <Sparkles className="h-4 w-4 text-amber-300" />
+
+            <span>Modelos HD</span>
+          </button>
+        )}
+
         {/* QA */}
 
         {onOpenTestRunner && (
@@ -1018,3 +1076,6 @@ export const HeaderBar: FC<HeaderBarProps> = ({
     </header>
 
   );
+};
+
+export default HeaderBar;
