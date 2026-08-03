@@ -10,6 +10,8 @@ import {
 } from './types';
 import { PRODUCTS_LIBRARY } from './data/products';
 import { TopBar } from './components/TopBar';
+import { WordArtModal as WordArtModal2 } from './components/WordArtModal2';
+import { WordArtModal as WordArtModalOriginal } from './components/WordArtModal';
 import { LeftToolBar } from './components/LeftToolbar';
 import { CanvasArea } from './components/CanvasArea';
 import { ThreeDViewport } from './components/ThreeDViewport';
@@ -147,6 +149,9 @@ export default function App() {
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPresetGalleryOpen, setIsPresetGalleryOpen] = useState(false);
+  // WordArt original and WordArt2 Modal state
+  const [isWordArtOpen, setIsWordArtOpen] = useState(false);
+  const [isWordArt2Open, setIsWordArt2Open] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
     try {
       const saved = localStorage.getItem('sublimstudio_user_session');
@@ -945,6 +950,32 @@ export default function App() {
     setCanvasVersion((v) => v + 1);
   };
 
+  // Add a WordArt image (from WordArt2) to the canvas as a new image layer
+  const handleAddWordArtImageToCanvas = (dataUrl: string, title?: string) => {
+    const newId = 'layer-wordart-' + Date.now();
+    const newLayer: Layer = {
+      id: newId,
+      name: (title ? title : 'WordArt') + ' ' + newId,
+      type: 'image',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      blendMode: 'normal',
+      x: 120,
+      y: 100,
+      width: 800,
+      height: 800,
+      rotation: 0,
+      content: dataUrl,
+    };
+
+    const updated = [...layers, newLayer];
+    setLayers(updated);
+    setActiveLayerId(newId);
+    pushHistoryStep('Adicionou WordArt: ' + (title || 'WordArt'), 'WordArt Studio', updated);
+    setCanvasVersion((v) => v + 1);
+  };
+
   // Apply Preset Template to Canvas
   const handleApplyPreset = (preset: PresetTemplate) => {
     handleAddAIGeneratedImageToCanvas(preset.imageUrl, preset.title);
@@ -1060,6 +1091,7 @@ export default function App() {
         }}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
         onOpenPresetGallery={() => setIsPresetGalleryOpen(true)}
+        onOpenWordArt2={() => setIsWordArt2Open(true)}
         onOpenHelp={() => setIsHelpModalOpen(true)}
         onOpenAbout={() => setIsAboutModalOpen(true)}
         mirrorSublimation={mirrorSublimation}
@@ -1131,6 +1163,8 @@ export default function App() {
             setIsRightSidebarCollapsed(false);
           }}
           onOpenPresetGallery={() => setIsPresetGalleryOpen(true)}
+          onOpenWordArtModal={() => setIsWordArtOpen(true)}
+          onOpenWordArt2={() => setIsWordArt2Open(true)}
           theme={theme}
           currentUser={currentUser}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
@@ -1797,6 +1831,27 @@ export default function App() {
         isOpen={isPresetGalleryOpen}
         onClose={() => setIsPresetGalleryOpen(false)}
         onApplyPreset={handleApplyPreset}
+        darkMode={theme === 'dark'}
+      />
+
+      {/* WordArt Studio Original Modal */}
+      <WordArtModalOriginal
+        isOpen={isWordArtOpen}
+        onClose={() => setIsWordArtOpen(false)}
+        onAddWordArtImage={(dataUrl, title) => {
+          handleAddWordArtImageToCanvas(dataUrl, title);
+          setIsWordArtOpen(false);
+        }}
+      />
+
+      {/* WordArt Studio 2 Modal */}
+      <WordArtModal2
+        isOpen={isWordArt2Open}
+        onClose={() => setIsWordArt2Open(false)}
+        onAddWordArtImage={(dataUrl, title) => {
+          handleAddWordArtImageToCanvas(dataUrl, title);
+          setIsWordArt2Open(false);
+        }}
         darkMode={theme === 'dark'}
       />
     </div>

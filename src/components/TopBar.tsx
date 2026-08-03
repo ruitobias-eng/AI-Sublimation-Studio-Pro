@@ -37,6 +37,7 @@ interface TopBarProps {
   onOpenPrintModal?: () => void;
   onOpenAIPanel: () => void;
   onOpenWordArtModal?: () => void;
+  onOpenWordArt2?: () => void;
   onOpenPresetGallery?: () => void;
   onOpenAndroidModal?: () => void;
   onOpenHelp?: () => void;
@@ -77,6 +78,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenPrintModal,
   onOpenAIPanel,
   onOpenWordArtModal,
+  onOpenWordArt2,
   onOpenPresetGallery,
   onOpenAndroidModal,
   onOpenHelp,
@@ -168,9 +170,11 @@ export const TopBar: React.FC<TopBarProps> = ({
           onOpenSettings={onOpenSettings}
           onOpenPrinterSettings={onOpenPrinterSettings}
           onOpenAndroidModal={onOpenAndroidModal}
+          onOpenPresetGallery={onOpenPresetGallery}
           onOpenHelp={onOpenHelp}
           onOpenAbout={onOpenAbout}
           onToggleTheme={onToggleTheme}
+          onOpenWordArt2={onOpenWordArt2}
         />
 
         {/* Undo / Redo */}

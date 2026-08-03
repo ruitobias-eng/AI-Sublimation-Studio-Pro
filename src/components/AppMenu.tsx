@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Menu as MenuIcon, FolderPlus, FolderOpen, ImagePlus, Save, Settings, Download, Smartphone, HelpCircle, Info, Sun, Moon, Printer, Sparkles } from 'lucide-react';
+import { Menu as MenuIcon, FolderPlus, FolderOpen, ImagePlus, Save, Settings, Download, Smartphone, HelpCircle, Info, Sun, Moon, Printer, Sparkles, Type } from 'lucide-react';
 
 interface AppMenuProps {
   theme?: 'light' | 'dark' | string;
@@ -16,6 +16,8 @@ interface AppMenuProps {
   onOpenHelp?: () => void;
   onOpenAbout?: () => void;
   onToggleTheme?: () => void;
+  // New hook to open the WordArt2 modal from the File menu
+  onOpenWordArt2?: () => void;
 }
 
 export function AppMenu({
@@ -33,6 +35,7 @@ export function AppMenu({
   onOpenHelp,
   onOpenAbout,
   onToggleTheme,
+  onOpenWordArt2,
 }: AppMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -123,6 +126,19 @@ export function AppMenu({
                 Galeria de Modelos HD
               </button>
             )}
+
+            {/* WordArt2 entry */}
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                if (typeof (arguments as any) !== 'undefined') {}
+                onOpenWordArt2?.();
+              }}
+              className="flex items-center gap-3 px-4 py-2 hover:bg-purple-600 hover:text-white transition-colors text-sm text-left w-full cursor-pointer"
+            >
+              <Type className="w-4 h-4 text-pink-400 group-hover:text-white" />
+              WordArt Studio 2 (Nuvem Tipográfica)
+            </button>
 
             <hr className={`my-1 ${theme === 'light' ? 'border-slate-200' : 'border-[#2d2d30]'}`} />
 

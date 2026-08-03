@@ -30,7 +30,8 @@ import {
   User,
   LogIn,
   LogOut,
-  UserCheck
+  UserCheck,
+  FileType
 } from 'lucide-react';
 import { ToolType, ShapeType, SublimationProduct, Layer, TextWarpStyle } from '../types';
 import { PRODUCTS_LIBRARY } from '../data/products';
@@ -77,6 +78,8 @@ export interface LeftToolbarProps {
   onAddAIGeneratedImage?: (url: string, title: string) => void;
   onOpenAIPanel?: () => void;
   onOpenWordArtModal?: () => void;
+  // New: open WordArt2 specifically
+  onOpenWordArt2?: () => void;
   darkMode?: boolean;
   theme?: 'dark' | 'light';
   currentUser?: { name: string; email: string; isPro?: boolean } | null;
@@ -114,6 +117,7 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
   onAddAIGeneratedImage,
   onOpenAIPanel,
   onOpenWordArtModal,
+  onOpenWordArt2,
   darkMode = true,
   theme = darkMode ? 'dark' : 'light',
   currentUser = null,
@@ -359,13 +363,12 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
               onClick={() => {
                 if (onOpenWordArtModal) {
                   onOpenWordArtModal();
+                } else {
+                  handleTabClick('text');
                 }
-                handleTabClick('wordart');
               }}
               className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer relative group ${
-                activeTab === 'wordart' && isDrawerOpen
-                  ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
-                  : theme === 'light'
+                theme === 'light'
                   ? 'text-rose-600 hover:bg-rose-100'
                   : 'text-rose-400 hover:bg-rose-950/40 hover:text-rose-300'
               }`}
@@ -374,6 +377,29 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
               <Wand2 className="w-5 h-5 mb-1 text-rose-500" />
               <span className="text-[10px] font-bold">WordArt</span>
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+            </button>
+
+            {/* WordArt 2 (Dedicated Icon) */}
+            <button
+              onClick={() => {
+                if (onOpenWordArt2) {
+                  onOpenWordArt2();
+                } else if (onOpenWordArtModal) {
+                  onOpenWordArtModal();
+                } else {
+                  handleTabClick('text');
+                }
+              }}
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all cursor-pointer relative group ${
+                theme === 'light'
+                  ? 'text-amber-600 hover:bg-amber-100'
+                  : 'text-amber-400 hover:bg-amber-950/30 hover:text-amber-300'
+              }`}
+              title="WordArt Studio 2"
+              aria-label="Abrir WordArt Studio 2"
+            >
+              <FileType className="w-5 h-5 mb-1 text-amber-500" />
+              <span className="text-[10px] font-bold">WordArt 2</span>
             </button>
 
             {/* Uploads / Photos */}
@@ -1207,75 +1233,6 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
                           <span className="text-white text-[10px] font-semibold">{photo.tag}</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB: WORDART */}
-            {activeTab === 'wordart' && (
-              <div className="space-y-4">
-                <div className="p-3 bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 rounded-2xl text-white space-y-2 shadow-lg border border-purple-400/30">
-                  <div className="flex items-center gap-2">
-                    <Wand2 className="w-5 h-5 text-amber-300 animate-pulse" />
-                    <span className="font-extrabold text-xs">WordArt & Nuvem Tipográfica</span>
-                  </div>
-                  <p className="text-[10px] text-purple-100 leading-snug">
-                    Estúdio de frases com arcos, efeitos 3D e contornos para canecas, camisetas e almofadas.
-                  </p>
-                  <button
-                    onClick={() => {
-                      if (onOpenWordArtModal) onOpenWordArtModal();
-                    }}
-                    className="w-full py-2 bg-white text-purple-950 font-black text-xs rounded-xl shadow hover:bg-purple-50 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                    <span>Abrir WordArt Studio Completo</span>
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
-                    Inserção Rápida de Frases Estilizadas
-                  </span>
-
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      { title: 'SUPER MÃE 2026', style: 'arc_upper', font: 'Impact', color: '#ff2a75', stroke: '#2b0018', intensity: 45 },
-                      { title: 'CAFÉ & AMOR', style: 'circle', font: 'Bebas Neue', color: '#3d2314', stroke: '#f5e0c3', intensity: 70 },
-                      { title: 'CHAMPION 2026', style: 'wave', font: 'Bangers', color: '#00f0ff', stroke: '#ff007f', intensity: 50 },
-                      { title: 'GRATIDÃO & FÉ', style: 'straight', font: 'Cinzel', color: '#d4af37', stroke: '#3a2e05', intensity: 0 },
-                      { title: 'AMOR & FAMÍLIA', style: 'heart', font: 'Pacifico', color: '#e11d48', stroke: '#ffffff', intensity: 60 },
-                      { title: 'EDITION PRO', style: 'stamp_style', font: 'Montserrat', color: '#3b82f6', stroke: '#1e293b', intensity: 65 }
-                    ].map((item, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          onAddVectorTextPreset({
-                            title: item.title,
-                            content: item.title,
-                            fontFamily: item.font,
-                            warpStyle: item.style as TextWarpStyle,
-                            warpIntensity: item.intensity,
-                            color: item.color,
-                            strokeColor: item.stroke,
-                            strokeWidth: 3,
-                            fontSize: 38
-                          });
-                        }}
-                        className="p-3 rounded-xl bg-[#202127] hover:bg-[#2a2b38] border border-[#30313a] hover:border-purple-500 text-left transition-all flex items-center justify-between cursor-pointer group"
-                      >
-                        <div>
-                          <span className="font-extrabold text-xs block text-white group-hover:text-purple-300">
-                            {item.title}
-                          </span>
-                          <span className="text-[10px] text-gray-400">
-                            Efeito: {item.style} • Fonte: {item.font}
-                          </span>
-                        </div>
-                        <Plus className="w-4 h-4 text-purple-400 group-hover:scale-125 transition-transform" />
-                      </button>
                     ))}
                   </div>
                 </div>

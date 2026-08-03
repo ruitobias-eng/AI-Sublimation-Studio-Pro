@@ -127,11 +127,12 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const activeTouchesRef = useRef<{ id: number; x: number; y: number }[]>([]);
   const initialPinchDistRef = useRef<number | null>(null);
   const initialPinchAngleRef = useRef<number | null>(null);
+  const initialPinchCenterRef = useRef<{ x: number; y: number } | null>(null);
   const initialTouchLayerRotRef = useRef<number | null>(null);
   const longPressTimerRef = useRef<any>(null);
   const lastTapTimeRef = useRef<number>(0);
   const lastTapLayerIdRef = useRef<string | null>(null);
-  const touchStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Image Adjustment Modal State
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
@@ -473,7 +474,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   };
 
   const handleWheelContainer = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (e.ctrlKey || e.metaKey || true) {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
       const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
       setZoom((prev) => {
         const next = Math.min(4.0, Math.max(0.1, prev * zoomFactor));
@@ -486,9 +488,16 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const handleTouchStartContainer = (e: React.TouchEvent<HTMLDivElement>) => {
     const touches = Array.from(e.touches) as React.Touch[];
 
+    if (touches.length >= 2) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      e.preventDefault();
+    }
+
     // 3 Finger Touch -> Undo or Reset Zoom
     if (touches.length === 3) {
-      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
       if (onUndo) {
         onUndo();
       } else {
@@ -500,21 +509,22 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
     // 2 Finger Touch -> Pinch Zoom + 2-Finger Pan + 2-Finger Layer Rotation
     if (touches.length === 2) {
-      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-
       const t1 = touches[0];
       const t2 = touches[1];
 
       const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
+      const center = {
+        x: (t1.clientX + t2.clientX) / 2,
+        y: (t1.clientY + t2.clientY) / 2,
+      };
 
       initialPinchDistRef.current = dist;
       initialPinchAngleRef.current = angle;
+      initialPinchCenterRef.current = center;
 
       const activeL = layers.find((l) => l.id === activeLayerId);
-      if (activeL) {
-        initialTouchLayerRotRef.current = activeL.rotation;
-      }
+      initialTouchLayerRotRef.current = activeL ? activeL.rotation : null;
       return;
     }
 
@@ -618,6 +628,10 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
   const handleTouchMoveContainer = (e: React.TouchEvent<HTMLDivElement>) => {
     const touches = Array.from(e.touches) as React.Touch[];
 
+    if (touches.length > 1) {
+      e.preventDefault();
+    }
+
     // If moved > 8px, cancel long press context menu
     if (touches.length === 1 && touchStartPosRef.current) {
       const touch = touches[0];
@@ -635,15 +649,29 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     if (touches.length === 2 && initialPinchDistRef.current !== null) {
       const t1 = touches[0];
       const t2 = touches[1];
-
       const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
       const currentAngle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
+      const center = {
+        x: (t1.clientX + t2.clientX) / 2,
+        y: (t1.clientY + t2.clientY) / 2,
+      };
 
       const deltaDist = currentDist - initialPinchDistRef.current;
       if (Math.abs(deltaDist) > 3) {
         const factor = deltaDist > 0 ? 1.025 : 0.975;
         setZoom((prev) => Math.min(4.0, Math.max(0.1, Math.round(prev * factor * 100) / 100)));
         initialPinchDistRef.current = currentDist;
+      }
+
+      if (initialPinchCenterRef.current) {
+        const deltaX = center.x - initialPinchCenterRef.current.x;
+        const deltaY = center.y - initialPinchCenterRef.current.y;
+        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
+          setPan((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+          initialPinchCenterRef.current = center;
+        }
+      } else {
+        initialPinchCenterRef.current = center;
       }
 
       // 2 Finger Active Layer Rotation
@@ -811,6 +839,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
     activeGuidesRef.current = {};
     initialPinchDistRef.current = null;
     initialPinchAngleRef.current = null;
+    initialPinchCenterRef.current = null;
     initialTouchLayerRotRef.current = null;
     touchStartPosRef.current = null;
   };
@@ -1634,6 +1663,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transition: isPanningRef.current ? 'none' : 'transform 0.1s ease-out',
+          touchAction: 'none',
         }}
         className={`relative shadow-2xl rounded-sm border bg-white ${
           theme === 'light' ? 'border-purple-300 shadow-slate-400/50' : 'border-sky-500/30'
@@ -1655,8 +1685,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
           onContextMenu={handleContextMenu}
-          className="shadow-2xl block"
-          style={{ cursor: cursorStyle }}
+          className="shadow-2xl block touch-gesture-canvas"
+          style={{ cursor: cursorStyle, touchAction: 'none' }}
         />
       </div>
 

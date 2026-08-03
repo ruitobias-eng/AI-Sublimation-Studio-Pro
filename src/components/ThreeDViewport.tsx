@@ -22,6 +22,8 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
   const shadowPlaneRef = useRef<THREE.Mesh | null>(null);
   const textureRef = useRef<THREE.CanvasTexture | null>(null);
   const animFrameIdRef = useRef<number | null>(null);
+  const initialTouchDistanceRef = useRef<number | null>(null);
+  const initialCameraZRef = useRef<number | null>(null);
 
   // Mouse drag state for 360 degree rotation
   const isDraggingRef = useRef(false);
@@ -584,11 +586,35 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
         y: e.touches[0].clientY,
       };
     }
+
+    if (e.touches.length === 2) {
+      isDraggingRef.current = false;
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      initialTouchDistanceRef.current = Math.hypot(dx, dy);
+      initialCameraZRef.current = cameraRef.current?.position.z ?? null;
+    }
+
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && initialTouchDistanceRef.current !== null && cameraRef.current && initialCameraZRef.current !== null) {
+      e.preventDefault();
+      const dx = e.touches[1].clientX - e.touches[0].clientX;
+      const dy = e.touches[1].clientY - e.touches[0].clientY;
+      const currentDistance = Math.hypot(dx, dy);
+      const zoomFactor = initialTouchDistanceRef.current / Math.max(1, currentDistance);
+      cameraRef.current.position.z = Math.max(2.2, Math.min(7.0, initialCameraZRef.current * zoomFactor));
+      cameraRef.current.updateProjectionMatrix();
+      return;
+    }
+
     if (!isDraggingRef.current || !productMeshGroupRef.current || e.touches.length !== 1) return;
 
+    e.preventDefault();
     const deltaX = e.touches[0].clientX - previousMousePositionRef.current.x;
     const deltaY = e.touches[0].clientY - previousMousePositionRef.current.y;
 
@@ -608,6 +634,8 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
 
   const handleTouchEnd = () => {
     isDraggingRef.current = false;
+    initialTouchDistanceRef.current = null;
+    initialCameraZRef.current = null;
   };
 
   // Preset Views Reset
@@ -759,7 +787,8 @@ export const ThreeDViewport: React.FC<ThreeDViewportProps> = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onWheel={handleWheel}
-        className="relative flex-1 w-full h-full cursor-grab active:cursor-grabbing touch-none"
+        className="relative flex-1 w-full h-full cursor-grab active:cursor-grabbing"
+        style={{ touchAction: 'none' }}
       >
         {/* Lighting & Material Settings Bar Overlay */}
         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2 p-2 bg-[#18181c]/80 backdrop-blur-md rounded-lg border border-white/10 text-xs text-gray-300">

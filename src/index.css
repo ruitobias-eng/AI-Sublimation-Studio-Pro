@@ -93,6 +93,7 @@ html, body {
 }
 
 /* Touch optimization for mobile canvas */
-canvas {
-  touch-action: manipulation;
+.canvas-touch-gesture,
+.touch-gesture-canvas {
+  touch-action: none;
 }
