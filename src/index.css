@@ -52,7 +52,7 @@ html, body {
   height: 100%;
   -webkit-text-size-adjust: 100%;
   scrollbar-width: thin;
-  scrollbar-color: #3f3f4e transparent;
+  scrollbar-color: var(--scrollbar-thumb, #3f3f4e) transparent;
 }
 
 #root {
@@ -60,6 +60,116 @@ html, body {
   max-width: 100vw;
   overflow-x: hidden;
 }
+
+/* Theme variables (Design tokens)
+   - Uses data-theme attribute on <html> to switch themes: data-theme="light" | data-theme="dark"
+   - 'system' is controlled by the ThemeProvider JS which applies data-theme accordingly
+*/
+:root {
+  /* Surface scales */
+  --surface-0: #ffffff; /* surface background - light */
+  --surface-1: #f8fafc; /* raised */
+  --surface-2: #eef2f7; /* panels */
+  --surface-3: #e6eef9; /* subtle */
+
+  /* Core semantic */
+  --primary: #7c3aed; /* purple-600 */
+  --accent: #06b6d4; /* cyan-500 */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+
+  --text: #0f172a;
+  --muted-text: #475569;
+  --border: #e6eef9;
+  --ring: rgba(124,58,237,0.35);
+
+  /* Canvas / editor specifics */
+  --canvas-bg: #ffffff;
+  --grid-color: rgba(15,23,42,0.04);
+  --guide-color: rgba(124,58,237,0.12);
+  --selection-color: rgba(124,58,237,0.12);
+
+  /* UI surfaces */
+  --toolbar-bg: var(--surface-1);
+  --sidebar-bg: var(--surface-1);
+  --panel-bg: var(--surface-2);
+
+  /* Scrollbar thumb default */
+  --scrollbar-thumb: rgba(100,116,139,0.4);
+
+  /* Focus ring */
+  --focus-ring: var(--ring);
+
+  /* Icon fill/fg */
+  --icon: #0f172a;
+
+  /* transitions */
+  --theme-transition-duration: 200ms;
+}
+
+/* Dark theme overrides */
+html[data-theme='dark'] {
+  --surface-0: #0f1724; /* main background */
+  --surface-1: #0f172a; /* raised */
+  --surface-2: #15161e; /* panels */
+  --surface-3: #1b1d27;
+
+  --primary: #8b5cf6;
+  --accent: #06b6d4;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger:  #fb7185;
+
+  --text: #e6eef9;
+  --muted-text: #94a3b8;
+  --border: #22242e;
+  --ring: rgba(139,92,246,0.18);
+
+  --canvas-bg: #0b0c10;
+  --grid-color: rgba(255,255,255,0.03);
+  --guide-color: rgba(139,92,246,0.08);
+  --selection-color: rgba(139,92,246,0.08);
+
+  --toolbar-bg: var(--surface-1);
+  --sidebar-bg: var(--surface-2);
+  --panel-bg: var(--surface-3);
+
+  --scrollbar-thumb: rgba(148,163,184,0.16);
+
+  --focus-ring: var(--ring);
+  --icon: #e6eef9;
+}
+
+/* Respect system preference by default if not set - user choice will override via ThemeProvider JS */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --surface-0: #0f1724;
+    --surface-1: #0f172a;
+    --surface-2: #15161e;
+    --surface-3: #1b1d27;
+
+    --text: #e6eef9;
+    --muted-text: #94a3b8;
+    --border: #22242e;
+    --canvas-bg: #0b0c10;
+  }
+}
+
+/* theme transition helper to avoid flicker on theme change */
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color var(--theme-transition-duration) ease, color var(--theme-transition-duration) ease, border-color var(--theme-transition-duration) ease, box-shadow var(--theme-transition-duration) ease;
+}
+
+/* Utility CSS tokens usage examples for components to adopt */
+.bg-surface-0 { background-color: var(--surface-0); }
+.bg-surface-1 { background-color: var(--surface-1); }
+.bg-panel { background-color: var(--panel-bg); }
+.text-primary { color: var(--primary); }
+.text-default { color: var(--text); }
+.border-default { border-color: var(--border); }
 
 /* Touch scroll utilities with momentum scrolling for iOS & Android */
 .touch-scroll-y {

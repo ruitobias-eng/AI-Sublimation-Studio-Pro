@@ -20,7 +20,8 @@ import { TextWarpStyle } from '../types';
 interface WordArtModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddWordArt: (preset: {
+  // Legacy: receive a structured preset callback
+  onAddWordArt?: (preset: {
     title: string;
     content: string;
     fontFamily: string;
@@ -35,6 +36,8 @@ interface WordArtModalProps {
     width?: number;
     height?: number;
   }) => void;
+  // New: directly provide a PNG data URL to be added to the canvas
+  onAddWordArtImage?: (dataUrl: string, title?: string) => void;
   theme?: 'dark' | 'light';
 }
 
@@ -221,6 +224,7 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
   isOpen,
   onClose,
   onAddWordArt,
+  onAddWordArtImage,
   theme = 'dark'
 }) => {
   const [activePreset, setActivePreset] = useState<WordArtPreset>(WORDART_PRESETS[0]);
@@ -444,21 +448,52 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
   };
 
   const handleApplyToCanvas = () => {
-    onAddWordArt({
-      title: content,
-      content,
-      fontFamily,
-      warpStyle,
-      warpIntensity,
-      color,
-      strokeColor: strokeWidth > 0 ? strokeColor : undefined,
-      strokeWidth,
-      shadowColor: shadowBlur > 0 ? shadowColor : undefined,
-      shadowBlur,
-      fontSize: 42,
-      width: 420,
-      height: 240
-    });
+    const canvas = canvasRef.current;
+
+    // Prefer returning a PNG data URL to the host app if the callback is provided
+    if (canvas && typeof onAddWordArtImage === 'function') {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        onAddWordArtImage(dataUrl, content);
+      } catch (e) {
+        // Fallback to structured preset if dataURL generation fails
+        if (typeof onAddWordArt === 'function') {
+          onAddWordArt({
+            title: content,
+            content,
+            fontFamily,
+            warpStyle,
+            warpIntensity,
+            color,
+            strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+            strokeWidth,
+            shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+            shadowBlur,
+            fontSize: 42,
+            width: 420,
+            height: 240,
+          });
+        }
+      }
+    } else if (typeof onAddWordArt === 'function') {
+      // Legacy fallback: send the structured preset object
+      onAddWordArt({
+        title: content,
+        content,
+        fontFamily,
+        warpStyle,
+        warpIntensity,
+        color,
+        strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+        strokeWidth,
+        shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+        shadowBlur,
+        fontSize: 42,
+        width: 420,
+        height: 240,
+      });
+    }
+
     onClose();
   };
 
