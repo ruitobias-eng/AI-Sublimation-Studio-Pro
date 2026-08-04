@@ -486,99 +486,174 @@ export const WordArtModal2: React.FC<WordArtModalProps> = ({
     }
 
     // Export transparent PNG by drawing only content onto an offscreen canvas (no background/grid)
-    const deviceScale = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 2)));
-    const exportCanvas = document.createElement('canvas');
-    exportCanvas.width = Math.max(1, Math.round(srcCanvas.width * deviceScale));
-    exportCanvas.height = Math.max(1, Math.round(srcCanvas.height * deviceScale));
-    const ectx = exportCanvas.getContext('2d', { alpha: true });
-    if (ectx) {
-      ectx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-      // draw content scaled to export size
-      drawWordArtContent(ectx, exportCanvas.width, exportCanvas.height);
+    // Determine thumbnail max dim dynamically based on device characteristics
+    const getThumbnailMaxDim = () => {
+      try {
+        const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+        const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+        const hasTouch = typeof navigator !== 'undefined' && (navigator as any).maxTouchPoints && (navigator as any).maxTouchPoints > 0;
+        const deviceMemory = typeof navigator !== 'undefined' ? (navigator as any).deviceMemory : undefined;
 
-      // Prefer toBlob -> FileReader for memory/performance and to avoid synchronous large base64 allocations
-      if (exportCanvas.toBlob) {
-        exportCanvas.toBlob((blob) => {
-          if (blob) {
-            // Prefer the Blob callback for efficient host-side handling
-            if (typeof onAddWordArtBlob === 'function') {
-              try {
-                onAddWordArtBlob(blob, content);
-              } catch (err) {
-                // swallow host errors here to allow fallback path
-                console.warn('onAddWordArtBlob handler threw:', err);
-              }
+        const isMobile = isMobileUA || (hasTouch && !/Windows/i.test(ua));
+
+        if (typeof deviceMemory === 'number') {
+          if (deviceMemory <= 1) return 256;
+          if (deviceMemory <= 2) return isMobile ? 256 : 384;
+          if (deviceMemory <= 4) return isMobile ? 320 : 512;
+          return isMobile ? 384 : 640;
+        }
+
+        return isMobile ? 256 : 512;
+      } catch (e) {
+        return 256;
+      }
+    };
+
+    const targetMaxDim = getThumbnailMaxDim();
+    const srcW = Math.max(1, srcCanvas.width);
+    const srcH = Math.max(1, srcCanvas.height);
+    const scaleForThumbnail = Math.min(1, targetMaxDim / Math.max(srcW, srcH));
+
+    // Do not upscale by devicePixelRatio here — render full content to a temp canvas, crop tightly to the typography
+    // and then scale the cropped region down to a small 1x thumbnail. This makes the inserted layer size match the
+    // visual typography more closely and avoids large transparent margins.
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = srcW;
+    tempCanvas.height = srcH;
+    const tempCtx = tempCanvas.getContext('2d', { alpha: true });
+    if (tempCtx) {
+      tempCtx.clearRect(0, 0, srcW, srcH);
+      // Render full-size content into temp canvas so we can compute a tight bounding box
+      drawWordArtContent(tempCtx, srcW, srcH);
+
+      // Compute opaque pixel bounding box (alpha > 0)
+      let minX = srcW, minY = srcH, maxX = -1, maxY = -1;
+      try {
+        const imgData = tempCtx.getImageData(0, 0, srcW, srcH).data;
+        for (let y = 0; y < srcH; y++) {
+          for (let x = 0; x < srcW; x++) {
+            const a = imgData[(y * srcW + x) * 4 + 3];
+            if (a > 0) {
+              if (x < minX) minX = x;
+              if (y < minY) minY = y;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
             }
-
-            // Keep backward-compatible dataURL callback as well (async)
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const dataUrl = reader.result as string;
-              if (typeof onAddWordArtImage === 'function') {
-                onAddWordArtImage(dataUrl, content);
-              }
-              if (typeof onAddWordArt === 'function') {
-                onAddWordArt({
-                  title: content,
-                  content,
-                  fontFamily,
-                  warpStyle,
-                  warpIntensity,
-                  color,
-                  strokeColor: strokeWidth > 0 ? strokeColor : undefined,
-                  strokeWidth,
-                  shadowColor: shadowBlur > 0 ? shadowColor : undefined,
-                  shadowBlur,
-                  fontSize: 42,
-                  width: exportCanvas.width,
-                  height: exportCanvas.height
-                });
-              }
-              onClose();
-            };
-            reader.readAsDataURL(blob);
-          } else {
-            // fallback to synchronous dataURL if blob failed
-            const dataUrl = exportCanvas.toDataURL('image/png');
-            if (typeof onAddWordArtImage === 'function') onAddWordArtImage(dataUrl, content);
-            if (typeof onAddWordArt === 'function') onAddWordArt({
-              title: content,
-              content,
-              fontFamily,
-              warpStyle,
-              warpIntensity,
-              color,
-              strokeColor: strokeWidth > 0 ? strokeColor : undefined,
-              strokeWidth,
-              shadowColor: shadowBlur > 0 ? shadowColor : undefined,
-              shadowBlur,
-              fontSize: 42,
-              width: exportCanvas.width,
-              height: exportCanvas.height
-            });
-            onClose();
           }
-        }, 'image/png');
-      } else {
-        // older browsers fallback
-        const dataUrl = exportCanvas.toDataURL('image/png');
-        if (typeof onAddWordArtImage === 'function') onAddWordArtImage(dataUrl, content);
-        if (typeof onAddWordArt === 'function') onAddWordArt({
-          title: content,
-          content,
-          fontFamily,
-          warpStyle,
-          warpIntensity,
-          color,
-          strokeColor: strokeWidth > 0 ? strokeColor : undefined,
-          strokeWidth,
-          shadowColor: shadowBlur > 0 ? shadowColor : undefined,
-          shadowBlur,
-          fontSize: 42,
-          width: exportCanvas.width,
-          height: exportCanvas.height
-        });
-        onClose();
+        }
+      } catch (e) {
+        // getImageData can throw if canvas is tainted; in that case, fallback to whole canvas
+        minX = 0; minY = 0; maxX = srcW - 1; maxY = srcH - 1;
+      }
+
+      if (maxX < minX || maxY < minY) {
+        // No opaque pixels found — fallback to full canvas
+        minX = 0; minY = 0; maxX = srcW - 1; maxY = srcH - 1;
+      }
+
+      // Add small padding so shadows/antialiasing are not clipped
+      const padding = Math.ceil(Math.max(1, Math.min(16, Math.max(maxX - minX, maxY - minY) * 0.02)));
+      const cropX = Math.max(0, minX - padding);
+      const cropY = Math.max(0, minY - padding);
+      const cropW = Math.min(srcW - cropX, (maxX - minX) + 1 + padding * 2);
+      const cropH = Math.min(srcH - cropY, (maxY - minY) + 1 + padding * 2);
+
+      const exportW = Math.max(1, Math.round(cropW * scaleForThumbnail));
+      const exportH = Math.max(1, Math.round(cropH * scaleForThumbnail));
+
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = exportW;
+      exportCanvas.height = exportH;
+      const ectx = exportCanvas.getContext('2d', { alpha: true });
+      if (ectx) {
+        ectx.clearRect(0, 0, exportW, exportH);
+        // Draw the cropped region from tempCanvas into exportCanvas scaled down
+        ectx.drawImage(tempCanvas, cropX, cropY, cropW, cropH, 0, 0, exportW, exportH);
+
+        // Prefer toBlob -> FileReader for memory/performance and to avoid synchronous large base64 allocations
+        if (exportCanvas.toBlob) {
+          exportCanvas.toBlob((blob) => {
+            if (blob) {
+              // Prefer the Blob callback for efficient host-side handling
+              if (typeof onAddWordArtBlob === 'function') {
+                try {
+                  onAddWordArtBlob(blob, content);
+                } catch (err) {
+                  // swallow host errors here to allow fallback path
+                  console.warn('onAddWordArtBlob handler threw:', err);
+                }
+              }
+
+              // Keep backward-compatible dataURL callback as well (async)
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const dataUrl = reader.result as string;
+                if (typeof onAddWordArtImage === 'function') {
+                  onAddWordArtImage(dataUrl, content);
+                }
+                if (typeof onAddWordArt === 'function') {
+                  onAddWordArt({
+                    title: content,
+                    content,
+                    fontFamily,
+                    warpStyle,
+                    warpIntensity,
+                    color,
+                    strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+                    strokeWidth,
+                    shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+                    shadowBlur,
+                    fontSize: 42,
+                    width: exportCanvas.width,
+                    height: exportCanvas.height
+                  });
+                }
+                onClose();
+              };
+              reader.readAsDataURL(blob);
+            } else {
+              // fallback to synchronous dataURL if blob failed
+              const dataUrl = exportCanvas.toDataURL('image/png');
+              if (typeof onAddWordArtImage === 'function') onAddWordArtImage(dataUrl, content);
+              if (typeof onAddWordArt === 'function') onAddWordArt({
+                title: content,
+                content,
+                fontFamily,
+                warpStyle,
+                warpIntensity,
+                color,
+                strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+                strokeWidth,
+                shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+                shadowBlur,
+                fontSize: 42,
+                width: exportCanvas.width,
+                height: exportCanvas.height
+              });
+              onClose();
+            }
+          }, 'image/png');
+        } else {
+          // older browsers fallback
+          const dataUrl = exportCanvas.toDataURL('image/png');
+          if (typeof onAddWordArtImage === 'function') onAddWordArtImage(dataUrl, content);
+          if (typeof onAddWordArt === 'function') onAddWordArt({
+            title: content,
+            content,
+            fontFamily,
+            warpStyle,
+            warpIntensity,
+            color,
+            strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+            strokeWidth,
+            shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+            shadowBlur,
+            fontSize: 42,
+            width: exportCanvas.width,
+            height: exportCanvas.height
+          });
+          onClose();
+        }
       }
     } else {
       // no context, fallback

@@ -442,10 +442,55 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const dataUrl = canvas.toDataURL('image/png');
-    if (onAddWordArtImage) {
-      onAddWordArtImage(dataUrl, `WordArt ${selectedShape.toUpperCase()}`);
+    // Create a small thumbnail to send to the canvas area to reduce memory/decoding cost
+    const getThumbnailMaxDim = () => {
+      try {
+        const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+        const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+        const hasTouch = typeof navigator !== 'undefined' && (navigator as any).maxTouchPoints && (navigator as any).maxTouchPoints > 0;
+        const deviceMemory = typeof navigator !== 'undefined' ? (navigator as any).deviceMemory : undefined;
+
+        const isMobile = isMobileUA || (hasTouch && !/Windows/i.test(ua));
+
+        if (typeof deviceMemory === 'number') {
+          if (deviceMemory <= 1) return 256;
+          if (deviceMemory <= 2) return isMobile ? 256 : 384;
+          if (deviceMemory <= 4) return isMobile ? 320 : 512;
+          return isMobile ? 384 : 640;
+        }
+
+        return isMobile ? 256 : 512;
+      } catch (e) {
+        return 256;
+      }
+    };
+
+    const targetMaxDim = getThumbnailMaxDim();
+    const srcW = Math.max(1, canvas.width);
+    const srcH = Math.max(1, canvas.height);
+    const scale = Math.min(1, targetMaxDim / Math.max(srcW, srcH));
+
+    if (scale < 1) {
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = Math.max(1, Math.round(srcW * scale));
+      exportCanvas.height = Math.max(1, Math.round(srcH * scale));
+      const ectx = exportCanvas.getContext('2d');
+      if (ectx) {
+        ectx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+        // draw the original canvas into the smaller canvas
+        ectx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
+        const dataUrl = exportCanvas.toDataURL('image/png');
+        if (onAddWordArtImage) {
+          onAddWordArtImage(dataUrl, `WordArt ${selectedShape.toUpperCase()}`);
+        }
+      }
+    } else {
+      const dataUrl = canvas.toDataURL('image/png');
+      if (onAddWordArtImage) {
+        onAddWordArtImage(dataUrl, `WordArt ${selectedShape.toUpperCase()}`);
+      }
     }
+
     setStatusMsg('Word Art adicionado com sucesso à área de trabalho!');
     setTimeout(() => setStatusMsg(null), 4000);
   };
