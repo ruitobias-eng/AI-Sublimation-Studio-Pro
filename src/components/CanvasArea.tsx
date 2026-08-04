@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { getAsset } from '../lib/imageAssetStore';
 import { Layer, ToolType, ShapeType, SublimationProduct, LayerFilters } from '../types';
 import { drawWarpedText } from '../utils/textWarp';
 import { drawVectorShape } from '../utils/shapeDrawer';
@@ -962,9 +963,22 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
               img!.src = fallbackCanvas.toDataURL();
             };
           }
-          if (img.complete && img.naturalWidth > 0) {
+          // Prefer ImageBitmap from shared asset store if available
+          const asset = getAsset(layer.content);
+          if (asset && asset.bitmap) {
+            // draw ImageBitmap directly
+            try {
+              ctx.drawImage(asset.bitmap as ImageBitmap, 0, 0, layer.width, layer.height);
+            } catch (e) {
+              // fallback to image element if bitmap draw fails
+              if (img.complete && img.naturalWidth > 0) {
+                ctx.drawImage(img, 0, 0, layer.width, layer.height);
+              }
+            }
+          } else if (img.complete && img.naturalWidth > 0) {
             ctx.drawImage(img, 0, 0, layer.width, layer.height);
           }
+
         }
       } else if (layer.type === 'shape') {
         drawVectorShape(

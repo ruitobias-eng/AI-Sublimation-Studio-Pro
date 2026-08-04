@@ -32,6 +32,7 @@ import {
   Spline
 } from 'lucide-react';
 import { VectorElement, HistoryCommand, SublimationProduct, Layer } from '../types';
+import { setAsset } from '../lib/imageAssetStore';
 import { PRESET_TEMPLATES, TEMPLATE_CATEGORIES } from '../utils/libraryEngine';
 import { PRODUCTS_LIBRARY } from '../data/products';
 import { VECTOR_TEXT_PRESETS, VectorTextPreset } from '../data/vectorTextPresets';
@@ -293,34 +294,38 @@ export const LeftSidebarContainer: React.FC<LeftSidebarContainerProps> = ({
     setSelectedIds([newEl.id]);
   };
 
-  // Handler for image upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handler for image upload (prefer Blob/objectURL + imageAssetStore)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const url = event.target?.result as string;
-        const newEl: VectorElement = {
-          id: `el_img_${Date.now()}`,
-          name: file.name,
-          type: 'image',
-          x: 100,
-          y: 100,
-          width: 400,
-          height: 400,
-          rotation: 0,
-          visible: true,
-          locked: false,
-          opacity: 100,
-          blendMode: 'normal',
-          strokeColor: 'transparent',
-          strokeWidth: 0,
-          content: url
-        };
-        setElements((prev) => [...prev, newEl]);
-        setSelectedIds([newEl.id]);
+      const objectUrl = URL.createObjectURL(file);
+      try {
+        const bitmap = await createImageBitmap(file);
+        setAsset(objectUrl, { blob: file, url: objectUrl, bitmap });
+      } catch (err) {
+        setAsset(objectUrl, { blob: file, url: objectUrl });
+      }
+
+      const newEl: VectorElement = {
+        id: `el_img_${Date.now()}`,
+        name: file.name,
+        type: 'image',
+        x: 100,
+        y: 100,
+        width: 400,
+        height: 400,
+        rotation: 0,
+        visible: true,
+        locked: false,
+        opacity: 100,
+        blendMode: 'normal',
+        strokeColor: 'transparent',
+        strokeWidth: 0,
+        content: objectUrl
       };
-      reader.readAsDataURL(file);
+      setElements((prev) => [...prev, newEl]);
+      setSelectedIds([newEl.id]);
+      e.target.value = '';
     }
   };
 

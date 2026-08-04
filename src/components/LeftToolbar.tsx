@@ -33,6 +33,7 @@ import {
   UserCheck,
   FileType
 } from 'lucide-react';
+import { setAsset } from '../lib/imageAssetStore';
 import { ToolType, ShapeType, SublimationProduct, Layer, TextWarpStyle } from '../types';
 import { PRODUCTS_LIBRARY } from '../data/products';
 import { ALL_VECTOR_SHAPES, SHAPE_CATEGORIES } from '../utils/shapeDrawer';
@@ -267,19 +268,24 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
     }
   };
 
-  // Image File Upload Handler
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image File Upload Handler (prefer Blob/objectURL + imageAssetStore)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const resultUrl = event.target?.result as string;
-      if (resultUrl && onAddAIGeneratedImage) {
-        onAddAIGeneratedImage(resultUrl, file.name.replace(/\.[^/.]+$/, ''));
-      }
-    };
-    reader.readAsDataURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    try {
+      const bitmap = await createImageBitmap(file);
+      setAsset(objectUrl, { blob: file, url: objectUrl, bitmap });
+    } catch (err) {
+      setAsset(objectUrl, { blob: file, url: objectUrl });
+    }
+
+    if (onAddAIGeneratedImage) {
+      onAddAIGeneratedImage(objectUrl, file.name.replace(/\.[^/.]+$/, ''));
+    }
+
+    e.target.value = '';
   };
 
   return (

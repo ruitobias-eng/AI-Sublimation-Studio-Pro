@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from '../lib/theme';
 import {
   Type,
   Plus,
@@ -102,9 +103,19 @@ const FONTS = [
 export const WordArtStudio: React.FC<WordArtStudioProps> = ({
   onAddWordArtImage,
   onClose,
-  darkMode = true
+  darkMode
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Determine effective theme: prefer explicit prop, else read app theme via useTheme
+  let isDark: boolean;
+  try {
+    const appTheme = useTheme();
+    isDark = typeof darkMode === 'boolean' ? darkMode : appTheme.theme === 'dark';
+  } catch (e) {
+    // Not wrapped in ThemeProvider? fall back to prop or default to true
+    isDark = typeof darkMode === 'boolean' ? darkMode : true;
+  }
 
   // Words State
   const [words, setWords] = useState<WordItem[]>([
@@ -460,9 +471,9 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
   };
 
   return (
-    <div className={`w-full h-full flex flex-col select-none overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+    <div className={`w-full h-full flex flex-col select-none overflow-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       {/* TOP HEADER CONTROL BAR */}
-      <div className={`px-4 py-3 flex items-center justify-between shrink-0 border-b shadow-md ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+      <div className={`px-4 py-3 flex items-center justify-between shrink-0 border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 via-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md">
             <FileType className="w-5 h-5" />
@@ -485,8 +496,8 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           <button
             onClick={generateWordArt}
             className={`px-3 py-1.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer ${
-              darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-            }`}
+              isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+            }`} 
             title="Recalcular posição das palavras"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-indigo-400 ${isRendering ? 'animate-spin' : ''}`} />
@@ -496,8 +507,8 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           <button
             onClick={handleDownloadPNG}
             className={`px-3 py-1.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer ${
-              darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-            }`}
+              isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+            }` }
           >
             <Download className="w-3.5 h-3.5 text-emerald-400" />
             <span className="hidden md:inline">Baixar PNG</span>
@@ -516,7 +527,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className={`p-1.5 rounded-xl transition ${darkMode ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
+              className={`p-1.5 rounded-xl transition ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -539,7 +550,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
       <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden min-h-0">
         {/* LEFT PANEL: WORDS LIST & WEIGHTS */}
         <aside className={`w-full md:w-[320px] shrink-0 border-r p-3.5 flex flex-col gap-3 md:h-full overflow-hidden ${
-          darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
         }`}>
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-extrabold uppercase tracking-wider text-purple-400 flex items-center gap-2">
@@ -564,7 +575,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               onKeyDown={(e) => e.key === 'Enter' && handleAddWord()}
               placeholder="Nova palavra..."
               className={`flex-1 border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-rose-500 ${
-                darkMode ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-800'
+                isDark ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-800'
               }`}
             />
             <button
@@ -581,7 +592,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               <div
                 key={item.id}
                 className={`border p-2 rounded-xl flex items-center justify-between gap-2 text-xs ${
-                  darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
                 }`}
               >
                 <input
@@ -627,10 +638,10 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
 
         {/* CENTER CANVAS DISPLAY */}
         <main className={`flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden ${
-          darkMode ? 'bg-slate-950' : 'bg-slate-200'
+          isDark ? 'bg-slate-950' : 'bg-slate-200'
         }`}>
           <div className={`relative border-2 rounded-2xl p-2 shadow-2xl flex items-center justify-center max-w-full ${
-            darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-300'
+            isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-300'
           }`}>
             <canvas
               ref={canvasRef}
@@ -648,7 +659,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
 
         {/* RIGHT PANEL: SHAPES, FONTS, PALETTES & LAYOUT CONTROLS */}
         <aside className={`w-full md:w-[300px] shrink-0 border-l p-3.5 flex flex-col gap-4 overflow-y-auto custom-scrollbar text-xs ${
-          darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
         }`}>
           {/* 1. Shape Silhouette Selector */}
           <div className="space-y-1.5">
@@ -667,7 +678,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                     className={`p-2 rounded-xl border flex items-center gap-1.5 transition cursor-pointer text-xs ${
                       active
                         ? 'bg-purple-950/80 border-purple-500 text-white font-bold shadow-sm'
-                        : darkMode
+                      : isDark
                         ? 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
                         : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                     }`}
@@ -696,7 +707,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                     className={`w-full p-1.5 rounded-xl border flex items-center justify-between transition cursor-pointer ${
                       active
                         ? 'bg-purple-950/40 border-purple-500 shadow-sm'
-                        : darkMode
+                        : isDark
                         ? 'bg-slate-950/50 border-slate-800 hover:bg-slate-800'
                         : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                     }`}
@@ -727,7 +738,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               value={selectedFont}
               onChange={(e) => setSelectedFont(e.target.value)}
               className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-purple-500 cursor-pointer ${
-                darkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'
+                isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'
               }`}
             >
               {FONTS.map((f) => (
@@ -737,7 +748,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           </div>
 
           {/* 4. Layout Angles & Density */}
-          <div className={`space-y-2.5 border-t pt-2.5 ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+          <div className={`space-y-2.5 border-t pt-2.5 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
             <label className="font-extrabold uppercase text-emerald-400 flex items-center gap-1.5 text-[11px]">
               <Layout className="w-3.5 h-3.5" />
               4. Orientação & Densidade
@@ -749,7 +760,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className={`py-1.5 px-1 rounded-xl font-bold border transition text-[10px] cursor-pointer ${
                   layoutMode === 'horizontal'
                     ? 'bg-purple-600 text-white border-purple-500'
-                    : darkMode
+                  : isDark
                     ? 'bg-slate-950 text-slate-400 border-slate-800'
                     : 'bg-slate-100 text-slate-700 border-slate-300'
                 }`}
@@ -761,7 +772,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className={`py-1.5 px-1 rounded-xl font-bold border transition text-[10px] cursor-pointer ${
                   layoutMode === 'mixed'
                     ? 'bg-purple-600 text-white border-purple-500'
-                    : darkMode
+                  : isDark
                     ? 'bg-slate-950 text-slate-400 border-slate-800'
                     : 'bg-slate-100 text-slate-700 border-slate-300'
                 }`}
@@ -773,7 +784,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className={`py-1.5 px-1 rounded-xl font-bold border transition text-[10px] cursor-pointer ${
                   layoutMode === 'angles'
                     ? 'bg-purple-600 text-white border-purple-500'
-                    : darkMode
+                  : isDark
                     ? 'bg-slate-950 text-slate-400 border-slate-800'
                     : 'bg-slate-100 text-slate-700 border-slate-300'
                 }`}
@@ -805,7 +816,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
       {showBulkModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`border rounded-2xl p-5 w-full max-w-lg space-y-4 shadow-2xl ${
-            darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+            isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <h3 className="text-sm font-extrabold flex items-center gap-2 text-purple-400">
               <Sparkles className="w-4 h-4" />
@@ -821,7 +832,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               onChange={(e) => setBulkInput(e.target.value)}
               placeholder="AMOR, FAMÍLIA, GRATIDÃO, SUCESSO, FÉ, CORAGEM..."
               className={`w-full border rounded-xl p-3 text-xs focus:outline-none focus:border-purple-500 font-mono ${
-                darkMode ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-300 text-slate-800'
+                isDark ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-300 text-slate-800'
               }`}
             />
 
@@ -829,7 +840,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               <button
                 onClick={() => setShowBulkModal(false)}
                 className={`px-3 py-1.5 rounded-xl font-bold text-xs cursor-pointer ${
-                  darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                  isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
                 }`}
               >
                 Cancelar

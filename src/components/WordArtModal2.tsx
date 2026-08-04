@@ -20,7 +20,7 @@ import { TextWarpStyle } from '../types';
 interface WordArtModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // Legacy: receive a structured preset callback
+  // legacy preset callback (keeps backward compatibility)
   onAddWordArt?: (preset: {
     title: string;
     content: string;
@@ -36,8 +36,10 @@ interface WordArtModalProps {
     width?: number;
     height?: number;
   }) => void;
-  // New: directly provide a PNG data URL to be added to the canvas
+  // new callback that receives a PNG dataURL with transparent background
   onAddWordArtImage?: (dataUrl: string, title?: string) => void;
+  // new callback that receives a Blob (preferred for large/high-res images)
+  onAddWordArtBlob?: (blob: Blob, title?: string) => void;
   theme?: 'dark' | 'light';
 }
 
@@ -220,11 +222,12 @@ const WARP_STYLES: { id: TextWarpStyle; name: string }[] = [
   { id: 'perspective_center', name: 'Perspectiva 3D' }
 ];
 
-export const WordArtModal: React.FC<WordArtModalProps> = ({
+export const WordArtModal2: React.FC<WordArtModalProps> = ({
   isOpen,
   onClose,
   onAddWordArt,
   onAddWordArtImage,
+  onAddWordArtBlob,
   theme = 'dark'
 }) => {
   const [activePreset, setActivePreset] = useState<WordArtPreset>(WORDART_PRESETS[0]);
@@ -261,56 +264,38 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
     setShadowBlur(preset.shadowBlur);
   };
 
-  const renderWordArtPreview = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw background grid pattern
-    const isLight = theme === 'light';
-    ctx.fillStyle = isLight ? '#f8fafc' : '#121318';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Subtle grid lines
-    ctx.strokeStyle = isLight ? '#e2e8f0' : '#22242e';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < canvas.width; x += 30) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-    for (let y = 0; y < canvas.height; y += 30) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(canvas.width, y);
-      ctx.stroke();
-    }
-
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
+    // draw only the content (no background / grid). Accepts any 2D context.
+  // draw only the content (no background / grid). Accepts a 2D context and explicit render dimensions
+  const drawWordArtContent = (ctx: CanvasRenderingContext2D, renderW: number, renderH: number) => {
+    const centerX = renderW / 2;
+    const centerY = renderH / 2;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Apply shadow
+    // scale factor relative to the modal preview base (480x320)
+    const baseH = 320;
+    const scaleFactor = renderH / baseH;
+
+    // Apply shadow scaled
     if (shadowBlur > 0) {
-      ctx.shadowColor = shadowColor;
-      ctx.shadowBlur = shadowBlur;
-      ctx.shadowOffsetX = 3;
-      ctx.shadowOffsetY = 4;
+      ctx.shadowColor = shadowColor as string;
+      ctx.shadowBlur = shadowBlur * scaleFactor;
+      ctx.shadowOffsetX = 3 * scaleFactor;
+      ctx.shadowOffsetY = 4 * scaleFactor;
+    } else {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
     }
 
-    const fontSize = 48;
+    const fontSize = Math.max(10, Math.round(48 * scaleFactor));
     ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
 
-    // Render based on warp style
     if (warpStyle === 'arc_upper' || warpStyle === 'arc_lower' || warpStyle === 'smile' || warpStyle === 'frown') {
-      const radius = Math.max(80, 250 - Math.abs(warpIntensity) * 1.5);
+      const radius = Math.max(80 * scaleFactor, (250 * scaleFactor) - Math.abs(warpIntensity) * 1.5 * scaleFactor);
       const isUpper = warpStyle === 'arc_upper' || warpStyle === 'frown';
       const factor = isUpper ? -1 : 1;
       const angleStep = 0.08 * (warpIntensity / 50);
@@ -329,8 +314,8 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
         ctx.rotate(factor * charAngle);
 
         if (strokeWidth > 0) {
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = strokeWidth * 1.5;
+          ctx.strokeStyle = strokeColor as string;
+          ctx.lineWidth = strokeWidth * 1.5 * scaleFactor;
           ctx.strokeText(char, 0, 0);
         }
         ctx.fillStyle = color;
@@ -338,21 +323,20 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
         ctx.restore();
       });
     } else if (warpStyle === 'circle' || warpStyle === 'stamp_style') {
-      const radius = 100;
+      const radius = 100 * scaleFactor;
       const chars = (content + ' ').split('');
       const angleStep = (2 * Math.PI) / chars.length;
 
-      // Draw optional inner decorative ring
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius + 25, 0, Math.PI * 2);
-      ctx.strokeStyle = strokeColor || color;
-      ctx.lineWidth = 2;
+      ctx.arc(centerX, centerY, radius + 25 * scaleFactor, 0, Math.PI * 2);
+      ctx.strokeStyle = (strokeColor as string) || color;
+      ctx.lineWidth = 2 * scaleFactor;
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius - 20, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, radius - 20 * scaleFactor, 0, Math.PI * 2);
       ctx.strokeStyle = color;
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 * scaleFactor;
       ctx.stroke();
 
       chars.forEach((char, i) => {
@@ -365,8 +349,8 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
         ctx.rotate(charAngle + Math.PI / 2);
 
         if (strokeWidth > 0) {
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = strokeWidth;
+          ctx.strokeStyle = strokeColor as string;
+          ctx.lineWidth = strokeWidth * scaleFactor;
           ctx.strokeText(char, 0, 0);
         }
         ctx.fillStyle = color;
@@ -375,18 +359,18 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
       });
     } else if (warpStyle === 'wave') {
       const chars = content.split('');
-      const stepX = Math.min(30, (canvas.width - 100) / chars.length);
+      const stepX = Math.min(30 * scaleFactor, (renderW - 100 * scaleFactor) / chars.length);
       const startX = centerX - (chars.length * stepX) / 2;
 
       chars.forEach((char, i) => {
         const x = startX + i * stepX;
-        const offsetY = Math.sin((i / chars.length) * Math.PI * 2) * (warpIntensity * 0.5);
+        const offsetY = Math.sin((i / chars.length) * Math.PI * 2) * (warpIntensity * 0.5 * scaleFactor);
         ctx.save();
         ctx.translate(x, centerY + offsetY);
 
         if (strokeWidth > 0) {
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = strokeWidth;
+          ctx.strokeStyle = strokeColor as string;
+          ctx.lineWidth = strokeWidth * scaleFactor;
           ctx.strokeText(char, 0, 0);
         }
         ctx.fillStyle = color;
@@ -394,50 +378,45 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
         ctx.restore();
       });
     } else if (warpStyle === 'heart' || warpStyle === 'star') {
-      // Draw shape silhouette & words
       ctx.save();
       ctx.translate(centerX, centerY);
-      
-      // Heart background silhouette
+
       ctx.beginPath();
       ctx.fillStyle = color + '22';
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.scale(1.2, 1.2);
-      ctx.moveTo(0, -20);
-      ctx.bezierCurveTo(-40, -60, -80, 0, 0, 60);
-      ctx.bezierCurveTo(80, 0, 40, -60, 0, -20);
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.scale(1.2 * scaleFactor, 1.2 * scaleFactor);
+      ctx.moveTo(0, -20 * scaleFactor);
+      ctx.bezierCurveTo(-40 * scaleFactor, -60 * scaleFactor, -80 * scaleFactor, 0, 0, 60 * scaleFactor);
+      ctx.bezierCurveTo(80 * scaleFactor, 0, 40 * scaleFactor, -60 * scaleFactor, 0, -20 * scaleFactor);
       ctx.fill();
       ctx.stroke();
       ctx.restore();
 
-      // Main Text
-      ctx.font = `bold ${fontSize + 8}px ${fontFamily}, sans-serif`;
+      ctx.font = `bold ${fontSize + Math.round(8 * scaleFactor)}px ${fontFamily}, sans-serif`;
       if (strokeWidth > 0) {
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = strokeWidth;
-        ctx.strokeText(content, centerX, centerY - 10);
+        ctx.strokeStyle = strokeColor as string;
+        ctx.lineWidth = strokeWidth * scaleFactor;
+        ctx.strokeText(content, centerX, centerY - 10 * scaleFactor);
       }
       ctx.fillStyle = color;
-      ctx.fillText(content, centerX, centerY - 10);
+      ctx.fillText(content, centerX, centerY - 10 * scaleFactor);
 
-      // Subwords Cloud
       if (subwords) {
-        ctx.font = `bold 14px ${fontFamily}, sans-serif`;
-        ctx.fillStyle = strokeColor || '#ffffff';
+        ctx.font = `bold ${Math.round(14 * scaleFactor)}px ${fontFamily}, sans-serif`;
+        ctx.fillStyle = (strokeColor as string) || '#ffffff';
         const words = subwords.split(',').map((w) => w.trim());
         words.forEach((w, idx) => {
           const angle = (idx / words.length) * Math.PI * 2;
-          const rx = Math.cos(angle) * 75;
-          const ry = Math.sin(angle) * 45;
-          ctx.fillText(w, centerX + rx, centerY + ry + 15);
+          const rx = Math.cos(angle) * 75 * scaleFactor;
+          const ry = Math.sin(angle) * 45 * scaleFactor;
+          ctx.fillText(w, centerX + rx, centerY + ry + 15 * scaleFactor);
         });
       }
     } else {
-      // Straight / Normal
       if (strokeWidth > 0) {
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = strokeWidth * 2;
+        ctx.strokeStyle = strokeColor as string;
+        ctx.lineWidth = strokeWidth * 2 * scaleFactor;
         ctx.strokeText(content, centerX, centerY);
       }
       ctx.fillStyle = color;
@@ -447,63 +426,212 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
     ctx.restore();
   };
 
-  const handleApplyToCanvas = () => {
+  const renderWordArtPreview = (opts?: { withBackground?: boolean }) => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    // Prefer returning a PNG data URL to the host app if the callback is provided
-    if (canvas && typeof onAddWordArtImage === 'function') {
-      try {
-        const dataUrl = canvas.toDataURL('image/png');
-        onAddWordArtImage(dataUrl, content);
-      } catch (e) {
-        // Fallback to structured preset if dataURL generation fails
-        if (typeof onAddWordArt === 'function') {
-          onAddWordArt({
-            title: content,
-            content,
-            fontFamily,
-            warpStyle,
-            warpIntensity,
-            color,
-            strokeColor: strokeWidth > 0 ? strokeColor : undefined,
-            strokeWidth,
-            shadowColor: shadowBlur > 0 ? shadowColor : undefined,
-            shadowBlur,
-            fontSize: 42,
-            width: 420,
-            height: 240,
-          });
-        }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const isLight = theme === 'light';
+    if (opts?.withBackground !== false) {
+      // Draw background grid pattern for preview only
+      ctx.fillStyle = isLight ? '#f8fafc' : '#121318';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Subtle grid lines
+      ctx.strokeStyle = isLight ? '#e2e8f0' : '#22242e';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 30) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
       }
-    } else if (typeof onAddWordArt === 'function') {
-      // Legacy fallback: send the structured preset object
-      onAddWordArt({
-        title: content,
-        content,
-        fontFamily,
-        warpStyle,
-        warpIntensity,
-        color,
-        strokeColor: strokeWidth > 0 ? strokeColor : undefined,
-        strokeWidth,
-        shadowColor: shadowBlur > 0 ? shadowColor : undefined,
-        shadowBlur,
-        fontSize: 42,
-        width: 420,
-        height: 240,
-      });
+      for (let y = 0; y < canvas.height; y += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
     }
 
-    onClose();
+    // draw the actual wordart content on top (content may include translucent fills)
+    drawWordArtContent(ctx, canvas.width, canvas.height);
+  };
+
+  const handleApplyToCanvas = () => {
+    const srcCanvas = canvasRef.current;
+    if (!srcCanvas) {
+      if (onAddWordArt) {
+        onAddWordArt({
+          title: content,
+          content,
+          fontFamily,
+          warpStyle,
+          warpIntensity,
+          color,
+          strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+          strokeWidth,
+          shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+          shadowBlur,
+          fontSize: 42,
+          width: 420,
+          height: 240
+        });
+      }
+      onClose();
+      return;
+    }
+
+    // Export transparent PNG by drawing only content onto an offscreen canvas (no background/grid)
+    const deviceScale = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 2)));
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = Math.max(1, Math.round(srcCanvas.width * deviceScale));
+    exportCanvas.height = Math.max(1, Math.round(srcCanvas.height * deviceScale));
+    const ectx = exportCanvas.getContext('2d', { alpha: true });
+    if (ectx) {
+      ectx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+      // draw content scaled to export size
+      drawWordArtContent(ectx, exportCanvas.width, exportCanvas.height);
+
+      // Prefer toBlob -> FileReader for memory/performance and to avoid synchronous large base64 allocations
+      if (exportCanvas.toBlob) {
+        exportCanvas.toBlob((blob) => {
+          if (blob) {
+            // Prefer the Blob callback for efficient host-side handling
+            if (typeof onAddWordArtBlob === 'function') {
+              try {
+                onAddWordArtBlob(blob, content);
+              } catch (err) {
+                // swallow host errors here to allow fallback path
+                console.warn('onAddWordArtBlob handler threw:', err);
+              }
+            }
+
+            // Keep backward-compatible dataURL callback as well (async)
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const dataUrl = reader.result as string;
+              if (typeof onAddWordArtImage === 'function') {
+                onAddWordArtImage(dataUrl, content);
+              }
+              if (typeof onAddWordArt === 'function') {
+                onAddWordArt({
+                  title: content,
+                  content,
+                  fontFamily,
+                  warpStyle,
+                  warpIntensity,
+                  color,
+                  strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+                  strokeWidth,
+                  shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+                  shadowBlur,
+                  fontSize: 42,
+                  width: exportCanvas.width,
+                  height: exportCanvas.height
+                });
+              }
+              onClose();
+            };
+            reader.readAsDataURL(blob);
+          } else {
+            // fallback to synchronous dataURL if blob failed
+            const dataUrl = exportCanvas.toDataURL('image/png');
+            if (typeof onAddWordArtImage === 'function') onAddWordArtImage(dataUrl, content);
+            if (typeof onAddWordArt === 'function') onAddWordArt({
+              title: content,
+              content,
+              fontFamily,
+              warpStyle,
+              warpIntensity,
+              color,
+              strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+              strokeWidth,
+              shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+              shadowBlur,
+              fontSize: 42,
+              width: exportCanvas.width,
+              height: exportCanvas.height
+            });
+            onClose();
+          }
+        }, 'image/png');
+      } else {
+        // older browsers fallback
+        const dataUrl = exportCanvas.toDataURL('image/png');
+        if (typeof onAddWordArtImage === 'function') onAddWordArtImage(dataUrl, content);
+        if (typeof onAddWordArt === 'function') onAddWordArt({
+          title: content,
+          content,
+          fontFamily,
+          warpStyle,
+          warpIntensity,
+          color,
+          strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+          strokeWidth,
+          shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+          shadowBlur,
+          fontSize: 42,
+          width: exportCanvas.width,
+          height: exportCanvas.height
+        });
+        onClose();
+      }
+    } else {
+      // no context, fallback
+      if (typeof onAddWordArt === 'function') {
+        onAddWordArt({
+          title: content,
+          content,
+          fontFamily,
+          warpStyle,
+          warpIntensity,
+          color,
+          strokeColor: strokeWidth > 0 ? strokeColor : undefined,
+          strokeWidth,
+          shadowColor: shadowBlur > 0 ? shadowColor : undefined,
+          shadowBlur,
+          fontSize: 42,
+          width: 420,
+          height: 240
+        });
+      }
+      onClose();
+    }
   };
 
   const handleDownloadPNG = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const link = document.createElement('a');
-    link.download = `wordart-${content.toLowerCase().replace(/\s+/g, '-')}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    const srcCanvas = canvasRef.current;
+    if (!srcCanvas) return;
+
+    const deviceScale = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 2)));
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = Math.max(1, Math.round(srcCanvas.width * deviceScale));
+    exportCanvas.height = Math.max(1, Math.round(srcCanvas.height * deviceScale));
+    const ectx = exportCanvas.getContext('2d', { alpha: true });
+    if (!ectx) return;
+    ectx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
+    drawWordArtContent(ectx, exportCanvas.width, exportCanvas.height);
+
+    if (exportCanvas.toBlob) {
+      exportCanvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `wordart-${content.toLowerCase().replace(/\s+/g, '-')}.png`;
+        link.href = url;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      }, 'image/png');
+    } else {
+      const link = document.createElement('a');
+      link.download = `wordart-${content.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.href = exportCanvas.toDataURL('image/png');
+      link.click();
+    }
   };
 
   if (!isOpen) return null;
@@ -856,3 +984,6 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
     </div>
   );
 };
+
+// Backwards compat: expose legacy name as alias
+export const WordArtModal = WordArtModal2;
