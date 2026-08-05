@@ -82,6 +82,22 @@ export type TextWarpStyle =
 
 export type LayerType = 'image' | 'text' | 'shape' | 'brush' | 'smart' | 'group' | 'path';
 
+export interface WordItem {
+  id: string;
+  text: string;
+  weight: number; // 1 to 10
+}
+
+export interface WordArtConfig {
+  words: WordItem[];
+  shape: string;
+  font: string;
+  paletteId: string;
+  layoutMode: 'horizontal' | 'mixed' | 'angles';
+  density: number;
+  wordArtType?: 'wordart1' | 'wordart2';
+}
+
 export interface LayerFilters {
   brightness: number;  // -100 to 100
   contrast: number;    // -100 to 100
@@ -100,16 +116,6 @@ export interface LayerFilters {
   grayscale?: boolean;
   presetFilter?: string; // vintage, hdr, cartoon, sketch, neon, cinema, popart, sharpen, blur, emboss, glow, duotone, cool, warm
   filterIntensity?: number; // 0 to 100
-}
-
-export interface WordArtConfig {
-  words: { id: string; text: string; weight: number }[];
-  shape?: string;
-  paletteId?: string;
-  font?: string;
-  layoutMode?: 'mixed' | 'horizontal' | 'angles';
-  density?: number;
-  wordArtType?: 'wordart1' | 'wordart2';
 }
 
 export interface Layer {
@@ -151,11 +157,6 @@ export interface Layer {
   flipY?: boolean;
   children?: Layer[];
   filters?: LayerFilters;
-  wordItems?: { id: string; text: string; weight: number }[];
-  wordShape?: string;
-  wordPaletteId?: string;
-  wordFont?: string;
-  wordLayout?: 'mixed' | 'horizontal' | 'angles';
   wordArtConfig?: WordArtConfig;
   wordArtType?: 'wordart1' | 'wordart2';
 }
@@ -236,46 +237,6 @@ export interface SublimationPressPreset {
   notes: string;
 }
 
-export interface PresetTemplate {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  theme: string;
-  character: string;
-  style: string;
-  colors: string;
-  lighting: string;
-  background: string;
-  imageUrl: string;
-  suggestedText?: string;
-}
-
-export interface MugDesignConfig {
-  theme: string;
-  character: string;
-  style: string;
-  colors: string;
-  lighting: string;
-  background: string;
-  negativePrompt: string;
-  imageUrl: string;
-  texts: Array<{
-    id: string;
-    text: string;
-    fontFamily: string;
-    fontSize: number;
-    color: string;
-    strokeColor?: string;
-    strokeWidth?: number;
-    xPercent?: number;
-    yPercent?: number;
-    curveAmount?: number;
-    alignment?: string;
-    shadow?: boolean;
-  }>;
-}
-
 export interface TemplatePreset {
   id: string;
   title: string;
@@ -290,7 +251,7 @@ export interface GangItem {
   widthMm: number;
   heightMm: number;
   quantity: number;
-  color?: string;
+  color: string;
 }
 
 export interface GangPlacedBox {
@@ -361,3 +322,46 @@ export interface Environment3DConfig {
   roughness: number;
   metalness: number;
 }
+
+export interface PresetTemplate {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  theme: string;
+  character: string;
+  style: string;
+  colors: string;
+  lighting: string;
+  background: string;
+  suggestedText?: string;
+  imageUrl: string;
+}
+
+export interface MugDesignConfigText {
+  id: string;
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
+  strokeColor: string;
+  strokeWidth: number;
+  xPercent: number;
+  yPercent: number;
+  curveAmount: number;
+  alignment: 'left' | 'center' | 'right';
+  shadow: boolean;
+}
+
+export interface MugDesignConfig {
+  theme: string;
+  character: string;
+  style: string;
+  colors: string;
+  lighting: string;
+  background: string;
+  negativePrompt: string;
+  imageUrl?: string;
+  texts: MugDesignConfigText[];
+}
+

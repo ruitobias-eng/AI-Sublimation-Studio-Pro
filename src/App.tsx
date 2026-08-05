@@ -159,52 +159,94 @@ export default function App() {
     config?: WordArtConfig,
     wordArtType?: 'wordart1' | 'wordart2'
   ) => {
-    if (editingWordArtLayerId) {
-      const updatedLayers = layers.map((layer) => {
-        if (layer.id === editingWordArtLayerId) {
-          return {
-            ...layer,
-            content: dataUrl,
-            name: title || layer.name,
-            wordArtConfig: config || layer.wordArtConfig,
-            wordArtType: wordArtType || layer.wordArtType || 'wordart1',
-          };
-        }
-        return layer;
-      });
-      setLayers(updatedLayers);
-      setActiveLayerId(editingWordArtLayerId);
-      pushHistoryStep(`Atualizado ${title || 'WordArt'}`, 'WordArt', updatedLayers);
-      setCanvasVersion((v) => v + 1);
-      showSnackbar('Arte WordArt atualizada com sucesso!', 'success');
-      setEditingWordArtLayerId(null);
-      return;
-    }
+    const processImageAndAddToCanvas = (imgW: number, imgH: number) => {
+      const naturalW = Math.max(10, imgW || 600);
+      const naturalH = Math.max(10, imgH || 300);
+      const aspect = naturalW / naturalH;
 
-    const newLayer: Layer = {
-      id: 'layer-wordart-' + Date.now(),
-      name: title || 'WordArt Tipográfico',
-      type: 'image',
-      visible: true,
-      locked: false,
-      opacity: 100,
-      blendMode: 'normal',
-      x: 250,
-      y: 150,
-      width: 700,
-      height: 700,
-      rotation: 0,
-      content: dataUrl,
-      wordArtConfig: config,
-      wordArtType: wordArtType || 'wordart1',
-      filters: { brightness: 0, contrast: 0, saturation: 0, hue: 0, blur: 0, vibrance: 0 },
+      if (editingWordArtLayerId) {
+        setLayers((prevLayers) => {
+          const updatedLayers = prevLayers.map((layer) => {
+            if (layer.id === editingWordArtLayerId) {
+              const currentW = Math.max(160, Math.min(800, layer.width));
+              const calcH = Math.max(30, Math.round(currentW / aspect));
+              return {
+                ...layer,
+                content: dataUrl,
+                name: title || layer.name,
+                width: currentW,
+                height: calcH,
+                wordArtConfig: config || layer.wordArtConfig,
+                wordArtType: wordArtType || layer.wordArtType || 'wordart1',
+              };
+            }
+            return layer;
+          });
+          pushHistoryStep(`Atualizado ${title || 'WordArt'}`, 'WordArt', updatedLayers);
+          return updatedLayers;
+        });
+        setActiveLayerId(editingWordArtLayerId);
+        setCanvasVersion((v) => v + 1);
+        showSnackbar('Arte WordArt atualizada com sucesso!', 'success');
+        setEditingWordArtLayerId(null);
+        return;
+      }
+
+      // Calculate initial layer dimensions on canvas matching typed text aspect ratio
+      let defaultW = 520;
+      if (aspect > 3.5) {
+        defaultW = 620;
+      } else if (aspect < 0.8) {
+        defaultW = 320;
+      }
+      let defaultH = Math.round(defaultW / aspect);
+      if (defaultH > 520) {
+        defaultH = 520;
+        defaultW = Math.round(defaultH * aspect);
+      }
+
+      const calcX = Math.max(20, Math.round((750 - defaultW) / 2));
+      const calcY = Math.max(20, Math.round((450 - defaultH) / 2));
+
+      const newLayer: Layer = {
+        id: 'layer-wordart-' + Date.now(),
+        name: title || 'WordArt Tipográfico',
+        type: 'image',
+        visible: true,
+        locked: false,
+        opacity: 100,
+        blendMode: 'normal',
+        x: calcX,
+        y: calcY,
+        width: Math.max(100, defaultW),
+        height: Math.max(30, defaultH),
+        rotation: 0,
+        content: dataUrl,
+        wordArtConfig: config,
+        wordArtType: wordArtType || 'wordart1',
+        filters: { brightness: 0, contrast: 0, saturation: 0, hue: 0, blur: 0, vibrance: 0 },
+      };
+
+      setLayers((prevLayers) => {
+        const updated = [...prevLayers, newLayer];
+        pushHistoryStep(`Adicionado ${newLayer.name}`, 'WordArt', updated);
+        return updated;
+      });
+      setActiveLayerId(newLayer.id);
+      setCanvasVersion((v) => v + 1);
+      showSnackbar('WordArt adicionado com sucesso à estampa!', 'success');
     };
-    const updated = [...layers, newLayer];
-    setLayers(updated);
-    setActiveLayerId(newLayer.id);
-    pushHistoryStep(`Adicionado ${newLayer.name}`, 'WordArt', updated);
-    setCanvasVersion((v) => v + 1);
-    showSnackbar('WordArt adicionado com sucesso à estampa!', 'success');
+
+    if (dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        processImageAndAddToCanvas(img.naturalWidth, img.naturalHeight);
+      };
+      img.onerror = () => {
+        processImageAndAddToCanvas(600, 300);
+      };
+      img.src = dataUrl;
+    }
   };
 
   const handleOpenWordArtStudio = (layerId?: string, type: 'wordart1' | 'wordart2' = 'wordart1') => {
