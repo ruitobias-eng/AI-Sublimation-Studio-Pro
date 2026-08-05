@@ -597,18 +597,35 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
       ctx.shadowOffsetY = 0;
     }
 
-    const fontSize = Math.max(12, Math.round(48 * scaleFactor));
+    const baseFontSize = Math.max(12, Math.round(48 * scaleFactor));
+    let fontSize = baseFontSize;
+
+    // Dynamically scale font size according to typed text length so text never overflows renderW
+    if (warpStyle === 'straight' && content.length > 0) {
+      ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
+      const measuredWidth = ctx.measureText(content).width;
+      const maxWidthAllowed = renderW * 0.88;
+      if (measuredWidth > maxWidthAllowed && measuredWidth > 0) {
+        fontSize = Math.max(12, Math.round(fontSize * (maxWidthAllowed / measuredWidth)));
+      }
+    }
+
     ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
 
     if (warpStyle === 'arc_upper' || warpStyle === 'arc_lower' || warpStyle === 'smile' || warpStyle === 'frown') {
       const radius = Math.max(80 * scaleFactor, (250 * scaleFactor) - Math.abs(warpIntensity) * 1.5 * scaleFactor);
       const isUpper = warpStyle === 'arc_upper' || warpStyle === 'frown';
       const factor = isUpper ? -1 : 1;
-      const angleStep = 0.08 * (Math.max(10, warpIntensity) / 50);
-
+      
       const chars = content.split('');
+      const maxTotalAngle = Math.PI * 0.85;
+      let angleStep = 0.08 * (Math.max(10, warpIntensity) / 50);
+      if (chars.length * angleStep > maxTotalAngle) {
+        angleStep = maxTotalAngle / Math.max(1, chars.length);
+      }
+
       const totalAngle = chars.length * angleStep;
-      let startAngle = -totalAngle / 2;
+      let startAngle = -totalAngle / 2 + angleStep / 2;
 
       chars.forEach((char, i) => {
         const charAngle = startAngle + i * angleStep;
@@ -632,6 +649,14 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
       const radius = 100 * scaleFactor;
       const chars = (content + ' ').split('');
       const angleStep = (2 * Math.PI) / chars.length;
+
+      // Adjust circle font size if many characters
+      const circlePerimeter = 2 * Math.PI * radius;
+      const charWidth = circlePerimeter / chars.length;
+      if (charWidth < fontSize) {
+        fontSize = Math.max(10, Math.round(charWidth * 0.8));
+        ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
+      }
 
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius + 25 * scaleFactor, 0, Math.PI * 2);
@@ -665,12 +690,12 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
       });
     } else if (warpStyle === 'wave') {
       const chars = content.split('');
-      const stepX = Math.min(30 * scaleFactor, (renderW - 100 * scaleFactor) / chars.length);
-      const startX = centerX - (chars.length * stepX) / 2;
+      const stepX = Math.min(30 * scaleFactor, (renderW * 0.85) / Math.max(1, chars.length));
+      const startX = centerX - (chars.length * stepX) / 2 + stepX / 2;
 
       chars.forEach((char, i) => {
         const x = startX + i * stepX;
-        const offsetY = Math.sin((i / chars.length) * Math.PI * 2) * (warpIntensity * 0.5 * scaleFactor);
+        const offsetY = Math.sin((i / Math.max(1, chars.length)) * Math.PI * 2) * (warpIntensity * 0.5 * scaleFactor);
         ctx.save();
         ctx.translate(x, centerY + offsetY);
 
@@ -732,27 +757,77 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
     ctx.restore();
   };
 
-  const renderWordArt2Preview = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 600;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+  const generateWordArt2Canvas = (
+    content: string,
+    subwords: string,
+    fontFamily: string,
+    warpStyle: TextWarpStyle,
+    warpIntensity: number,
+    color: string,
+    strokeColor: string,
+    strokeWidth: number,
+    shadowColor: string,
+    shadowBlur: number
+  ): HTMLCanvasElement | null => {
+    const estimateMeasureCanvas = document.createElement('canvas');
+    const estCtx = estimateMeasureCanvas.getContext('2d');
+    let textWidth = 300;
+    if (estCtx) {
+      estCtx.font = `bold 72px ${fontFamily}, sans-serif`;
+      textWidth = estCtx.measureText(content || 'WordArt').width;
+    }
 
-    drawWordArt2Content(ctx, 800, 600, {
-      content: w2Content,
-      subwords: w2Subwords,
-      fontFamily: w2FontFamily,
-      warpStyle: w2WarpStyle,
-      warpIntensity: w2WarpIntensity,
-      color: w2Color,
-      strokeColor: w2StrokeColor,
-      strokeWidth: w2StrokeWidth,
-      shadowColor: w2ShadowColor,
-      shadowBlur: w2ShadowBlur,
+    let exportRenderW = 1200;
+    let exportRenderH = 600;
+
+    if (warpStyle === 'straight' || warpStyle === 'wave' || warpStyle === 'ribbon') {
+      exportRenderW = Math.max(1200, Math.round(textWidth * 1.6 + strokeWidth * 20 + shadowBlur * 20));
+      exportRenderH = Math.max(500, Math.round(72 * 4 + shadowBlur * 20));
+    } else if (warpStyle === 'arc_upper' || warpStyle === 'arc_lower' || warpStyle === 'smile' || warpStyle === 'frown') {
+      exportRenderW = Math.max(1200, Math.round(textWidth * 1.5 + 200));
+      exportRenderH = Math.max(600, Math.round(72 * 5 + warpIntensity * 4));
+    } else {
+      exportRenderW = 1200;
+      exportRenderH = 1200;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = exportRenderW;
+    canvas.height = exportRenderH;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    drawWordArt2Content(ctx, exportRenderW, exportRenderH, {
+      content,
+      subwords,
+      fontFamily,
+      warpStyle,
+      warpIntensity,
+      color,
+      strokeColor,
+      strokeWidth,
+      shadowColor,
+      shadowBlur,
     });
 
-    const cropped = cropTightCanvas(canvas);
+    return cropTightCanvas(canvas);
+  };
+
+  const renderWordArt2Preview = () => {
+    const cropped = generateWordArt2Canvas(
+      w2Content,
+      w2Subwords,
+      w2FontFamily,
+      w2WarpStyle,
+      w2WarpIntensity,
+      w2Color,
+      w2StrokeColor,
+      w2StrokeWidth,
+      w2ShadowColor,
+      w2ShadowBlur
+    );
+    if (!cropped) return;
+
     sourceImageRef.current = cropped;
     isWordArtGeneratedRef.current = true;
     setModifiedContent(cropped.toDataURL('image/png'));
@@ -987,26 +1062,27 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
     let finalWordArtType = activeLayer.wordArtType;
     let finalWordArtConfig = activeLayer.wordArtConfig;
 
+    let newWidth = activeLayer.width;
+    let newHeight = activeLayer.height;
+
     if (activeTab === 'words' && wordArtMode === 'wordart2') {
-      const canvas = document.createElement('canvas');
-      canvas.width = 800;
-      canvas.height = 600;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        drawWordArt2Content(ctx, 800, 600, {
-          content: w2Content,
-          subwords: w2Subwords,
-          fontFamily: w2FontFamily,
-          warpStyle: w2WarpStyle,
-          warpIntensity: w2WarpIntensity,
-          color: w2Color,
-          strokeColor: w2StrokeColor,
-          strokeWidth: w2StrokeWidth,
-          shadowColor: w2ShadowColor,
-          shadowBlur: w2ShadowBlur,
-        });
-        const cropped = cropTightCanvas(canvas);
+      const cropped = generateWordArt2Canvas(
+        w2Content,
+        w2Subwords,
+        w2FontFamily,
+        w2WarpStyle,
+        w2WarpIntensity,
+        w2Color,
+        w2StrokeColor,
+        w2StrokeWidth,
+        w2ShadowColor,
+        w2ShadowBlur
+      );
+      if (cropped) {
         finalContent = cropped.toDataURL('image/png');
+        const aspect = cropped.width / cropped.height;
+        newWidth = Math.max(200, Math.min(800, activeLayer.width));
+        newHeight = Math.max(30, Math.round(newWidth / aspect));
       }
 
       finalName = w2Content || activeLayer.name;
@@ -1028,6 +1104,8 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
 
     const updated = {
       ...activeLayer,
+      width: newWidth,
+      height: newHeight,
       content: finalContent,
       name: finalName,
       filters: { ...filters },

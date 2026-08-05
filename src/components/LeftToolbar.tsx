@@ -743,26 +743,41 @@ export const LeftToolbar: React.FC<LeftToolbarProps> = ({
             {/* TAB 3: TEXT & VECTOR TYPOGRAPHY */}
             {activeTab === 'text' && (
               <div className="space-y-3">
-                {/* Featured WordArt Studio Launch Banner */}
-                {onOpenWordArtModal && (
-                  <button
-                    onClick={onOpenWordArtModal}
-                    className="w-full p-3 bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:via-purple-500 hover:to-indigo-500 text-white rounded-2xl shadow-lg border border-purple-400/30 flex items-center justify-between cursor-pointer group transition-all transform hover:scale-[1.02]"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold">
-                        <Wand2 className="w-4 h-4 text-amber-300" />
+                {/* Featured WordArt Studio Launch Banners */}
+                <div className="grid grid-cols-2 gap-2">
+                  {onOpenWordArtModal && (
+                    <button
+                      onClick={onOpenWordArtModal}
+                      className="p-2.5 bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:via-purple-500 hover:to-indigo-500 text-white rounded-2xl shadow-lg border border-purple-400/30 flex items-center justify-between cursor-pointer group transition-all transform hover:scale-[1.02]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold shrink-0">
+                          <Wand2 className="w-3.5 h-3.5 text-amber-300" />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <span className="text-[11px] font-black block leading-tight truncate">WordArt 1</span>
+                          <span className="text-[9px] text-purple-200 font-medium block truncate">Silhueta / Nuvem</span>
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <span className="text-xs font-black block leading-tight">WordArt & Nuvem de Palavras</span>
-                        <span className="text-[9px] text-purple-200 font-medium">Silhuetas para Canecas, Camisetas...</span>
+                    </button>
+                  )}
+                  {onOpenWordArt2 && (
+                    <button
+                      onClick={onOpenWordArt2}
+                      className="p-2.5 bg-gradient-to-r from-amber-500 via-orange-600 to-rose-600 hover:from-amber-400 hover:via-orange-500 hover:to-rose-500 text-white rounded-2xl shadow-lg border border-amber-400/30 flex items-center justify-between cursor-pointer group transition-all transform hover:scale-[1.02]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center font-bold shrink-0">
+                          <FileType className="w-3.5 h-3.5 text-amber-200" />
+                        </div>
+                        <div className="text-left min-w-0">
+                          <span className="text-[11px] font-black block leading-tight truncate">WordArt 2</span>
+                          <span className="text-[9px] text-amber-100 font-medium block truncate">3D & Curvados</span>
+                        </div>
                       </div>
-                    </div>
-                    <span className="text-[10px] font-bold bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
-                      Abrir
-                    </span>
-                  </button>
-                )}
+                    </button>
+                  )}
+                </div>
 
                 {/* Sub-tab Pills Switcher */}
                 <div className="grid grid-cols-4 gap-1 p-1 bg-[#18191f] rounded-xl border border-[#2d2e36] text-[10px] font-bold">
