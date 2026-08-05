@@ -4,7 +4,15 @@ import { WordArtStudio } from './WordArtStudio';
 interface WordArtModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddWordArtImage: (dataUrl: string, title?: string) => void;
+  onAddWordArtImage: (
+    dataUrl: string,
+    title?: string,
+    wordItems?: any[],
+    wordShape?: string,
+    wordPaletteId?: string,
+    wordFont?: string,
+    wordLayout?: 'mixed' | 'horizontal' | 'angles'
+  ) => void;
   darkMode?: boolean;
 }
 
@@ -26,8 +34,8 @@ export const WordArtModal: React.FC<WordArtModalProps> = ({
         <WordArtStudio
           onClose={onClose}
           darkMode={darkMode}
-          onAddWordArtImage={(dataUrl, title) => {
-            onAddWordArtImage(dataUrl, title);
+          onAddWordArtImage={(dataUrl, title, words, shape, palette, font, layout) => {
+            onAddWordArtImage(dataUrl, title, words, shape, palette, font, layout);
             onClose();
           }}
         />

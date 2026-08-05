@@ -102,6 +102,16 @@ export interface LayerFilters {
   filterIntensity?: number; // 0 to 100
 }
 
+export interface WordArtConfig {
+  words: { id: string; text: string; weight: number }[];
+  shape?: string;
+  paletteId?: string;
+  font?: string;
+  layoutMode?: 'mixed' | 'horizontal' | 'angles';
+  density?: number;
+  wordArtType?: 'wordart1' | 'wordart2';
+}
+
 export interface Layer {
   id: string;
   name: string;
@@ -141,6 +151,13 @@ export interface Layer {
   flipY?: boolean;
   children?: Layer[];
   filters?: LayerFilters;
+  wordItems?: { id: string; text: string; weight: number }[];
+  wordShape?: string;
+  wordPaletteId?: string;
+  wordFont?: string;
+  wordLayout?: 'mixed' | 'horizontal' | 'angles';
+  wordArtConfig?: WordArtConfig;
+  wordArtType?: 'wordart1' | 'wordart2';
 }
 
 export interface VectorElement {

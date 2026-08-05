@@ -3,9 +3,6 @@ import { Printer, PrinterCapabilities, PrintJob } from '../PrinterTypes';
 
 export class WindowsPrinterAdapter implements PrinterPlatformAdapter {
   readonly platformName = 'windows';
-  private readonly bridgeBaseUrl = 'http://localhost:11400/api';
-  private bridgeReachable: boolean | null = null;
-  private bridgeProbePromise: Promise<boolean> | null = null;
 
   private mockWindowsPrinters: Printer[] = [
     {
@@ -65,53 +62,32 @@ export class WindowsPrinterAdapter implements PrinterPlatformAdapter {
     }
   ];
 
-  private async probeBridge(): Promise<boolean> {
-    if (this.bridgeReachable !== null) {
-      return this.bridgeReachable;
-    }
-
-    if (this.bridgeProbePromise) {
-      return this.bridgeProbePromise;
-    }
-
-    this.bridgeProbePromise = (async () => {
-      try {
-        const response = await fetch(`${this.bridgeBaseUrl}/printers`, { method: 'GET' });
-        if (!response.ok) {
-          this.bridgeReachable = false;
-          return false;
-        }
-
-        const data = await response.json();
-        const success = Array.isArray(data.printers);
-        this.bridgeReachable = success;
-        return success;
-      } catch {
-        this.bridgeReachable = false;
-        return false;
-      } finally {
-        this.bridgeProbePromise = null;
-      }
-    })();
-
-    return this.bridgeProbePromise;
-  }
+  private isBridgeAvailable: boolean | null = null;
 
   async getPrinters(): Promise<Printer[]> {
-    if (await this.probeBridge()) {
+    // Attempt connecting to local Windows Print Bridge agent if available and not previously failed
+    if (this.isBridgeAvailable !== false) {
       try {
-        const response = await fetch(`${this.bridgeBaseUrl}/printers`, { method: 'GET' });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300);
+        const response = await fetch('http://localhost:11400/api/printers', {
+          method: 'GET',
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeoutId));
+
         if (response.ok) {
           const data = await response.json();
-          if (Array.isArray(data.printers)) {
+          if (Array.isArray(data.printers) && data.printers.length > 0) {
+            this.isBridgeAvailable = true;
             return data.printers;
           }
         }
+        this.isBridgeAvailable = false;
       } catch {
-        this.bridgeReachable = false;
+        // Local Win32 bridge agent not active; fallback to detected Windows printers
+        this.isBridgeAvailable = false;
       }
     }
-
     return this.mockWindowsPrinters;
   }
 
@@ -180,19 +156,12 @@ export class WindowsPrinterAdapter implements PrinterPlatformAdapter {
   }
 
   async openPrinterSettings(printerId: string): Promise<boolean> {
-    if (!(await this.probeBridge())) {
-      return false;
-    }
-
     try {
-      const res = await fetch(`${this.bridgeBaseUrl}/printers/${printerId}/properties`, { method: 'POST' });
-      if (res.ok) {
-        return true;
-      }
+      const res = await fetch(`http://localhost:11400/api/printers/${printerId}/properties`, { method: 'POST' });
+      if (res.ok) return true;
     } catch {
-      this.bridgeReachable = false;
+      // Fallback message
     }
-
     return false;
   }
 

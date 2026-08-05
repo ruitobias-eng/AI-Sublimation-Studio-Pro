@@ -137,7 +137,24 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
   // Image Adjustment Modal State
   const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
-  const [modalDefaultTab, setModalDefaultTab] = useState<'adjustments' | 'crop' | 'filters' | 'smart'>('adjustments');
+  const [modalDefaultTab, setModalDefaultTab] = useState<'adjustments' | 'crop' | 'filters' | 'smart' | 'words'>('adjustments');
+
+  useEffect(() => {
+    const handleOpenModal = (e: any) => {
+      const tab = e.detail?.tab || 'adjustments';
+      setModalDefaultTab(tab);
+      setIsImageModalOpen(true);
+    };
+    window.addEventListener('openImageAdjustmentModal', handleOpenModal);
+    (window as any).openImageAdjustmentModal = (tab?: 'adjustments' | 'crop' | 'filters' | 'smart' | 'words') => {
+      setModalDefaultTab(tab || 'adjustments');
+      setIsImageModalOpen(true);
+    };
+    return () => {
+      window.removeEventListener('openImageAdjustmentModal', handleOpenModal);
+      delete (window as any).openImageAdjustmentModal;
+    };
+  }, []);
 
   // Dynamic Mouse Cursor State
   const [cursorStyle, setCursorStyle] = useState<string>('crosshair');
@@ -2334,6 +2351,25 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
 
                     {(activeL.type === 'image' || activeL.type === 'smart') && (
                       <>
+                        <button
+                          onClick={() => {
+                            const isWordArt = activeL.name.toLowerCase().includes('wordart') || activeL.name.toLowerCase().includes('nuvem');
+                            setModalDefaultTab(isWordArt ? 'words' : 'adjustments');
+                            setIsImageModalOpen(true);
+                            setContextMenu(null);
+                          }}
+                          className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer font-bold ${
+                            theme === 'light' ? 'hover:bg-purple-50 text-purple-700' : 'hover:bg-[#2a2a32] text-pink-400'
+                          }`}
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                          <span>
+                            {activeL.name.toLowerCase().includes('wordart') || activeL.name.toLowerCase().includes('nuvem')
+                              ? 'Editar Palavras do WordArt'
+                              : 'Edição Avançada de Imagem'}
+                          </span>
+                        </button>
+
                         <button
                           onClick={() => handleResizeForDevice(activeL.id, 'tablet')}
                           className={`w-full px-3 py-1.5 text-left flex items-center gap-2.5 transition-colors cursor-pointer ${

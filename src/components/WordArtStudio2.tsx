@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../lib/theme';
 import {
   Type,
@@ -26,7 +26,24 @@ import {
 } from 'lucide-react';
 
 export interface WordArtStudioProps {
-  onAddWordArtImage?: (dataUrl: string, title?: string) => void;
+  onAddWordArtImage?: (
+    dataUrl: string,
+    title?: string,
+    wordItems?: WordItem[],
+    wordShape?: string,
+    wordPaletteId?: string,
+    wordFont?: string,
+    wordLayout?: 'mixed' | 'horizontal' | 'angles'
+  ) => void;
+  onAddWordArtBlob?: (
+    blob: Blob,
+    title?: string,
+    wordItems?: WordItem[],
+    wordShape?: string,
+    wordPaletteId?: string,
+    wordFont?: string,
+    wordLayout?: 'mixed' | 'horizontal' | 'angles'
+  ) => void;
   onClose?: () => void;
   darkMode?: boolean;
 }
@@ -102,6 +119,7 @@ const FONTS = [
 
 export const WordArtStudio: React.FC<WordArtStudioProps> = ({
   onAddWordArtImage,
+  onAddWordArtBlob,
   onClose,
   darkMode
 }) => {
@@ -140,16 +158,157 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
   const [bulkInput, setBulkInput] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
 
+  // AI Theme Word Generator State
+  const [aiThemeInput, setAiThemeInput] = useState('');
+  const [isGeneratingAiWords, setIsGeneratingAiWords] = useState(false);
+
   // Settings
   const [selectedShape, setSelectedShape] = useState<string>('caneca');
   const [selectedFont, setSelectedFont] = useState<string>('Impact');
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(COLOR_PALETTES[0]);
   const [layoutMode, setLayoutMode] = useState<'horizontal' | 'mixed' | 'angles'>('mixed');
   const [density, setDensity] = useState<number>(75);
+  const [repeatWords, setRepeatWords] = useState<boolean>(false);
   const [textCasing] = useState<'uppercase' | 'lowercase' | 'original'>('uppercase');
   const [bgColor] = useState<string>('transparent');
   const [isRendering, setIsRendering] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+
+  // Helper for Fallback Theme Words
+  const getFallbackThemeWords = (theme: string): { text: string; weight: number }[] => {
+    const lower = theme.toLowerCase();
+    if (lower.includes('mãe') || lower.includes('mae') || lower.includes('mother')) {
+      return [
+        { text: 'MÃE', weight: 10 }, { text: 'AMOR', weight: 9 }, { text: 'CARINHO', weight: 8 },
+        { text: 'PROTEÇÃO', weight: 8 }, { text: 'RAINHA', weight: 8 }, { text: 'CUIDADO', weight: 7 },
+        { text: 'EXEMPLO', weight: 7 }, { text: 'DEDICAÇÃO', weight: 7 }, { text: 'ABRAÇO', weight: 6 },
+        { text: 'FAMÍLIA', weight: 6 }, { text: 'BASE', weight: 6 }, { text: 'GRATIDÃO', weight: 6 },
+        { text: 'LUZ', weight: 5 }, { text: 'MINHA VIDA', weight: 5 }, { text: 'ETERNA', weight: 5 }
+      ];
+    }
+    if (lower.includes('pai') || lower.includes('father')) {
+      return [
+        { text: 'PAI', weight: 10 }, { text: 'HERÓI', weight: 9 }, { text: 'AMOR', weight: 8 },
+        { text: 'FORÇA', weight: 8 }, { text: 'EXEMPLO', weight: 8 }, { text: 'SABEDORIA', weight: 7 },
+        { text: 'PROTEÇÃO', weight: 7 }, { text: 'COMPANHEIRO', weight: 7 }, { text: 'ORGULHO', weight: 6 },
+        { text: 'GUIA', weight: 6 }, { text: 'FAMÍLIA', weight: 6 }, { text: 'GRATIDÃO', weight: 6 },
+        { text: 'ABRAÇO', weight: 5 }, { text: 'MEU PORTO SEGURO', weight: 5 }
+      ];
+    }
+    if (lower.includes('futebol') || lower.includes('esporte') || lower.includes('time') || lower.includes('jogo')) {
+      return [
+        { text: 'FUTEBOL', weight: 10 }, { text: 'GOL', weight: 9 }, { text: 'PAIXÃO', weight: 8 },
+        { text: 'CAMPEÃO', weight: 8 }, { text: 'TORCIDA', weight: 8 }, { text: 'VITÓRIA', weight: 7 },
+        { text: 'GARRA', weight: 7 }, { text: 'EMOÇÃO', weight: 7 }, { text: 'TÍTULO', weight: 6 },
+        { text: 'CAMISA', weight: 6 }, { text: 'BOLA', weight: 6 }, { text: 'RAÇA', weight: 6 },
+        { text: 'ESTÁDIO', weight: 5 }, { text: 'SUPERAÇÃO', weight: 5 }
+      ];
+    }
+    if (lower.includes('aniversário') || lower.includes('aniversario') || lower.includes('fest') || lower.includes('bolo')) {
+      return [
+        { text: 'PARABÉNS', weight: 10 }, { text: 'FESTA', weight: 9 }, { text: 'ALEGRIA', weight: 8 },
+        { text: 'DOCES', weight: 8 }, { text: 'BOLO', weight: 8 }, { text: 'DIVERSÃO', weight: 7 },
+        { text: 'FELICIDADE', weight: 7 }, { text: 'SORRISOS', weight: 7 }, { text: 'AMIGOS', weight: 6 },
+        { text: 'MAGIA', weight: 6 }, { text: 'SONHOS', weight: 6 }, { text: 'VELINHAS', weight: 5 }
+      ];
+    }
+    if (lower.includes('amor') || lower.includes('namorado') || lower.includes('casal') || lower.includes('casamento')) {
+      return [
+        { text: 'AMOR', weight: 10 }, { text: 'TE AMO', weight: 9 }, { text: 'PAIXÃO', weight: 8 },
+        { text: 'CASAL', weight: 8 }, { text: 'ETERNO', weight: 8 }, { text: 'COMPLICIDADE', weight: 7 },
+        { text: 'CARINHO', weight: 7 }, { text: 'MEU BEM', weight: 7 }, { text: 'CORAÇÃO', weight: 6 },
+        { text: 'BEIJOS', weight: 6 }, { text: 'UNIDOS', weight: 6 }, { text: 'JUNTOS SEMPRE', weight: 5 }
+      ];
+    }
+    if (lower.includes('enferm') || lower.includes('médic') || lower.includes('medic') || lower.includes('saúde') || lower.includes('saude')) {
+      return [
+        { text: 'ENFERMAGEM', weight: 10 }, { text: 'CUIDADO', weight: 9 }, { text: 'COMPAIXÃO', weight: 8 },
+        { text: 'SAÚDE', weight: 8 }, { text: 'DEDICAÇÃO', weight: 8 }, { text: 'VIDA', weight: 7 },
+        { text: 'JALECO', weight: 7 }, { text: 'HEROÍNA', weight: 7 }, { text: 'EMPATIA', weight: 6 },
+        { text: 'VOCAÇÃO', weight: 6 }, { text: 'AMOR', weight: 6 }, { text: 'RESPEITO', weight: 5 }
+      ];
+    }
+    if (lower.includes('game') || lower.includes('jog') || lower.includes('cyber')) {
+      return [
+        { text: 'GAMER', weight: 10 }, { text: 'LEVEL UP', weight: 9 }, { text: 'PLAY', weight: 8 },
+        { text: 'VICTORY', weight: 8 }, { text: 'PRO PLAYER', weight: 8 }, { text: 'SKILL', weight: 7 },
+        { text: 'STREAMER', weight: 7 }, { text: 'HEADSHOT', weight: 7 }, { text: 'SETUP', weight: 6 },
+        { text: 'XP', weight: 6 }, { text: 'QUEST', weight: 6 }, { text: 'MULTIPLAYER', weight: 5 }
+      ];
+    }
+    if (lower.includes('fé') || lower.includes('fe') || lower.includes('deus') || lower.includes('religi')) {
+      return [
+        { text: 'FÉ', weight: 10 }, { text: 'DEUS', weight: 9 }, { text: 'ABENÇOADO', weight: 8 },
+        { text: 'ORAÇÃO', weight: 8 }, { text: 'PAZ', weight: 8 }, { text: 'ESPERANÇA', weight: 7 },
+        { text: 'BÊNÇÃO', weight: 7 }, { text: 'MILAGRE', weight: 7 }, { text: 'GRATIDÃO', weight: 6 },
+        { text: 'LUZ', weight: 6 }, { text: 'JESUS', weight: 6 }, { text: 'AMOR', weight: 5 }
+      ];
+    }
+    if (lower.includes('café') || lower.includes('cafe')) {
+      return [
+        { text: 'CAFÉ', weight: 10 }, { text: 'ACONCHEGO', weight: 9 }, { text: 'ENERGIA', weight: 8 },
+        { text: 'PAUSA', weight: 8 }, { text: 'AROMA', weight: 8 }, { text: 'AMOR', weight: 7 },
+        { text: 'CANECA', weight: 7 }, { text: 'QUENTINHO', weight: 7 }, { text: 'SABOR', weight: 6 },
+        { text: 'BOM DIA', weight: 6 }, { text: 'FOCO', weight: 6 }, { text: 'MOMENTO', weight: 5 }
+      ];
+    }
+
+    const cleanTheme = theme.toUpperCase().trim();
+    return [
+      { text: cleanTheme, weight: 10 },
+      { text: 'SUBLIMAÇÃO', weight: 9 },
+      { text: 'QUALIDADE', weight: 8 },
+      { text: 'ARTE', weight: 8 },
+      { text: 'PERSONALIZADO', weight: 7 },
+      { text: 'ESTAMPA', weight: 7 },
+      { text: 'EXCLUSIVO', weight: 7 },
+      { text: 'CARINHO', weight: 6 },
+      { text: 'BRILHO', weight: 6 },
+      { text: 'PRESENTE', weight: 6 },
+      { text: 'ESPECIAL', weight: 5 }
+    ];
+  };
+
+  const handleGenerateWordsFromAI = async (themeName?: string) => {
+    const targetTheme = (themeName || aiThemeInput).trim();
+    if (!targetTheme) return;
+
+    setIsGeneratingAiWords(true);
+    try {
+      const res = await fetch('/api/gemini/generate-wordart-words', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: targetTheme }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.words) && data.words.length > 0) {
+          const newWordsList: WordItem[] = data.words.map((w: any, idx: number) => ({
+            id: Date.now().toString() + idx,
+            text: String(w.text || '').trim().toUpperCase(),
+            weight: typeof w.weight === 'number' ? Math.max(1, Math.min(10, w.weight)) : 7,
+          }));
+          setWords(newWordsList);
+          setStatusMsg(`✨ ${newWordsList.length} palavras geradas por IA para o tema "${targetTheme}"!`);
+          setIsGeneratingAiWords(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('AI word generation online failed, falling back to smart local generator:', err);
+    }
+
+    const fallbackList = getFallbackThemeWords(targetTheme);
+    const newWordsList: WordItem[] = fallbackList.map((w, idx) => ({
+      id: Date.now().toString() + idx,
+      text: w.text.toUpperCase(),
+      weight: w.weight,
+    }));
+    setWords(newWordsList);
+    setStatusMsg(`✨ ${newWordsList.length} palavras geradas para o tema "${targetTheme}"!`);
+    setIsGeneratingAiWords(false);
+  };
 
   // Generate Word Art onto Canvas
   const generateWordArt = () => {
@@ -277,9 +436,19 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
     };
 
     // 2. Prepare Formatted Words List sorted by Weight Descending
-    const processedWords = [...words]
+    let processedWords = [...words]
       .filter((w) => w.text.trim().length > 0)
       .sort((a, b) => b.weight - a.weight);
+
+    if (!repeatWords) {
+      const seen = new Set<string>();
+      processedWords = processedWords.filter((w) => {
+        const key = w.text.trim().toUpperCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
 
     if (processedWords.length === 0) {
       setIsRendering(false);
@@ -328,11 +497,17 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
     };
 
     // 3. Placement Loop
-    const totalItemsToPlace = Math.min(120, Math.floor((density / 100) * 100));
+    const totalItemsToPlace = repeatWords
+      ? Math.min(120, Math.floor((density / 100) * 100))
+      : processedWords.length;
+
     let paletteIdx = 0;
 
     for (let i = 0; i < totalItemsToPlace; i++) {
-      const item = processedWords[i % processedWords.length];
+      const item = repeatWords
+        ? processedWords[i % processedWords.length]
+        : processedWords[i];
+      if (!item) continue;
       let wordText = item.text.trim();
 
       if (textCasing === 'uppercase') wordText = wordText.toUpperCase();
@@ -455,8 +630,30 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
 
     const dataUrl = canvas.toDataURL('image/png');
     if (onAddWordArtImage) {
-      onAddWordArtImage(dataUrl, `WordArt ${selectedShape.toUpperCase()}`);
+      onAddWordArtImage(
+        dataUrl,
+        `WordArt ${selectedShape.toUpperCase()}`,
+        words,
+        selectedShape,
+        selectedPalette.id,
+        selectedFont,
+        layoutMode
+      );
     }
+    canvas.toBlob((blob) => {
+      if (blob && (onAddWordArtBlob as any)) {
+        (onAddWordArtBlob as any)(
+          blob,
+          `WordArt ${selectedShape.toUpperCase()}`,
+          words,
+          selectedShape,
+          selectedPalette.id,
+          selectedFont,
+          layoutMode
+        );
+      }
+    }, 'image/png');
+
     setStatusMsg('Word Art adicionado com sucesso à área de trabalho!');
     setTimeout(() => setStatusMsg(null), 4000);
   };
@@ -564,6 +761,63 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               <Copy className="w-3 h-3" />
               Colar Lista
             </button>
+          </div>
+
+          {/* AI Theme Generator Box */}
+          <div className={`p-2.5 rounded-xl border space-y-2 ${
+            isDark ? 'bg-purple-950/30 border-purple-800/50' : 'bg-purple-50 border-purple-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-[11px] text-purple-300 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Gerar Lista por Tema com IA
+              </span>
+            </div>
+            <div className="flex gap-1.5">
+              <input
+                type="text"
+                value={aiThemeInput}
+                onChange={(e) => setAiThemeInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleGenerateWordsFromAI()}
+                placeholder="Digite o Tema (ex: Dia das Mães, Futebol)..."
+                className={`flex-1 border rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-purple-500 ${
+                  isDark ? 'bg-slate-950 border-purple-900/60 text-white placeholder-slate-500' : 'bg-white border-purple-300 text-slate-800'
+                }`}
+              />
+              <button
+                onClick={() => handleGenerateWordsFromAI()}
+                disabled={isGeneratingAiWords || !aiThemeInput.trim()}
+                className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer disabled:opacity-50 whitespace-nowrap shadow"
+              >
+                {isGeneratingAiWords ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="w-3 h-3 text-amber-300" />
+                    <span>Gerar IA</span>
+                  </>
+                )}
+              </button>
+            </div>
+            {/* Theme Presets */}
+            <div className="flex flex-wrap gap-1">
+              {['Dia das Mães', 'Dia dos Pais', 'Futebol', 'Aniversário', 'Enfermagem', 'Gamer', 'Fé'].map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => {
+                    setAiThemeInput(preset);
+                    handleGenerateWordsFromAI(preset);
+                  }}
+                  className={`px-1.5 py-0.5 text-[9px] font-semibold rounded border transition cursor-pointer ${
+                    isDark
+                      ? 'bg-purple-900/30 border-purple-800/40 text-purple-300 hover:bg-purple-800/50'
+                      : 'bg-purple-100 border-purple-300 text-purple-800 hover:bg-purple-200'
+                  }`}
+                >
+                  + {preset}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Quick Add Word Form */}
@@ -808,6 +1062,24 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className="w-full accent-purple-500 cursor-pointer"
               />
             </div>
+
+            {/* Repeat Words Toggle */}
+            <label className={`flex items-center justify-between p-2 rounded-xl border transition cursor-pointer ${
+              isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100 border-slate-200'
+            }`}>
+              <div className="flex flex-col">
+                <span className="font-bold text-xs text-slate-200">Repetir Palavras na Nuvem</span>
+                <span className="text-[10px] text-slate-400">
+                  {repeatWords ? 'Ativado: Repete palavras' : 'Desativado: Sem repetição (1x por palavra)'}
+                </span>
+              </div>
+              <input
+                type="checkbox"
+                checked={repeatWords}
+                onChange={(e) => setRepeatWords(e.target.checked)}
+                className="w-4 h-4 accent-purple-500 rounded cursor-pointer"
+              />
+            </label>
           </div>
         </aside>
       </div>

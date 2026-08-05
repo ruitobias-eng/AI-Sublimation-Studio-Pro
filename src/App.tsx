@@ -7,12 +7,10 @@ import {
   HistoryStep,
   WorkspaceViewMode,
   TextWarpStyle,
+  WordArtConfig,
 } from './types';
 import { PRODUCTS_LIBRARY } from './data/products';
 import { TopBar } from './components/TopBar';
-import { setAsset, revokeAsset } from './lib/imageAssetStore';
-import { WordArtModal as WordArtModal2 } from './components/WordArtModal2';
-import { WordArtModal as WordArtModalOriginal } from './components/WordArtModal';
 import { LeftToolBar } from './components/LeftToolbar';
 import { CanvasArea } from './components/CanvasArea';
 import { ThreeDViewport } from './components/ThreeDViewport';
@@ -31,8 +29,9 @@ import { AndroidMobileNav } from './components/AndroidMobileNav';
 import { MD3Snackbar, SnackbarMessage } from './components/MD3Snackbar';
 import { MD3BottomSheet } from './components/MD3BottomSheet';
 import { AuthModal, UserSession } from './components/AuthModal';
-import { PresetGalleryModal } from './components/PresetGalleryModal';
-import { PresetTemplate } from './types';
+import { WordArtModal } from './components/WordArtModal';
+import { WordArtModal2 } from './components/WordArtModal2';
+import { TestRunnerModal } from './components/TestRunnerModal';
 
 import {
   Layers,
@@ -149,10 +148,84 @@ export default function App() {
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isPresetGalleryOpen, setIsPresetGalleryOpen] = useState(false);
-  // WordArt original and WordArt2 Modal state
-  const [isWordArtOpen, setIsWordArtOpen] = useState(false);
-  const [isWordArt2Open, setIsWordArt2Open] = useState(false);
+  const [isWordArtModalOpen, setIsWordArtModalOpen] = useState(false);
+  const [isWordArtModal2Open, setIsWordArtModal2Open] = useState(false);
+  const [editingWordArtLayerId, setEditingWordArtLayerId] = useState<string | null>(null);
+  const [isTestRunnerOpen, setIsTestRunnerOpen] = useState(false);
+
+  const handleAddWordArtImageToCanvas = (
+    dataUrl: string,
+    title?: string,
+    config?: WordArtConfig,
+    wordArtType?: 'wordart1' | 'wordart2'
+  ) => {
+    if (editingWordArtLayerId) {
+      const updatedLayers = layers.map((layer) => {
+        if (layer.id === editingWordArtLayerId) {
+          return {
+            ...layer,
+            content: dataUrl,
+            name: title || layer.name,
+            wordArtConfig: config || layer.wordArtConfig,
+            wordArtType: wordArtType || layer.wordArtType || 'wordart1',
+          };
+        }
+        return layer;
+      });
+      setLayers(updatedLayers);
+      setActiveLayerId(editingWordArtLayerId);
+      pushHistoryStep(`Atualizado ${title || 'WordArt'}`, 'WordArt', updatedLayers);
+      setCanvasVersion((v) => v + 1);
+      showSnackbar('Arte WordArt atualizada com sucesso!', 'success');
+      setEditingWordArtLayerId(null);
+      return;
+    }
+
+    const newLayer: Layer = {
+      id: 'layer-wordart-' + Date.now(),
+      name: title || 'WordArt Tipográfico',
+      type: 'image',
+      visible: true,
+      locked: false,
+      opacity: 100,
+      blendMode: 'normal',
+      x: 250,
+      y: 150,
+      width: 700,
+      height: 700,
+      rotation: 0,
+      content: dataUrl,
+      wordArtConfig: config,
+      wordArtType: wordArtType || 'wordart1',
+      filters: { brightness: 0, contrast: 0, saturation: 0, hue: 0, blur: 0, vibrance: 0 },
+    };
+    const updated = [...layers, newLayer];
+    setLayers(updated);
+    setActiveLayerId(newLayer.id);
+    pushHistoryStep(`Adicionado ${newLayer.name}`, 'WordArt', updated);
+    setCanvasVersion((v) => v + 1);
+    showSnackbar('WordArt adicionado com sucesso à estampa!', 'success');
+  };
+
+  const handleOpenWordArtStudio = (layerId?: string, type: 'wordart1' | 'wordart2' = 'wordart1') => {
+    if (layerId) {
+      const targetLayer = layers.find((l) => l.id === layerId);
+      setEditingWordArtLayerId(layerId);
+      const targetType = type || targetLayer?.wordArtType || 'wordart1';
+      if (targetType === 'wordart2') {
+        setIsWordArtModal2Open(true);
+      } else {
+        setIsWordArtModalOpen(true);
+      }
+    } else {
+      setEditingWordArtLayerId(null);
+      if (type === 'wordart2') {
+        setIsWordArtModal2Open(true);
+      } else {
+        setIsWordArtModalOpen(true);
+      }
+    }
+  };
   const [currentUser, setCurrentUser] = useState<UserSession | null>(() => {
     try {
       const saved = localStorage.getItem('sublimstudio_user_session');
@@ -210,8 +283,6 @@ export default function App() {
 
   // Android Camera Input Ref
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  // Image asset map to keep Blobs/ObjectURLs/ImageBitmaps created by imports (WordArt/AI/Camera)
-  const imageAssetsRef = useRef<Map<string, { blob?: Blob; url?: string; bitmap?: ImageBitmap }>>(new Map());
 
   const handleTriggerCamera = () => {
     cameraInputRef.current?.click();
@@ -337,49 +408,41 @@ export default function App() {
     }
   };
 
-  const handleIncludeStampFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleIncludeStampFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Prefer blob/objectURL + ImageBitmap stored in imageAssetStore for performance
-    const objectUrl = URL.createObjectURL(file);
-    let width = 500;
-    let height = 380;
-    try {
-      const bitmap = await createImageBitmap(file);
-      width = bitmap.width;
-      height = bitmap.height;
-      setAsset(objectUrl, { blob: file, url: objectUrl, bitmap });
-    } catch (err) {
-      // Fallback: store blob/url without bitmap
-      setAsset(objectUrl, { blob: file, url: objectUrl });
-    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const resultUrl = event.target?.result as string;
+      if (resultUrl) {
+        const stampName = file.name.replace(/\.[^/.]+$/, '');
+        const newId = 'layer-stamp-' + Date.now();
+        const newLayer: Layer = {
+          id: newId,
+          name: 'Estampa: ' + stampName,
+          type: 'image',
+          visible: true,
+          locked: false,
+          opacity: 100,
+          blendMode: 'normal',
+          x: 100,
+          y: 60,
+          width: 500,
+          height: 380,
+          rotation: 0,
+          content: resultUrl,
+        };
 
-    const stampName = file.name.replace(/\.[^/.]+$/, '');
-    const newId = 'layer-stamp-' + Date.now();
-    const newLayer: Layer = {
-      id: newId,
-      name: 'Estampa: ' + stampName,
-      type: 'image',
-      visible: true,
-      locked: false,
-      opacity: 100,
-      blendMode: 'normal',
-      x: 100,
-      y: 60,
-      width,
-      height,
-      rotation: 0,
-      content: objectUrl,
+        const updatedLayers = [...layers, newLayer];
+        setLayers(updatedLayers);
+        setActiveLayerId(newId);
+        pushHistoryStep('Incluiu Estampa: ' + stampName, 'Incluir Estampa', updatedLayers);
+        setCanvasVersion((v) => v + 1);
+        showSnackbar(`Estampa "${stampName}" adicionada ao canvas!`, 'success');
+      }
     };
-
-    const updatedLayers = [...layers, newLayer];
-    setLayers(updatedLayers);
-    setActiveLayerId(newId);
-    pushHistoryStep && pushHistoryStep('Incluiu Estampa: ' + stampName, 'Incluir Estampa', updatedLayers);
-    setCanvasVersion((v) => v + 1);
-    showSnackbar(`Estampa "${stampName}" adicionada ao canvas!`, 'success');
-
+    reader.readAsDataURL(file);
     e.target.value = '';
   };
 
@@ -793,16 +856,6 @@ export default function App() {
   };
 
   const handleDeleteLayer = (id: string) => {
-    const target = layers.find((l) => l.id === id);
-    if (target && target.content) {
-      // attempt to revoke any object URLs / bitmaps we created for this layer
-      try {
-        revokeAsset(target.content);
-      } catch (e) {
-        // ignore cleanup errors
-      }
-    }
-
     const updatedLayers = layers.filter((l) => l.id !== id);
     setLayers(updatedLayers);
     if (activeLayerId === id) setActiveLayerId(null);
@@ -971,130 +1024,6 @@ export default function App() {
     setCanvasVersion((v) => v + 1);
   };
 
-  // Add a WordArt image (from WordArt2) to the canvas as a new image layer (dataURL fallback)
-  const handleAddWordArtImageToCanvas = (dataUrl: string, title?: string) => {
-    const newId = 'layer-wordart-' + Date.now();
-    const newLayer: Layer = {
-      id: newId,
-      name: (title ? title : 'WordArt') + ' ' + newId,
-      type: 'image',
-      visible: true,
-      locked: false,
-      opacity: 100,
-      blendMode: 'normal',
-      x: 120,
-      y: 100,
-      width: 800,
-      height: 800,
-      rotation: 0,
-      content: dataUrl,
-    };
-
-    const updated = [...layers, newLayer];
-    setLayers(updated);
-    setActiveLayerId(newId);
-    pushHistoryStep('Adicionou WordArt: ' + (title || 'WordArt'), 'WordArt Studio', updated);
-    setCanvasVersion((v) => v + 1);
-  };
-
-  // Preferred path: receive a Blob from WordArt modal and insert efficiently
-  const handleAddWordArtBlobToCanvas = async (blob: Blob, title?: string) => {
-    const newId = 'layer-wordart-' + Date.now();
-
-    try {
-      // Create an object URL for immediate use in CanvasArea (string-based content)
-      const objectUrl = URL.createObjectURL(blob);
-
-      // Try to create an ImageBitmap to obtain natural size (fast) — fallback allowed
-      let bitmap: ImageBitmap | null = null;
-      try {
-        bitmap = await createImageBitmap(blob);
-      } catch (err) {
-        console.warn('createImageBitmap failed for WordArt blob, falling back to object URL', err);
-        bitmap = null;
-      }
-
-      // Determine natural dimensions
-      const naturalW = bitmap ? bitmap.width : 1200;
-      const naturalH = bitmap ? bitmap.height : 800;
-
-      // Position & scale: center and cap to ~60% of base canvas width
-      const baseCanvasWidth = Math.round((currentProduct.defaultWidthCm / 2.54) * 150);
-      const baseCanvasHeight = Math.round((currentProduct.defaultHeightCm / 2.54) * 150);
-      const maxW = Math.round(baseCanvasWidth * 0.6);
-      const maxH = Math.round(baseCanvasHeight * 0.6);
-
-      let targetW = naturalW;
-      let targetH = naturalH;
-      const aspect = naturalW / (naturalH || 1);
-      if (targetW > maxW) {
-        targetW = maxW;
-        targetH = Math.round(targetW / aspect);
-      }
-      if (targetH > maxH) {
-        targetH = maxH;
-        targetW = Math.round(targetH * aspect);
-      }
-
-      const newLayer: Layer = {
-        id: newId,
-        name: (title || 'WordArt') + ' ' + newId,
-        type: 'image',
-        visible: true,
-        locked: false,
-        opacity: 100,
-        blendMode: 'normal',
-        x: Math.round((baseCanvasWidth - targetW) / 2),
-        y: Math.round((baseCanvasHeight - targetH) / 2),
-        width: Math.max(60, targetW),
-        height: Math.max(60, targetH),
-        rotation: 0,
-        content: objectUrl, // CanvasArea continues to accept string URLs
-      };
-
-      // store asset in shared store for CanvasArea to pick up (bitmap preferred)
-      setAsset(objectUrl, { blob, url: objectUrl, bitmap: bitmap ?? undefined });
-
-      const updated = [...layers, newLayer];
-      setLayers(updated);
-      setActiveLayerId(newId);
-      pushHistoryStep('Adicionou WordArt: ' + (title || 'WordArt'), 'WordArt Studio', updated);
-      setCanvasVersion((v) => v + 1);
-    } catch (err) {
-      console.error('Erro ao inserir WordArt Blob:', err);
-      // Fallback: nothing — the modal still calls the dataURL path as compatibility
-    }
-  };
-
-  // Apply Preset Template to Canvas
-  const handleApplyPreset = (preset: PresetTemplate) => {
-    handleAddAIGeneratedImageToCanvas(preset.imageUrl, preset.title);
-    if (preset.suggestedText) {
-      const textId = 'layer-text-' + Date.now();
-      const textLayer: Layer = {
-        id: textId,
-        name: 'Texto Preset: ' + preset.suggestedText,
-        type: 'text',
-        visible: true,
-        locked: false,
-        opacity: 100,
-        blendMode: 'normal',
-        x: 150,
-        y: 380,
-        width: 500,
-        height: 60,
-        rotation: 0,
-        content: preset.suggestedText,
-        color: '#FFFFFF',
-        fontSize: 32,
-        fontFamily: 'Montserrat',
-        fontWeight: 'bold',
-      };
-      setLayers((prev) => [...prev, textLayer]);
-    }
-    showSnackbar(`Modelo "${preset.title}" aplicado com sucesso!`, 'success');
-  };
-
   // Apply AI Edit Tool (Background Remover, Vectorize, Upscale) to active layer
   const handleApplyAIToolToActiveLayer = async (action: 'remove_bg' | 'vectorize' | 'upscale' | 'color_replace') => {
     const activeLayer = layers.find((l) => l.id === activeLayerId);
@@ -1179,9 +1108,10 @@ export default function App() {
           setActiveRightTab('ai');
           setIsRightSidebarCollapsed(false);
         }}
+        onOpenWordArtModal={() => setIsWordArtModalOpen(true)}
+        onOpenWordArt2={() => setIsWordArtModal2Open(true)}
+        onOpenTestRunner={() => setIsTestRunnerOpen(true)}
         onOpenAndroidModal={() => setIsAndroidModalOpen(true)}
-        onOpenPresetGallery={() => setIsPresetGalleryOpen(true)}
-        onOpenWordArt2={() => setIsWordArt2Open(true)}
         onOpenHelp={() => setIsHelpModalOpen(true)}
         onOpenAbout={() => setIsAboutModalOpen(true)}
         mirrorSublimation={mirrorSublimation}
@@ -1252,9 +1182,8 @@ export default function App() {
             setActiveRightTab('ai');
             setIsRightSidebarCollapsed(false);
           }}
-          onOpenPresetGallery={() => setIsPresetGalleryOpen(true)}
-          onOpenWordArtModal={() => setIsWordArtOpen(true)}
-          onOpenWordArt2={() => setIsWordArt2Open(true)}
+          onOpenWordArtModal={() => setIsWordArtModalOpen(true)}
+          onOpenWordArt2={() => setIsWordArtModal2Open(true)}
           theme={theme}
           currentUser={currentUser}
           onOpenAuthModal={() => setIsAuthModalOpen(true)}
@@ -1304,6 +1233,7 @@ export default function App() {
                 showRulers={showRulers}
                 onCanvasRendered={(canvas) => setRenderedCanvas(canvas)}
                 theme={theme}
+                onOpenWordArtStudio={handleOpenWordArtStudio}
               />
 
               {/* Optional Floating PIP 3D Thumbnail Card when in 'canvas' focus mode */}
@@ -1479,6 +1409,7 @@ export default function App() {
                     onApplyPresetTemplate={handleApplyPresetTemplate}
                     onDeleteLayer={handleDeleteLayer}
                     onDuplicateLayer={handleDuplicateLayer}
+                    onOpenWordArtStudio={handleOpenWordArtStudio}
                     theme={theme}
                   />
                 )}
@@ -1852,6 +1783,10 @@ export default function App() {
               handleDuplicateLayer(id);
               showSnackbar('Camada duplicada', 'success');
             }}
+            onOpenWordArtStudio={(layerId, type) => {
+              handleOpenWordArtStudio(layerId, type);
+              setMobileBottomSheetTab(null);
+            }}
             theme={theme}
           />
         )}
@@ -1916,38 +1851,97 @@ export default function App() {
         darkMode={theme === 'dark'}
       />
 
-      {/* Galeria de Modelos HD & Presets Modal */}
-      <PresetGalleryModal
-        isOpen={isPresetGalleryOpen}
-        onClose={() => setIsPresetGalleryOpen(false)}
-        onApplyPreset={handleApplyPreset}
-        darkMode={theme === 'dark'}
-      />
+      {/* WordArt & Nuvem de Palavras Modal */}
+      {(() => {
+        const activeEditingLayer = layers.find((l) => l.id === editingWordArtLayerId);
+        let inferredConfig: WordArtConfig | undefined = undefined;
 
-      {/* WordArt Studio Original Modal */}
-      <WordArtModalOriginal
-        isOpen={isWordArtOpen}
-        onClose={() => setIsWordArtOpen(false)}
-        onAddWordArtImage={(dataUrl, title) => {
-          handleAddWordArtImageToCanvas(dataUrl, title);
-          setIsWordArtOpen(false);
-        }}
-      />
+        if (activeEditingLayer) {
+          const isBogusText = (txt: string) =>
+            !txt || /^layer--?\d+/i.test(txt) || /^layer-wordart/i.test(txt) || /^layer-/i.test(txt);
 
-      {/* WordArt Studio 2 Modal */}
-      <WordArtModal2
-        isOpen={isWordArt2Open}
-        onClose={() => setIsWordArt2Open(false)}
-        onAddWordArtImage={(dataUrl, title) => {
-          // backward-compatible dataURL path
-          handleAddWordArtImageToCanvas(dataUrl, title);
-          setIsWordArt2Open(false);
-        }}
-        onAddWordArtBlob={(blob, title) => {
-          // preferred blob path (efficient for large/high-res exports)
-          handleAddWordArtBlobToCanvas(blob, title);
-          setIsWordArt2Open(false);
-        }}
+          if (activeEditingLayer.wordArtConfig && Array.isArray(activeEditingLayer.wordArtConfig.words) && activeEditingLayer.wordArtConfig.words.length > 0) {
+            const cleanWords = activeEditingLayer.wordArtConfig.words.filter((w) => w && w.text && !isBogusText(w.text));
+            if (cleanWords.length > 0) {
+              inferredConfig = {
+                ...activeEditingLayer.wordArtConfig,
+                words: cleanWords,
+              };
+            }
+          }
+
+          if (!inferredConfig) {
+            let cleanedName = (activeEditingLayer.name || '')
+              .replace(/WordArt\s*2?\s*/gi, '')
+              .replace(/layer-wordart-\d+/gi, '')
+              .replace(/layer--?\d+/gi, '')
+              .replace(/layer-[a-z0-9_-]+/gi, '')
+              .replace(/CANECA|CAMISETA|CORACAO|ESTRELA|COROA|FOGO|CIRCULO/gi, '')
+              .trim();
+
+            if (isBogusText(cleanedName)) {
+              cleanedName = '';
+            }
+
+            const parsedWords = cleanedName
+              .split(/[,;\n]+/)
+              .map((w) => w.trim())
+              .filter((w) => w && !isBogusText(w));
+
+            const defaultWordList = [
+              { id: '1', text: 'SUBLIMAÇÃO', weight: 10 },
+              { id: '2', text: 'ESTAMPARIA', weight: 9 },
+              { id: '3', text: 'QUALIDADE', weight: 8 },
+              { id: '4', text: 'DESIGN', weight: 7 },
+            ];
+
+            inferredConfig = {
+              words: parsedWords.length > 0
+                ? parsedWords.map((txt, idx) => ({ id: String(idx + 1), text: txt, weight: Math.max(4, 10 - idx) }))
+                : defaultWordList,
+              shape: activeEditingLayer.wordArtConfig?.shape || 'caneca',
+              font: activeEditingLayer.wordArtConfig?.font || 'Impact',
+              paletteId: activeEditingLayer.wordArtConfig?.paletteId || 'vibrant',
+              layoutMode: activeEditingLayer.wordArtConfig?.layoutMode || 'mixed',
+              density: activeEditingLayer.wordArtConfig?.density || 75,
+              wordArtType: activeEditingLayer.wordArtType || 'wordart1',
+            };
+          }
+        }
+
+        return (
+          <>
+            <WordArtModal
+              isOpen={isWordArtModalOpen}
+              onClose={() => {
+                setIsWordArtModalOpen(false);
+                setEditingWordArtLayerId(null);
+              }}
+              onAddWordArtImage={handleAddWordArtImageToCanvas}
+              darkMode={theme === 'dark'}
+              initialConfig={inferredConfig}
+              isEditing={!!editingWordArtLayerId}
+            />
+
+            <WordArtModal2
+              isOpen={isWordArtModal2Open}
+              onClose={() => {
+                setIsWordArtModal2Open(false);
+                setEditingWordArtLayerId(null);
+              }}
+              onAddWordArtImage={handleAddWordArtImageToCanvas}
+              theme={theme === 'dark' ? 'dark' : 'light'}
+              initialConfig={inferredConfig}
+              isEditing={!!editingWordArtLayerId}
+            />
+          </>
+        );
+      })()}
+
+      {/* Testes Automatizados QA Modal */}
+      <TestRunnerModal
+        isOpen={isTestRunnerOpen}
+        onClose={() => setIsTestRunnerOpen(false)}
         darkMode={theme === 'dark'}
       />
     </div>

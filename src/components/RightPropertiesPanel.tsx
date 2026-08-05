@@ -204,11 +204,40 @@ export const RightPropertiesPanel: React.FC<RightPropertiesPanelProps> = ({
           </div>
         </div>
 
-        {/* Quick Image Scale Actions */}
+        {/* Quick Image Scale & Advanced Editing Actions */}
         {(activeLayer.type === 'image' || activeLayer.type === 'smart') && (
-          <div className="flex flex-col gap-1.5 pt-2 border-t border-[#2d2d30] mt-1">
-            <span className="text-[10px] text-gray-400 font-semibold">Redimensionar Imagem:</span>
-            <div className="grid grid-cols-2 gap-1.5">
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#2d2d30] mt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
+                Ações da Imagem
+              </span>
+              {(activeLayer.name.toLowerCase().includes('wordart') || activeLayer.name.toLowerCase().includes('nuvem')) && (
+                <span className="px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 text-[9px] font-mono border border-pink-500/30">
+                  WordArt
+                </span>
+              )}
+            </div>
+
+            {/* Advanced Modal Trigger Button */}
+            <button
+              onClick={() => {
+                if ((window as any).openImageAdjustmentModal) {
+                  const isWordArt = activeLayer.name.toLowerCase().includes('wordart') || activeLayer.name.toLowerCase().includes('nuvem');
+                  (window as any).openImageAdjustmentModal(isWordArt ? 'words' : 'adjustments');
+                }
+              }}
+              className="w-full py-2 bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 hover:from-purple-500 hover:to-amber-400 text-white font-extrabold text-xs rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md hover:scale-[1.01]"
+              title="Abrir janela de edição avançada, incluir/excluir palavras, filtros e recortes"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
+              <span>
+                {activeLayer.name.toLowerCase().includes('wordart') || activeLayer.name.toLowerCase().includes('nuvem')
+                  ? 'Editar Palavras do WordArt'
+                  : 'Edição Avançada de Imagem'}
+              </span>
+            </button>
+
+            <div className="grid grid-cols-2 gap-1.5 mt-1">
               <button
                 onClick={() => {
                   const printWidth = Math.round(((product?.defaultWidthCm || 20) / 2.54) * 150);

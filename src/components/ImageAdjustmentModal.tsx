@@ -24,8 +24,54 @@ import {
   Image as ImageIcon,
   Tablet,
   Smartphone,
-  Laptop
+  Laptop,
+  Type,
+  Plus,
+  Trash2,
+  FileText,
+  Palette,
+  Shapes,
+  Grid
 } from 'lucide-react';
+
+export interface WordItem {
+  id: string;
+  text: string;
+  weight: number;
+}
+
+const COLOR_PALETTES = [
+  { id: 'vibrant', name: 'Sublimação Vibrante', colors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'] },
+  { id: 'neon', name: 'Cyber Neon', colors: ['#00f5d4', '#7b2cbf', '#f72585', '#4cc9f0', '#7209b7', '#ff9e00'] },
+  { id: 'gold_luxury', name: 'Dourado & Luxo', colors: ['#d4af37', '#f3e5ab', '#aa7c11', '#1e293b', '#e2e8f0', '#b8860b'] },
+  { id: 'pastel', name: 'Maca & Pastel', colors: ['#ffb5a7', '#fcd5ce', '#f8edeb', '#f8ad9d', '#f4978e', '#b5e2fa'] },
+  { id: 'monochrome', name: 'Preto & Branco', colors: ['#0f172a', '#334155', '#475569', '#64748b', '#94a3b8', '#000000'] },
+  { id: 'ocean', name: 'Oceano Profundo', colors: ['#03045e', '#0077b6', '#00b4d8', '#90e0ef', '#caf0f8', '#0096c7'] },
+];
+
+const SHAPE_PRESETS = [
+  { id: 'caneca', name: 'Caneca ☕' },
+  { id: 'camiseta', name: 'Camiseta 👕' },
+  { id: 'coracao', name: 'Coração ❤️' },
+  { id: 'estrela', name: 'Estrela ⭐' },
+  { id: 'circulo', name: 'Círculo 🟠' },
+  { id: 'coroa', name: 'Coroa 👑' },
+  { id: 'fogo', name: 'Chama 🔥' },
+  { id: 'escudo', name: 'Escudo 🛡️' },
+];
+
+const WORD_FONTS = [
+  'Impact',
+  'Montserrat',
+  'Arial Black',
+  'Playfair Display',
+  'Pacifico',
+  'Orbitron',
+  'Lobster',
+  'Trebuchet MS',
+  'Georgia',
+  'Courier New'
+];
 
 interface ImageAdjustmentModalProps {
   isOpen: boolean;
@@ -35,8 +81,173 @@ interface ImageAdjustmentModalProps {
   pushHistoryStep?: (description: string, toolName: string, updatedLayers: Layer[]) => void;
   allLayers?: Layer[];
   theme?: 'dark' | 'light';
-  defaultTab?: 'adjustments' | 'crop' | 'filters' | 'smart';
+  defaultTab?: 'adjustments' | 'crop' | 'filters' | 'smart' | 'words';
+  onOpenWordArtStudio?: (layerId?: string, type?: 'wordart1' | 'wordart2') => void;
 }
+
+export type TextWarpStyle =
+  | 'straight'
+  | 'arc_upper'
+  | 'arc_lower'
+  | 'circle'
+  | 'wave'
+  | 'smile'
+  | 'frown'
+  | 'heart'
+  | 'star'
+  | 'emblem'
+  | 'stamp_style'
+  | 'ribbon'
+  | 'bulge'
+  | 'perspective_center';
+
+const WORDART_2_WARP_STYLES: { id: TextWarpStyle; name: string }[] = [
+  { id: 'straight', name: 'Reto Normal' },
+  { id: 'arc_upper', name: 'Arco Superior' },
+  { id: 'arc_lower', name: 'Arco Inferior' },
+  { id: 'circle', name: 'Círculo 360°' },
+  { id: 'wave', name: 'Onda Senoidal' },
+  { id: 'smile', name: 'Sorriso (Parábola)' },
+  { id: 'frown', name: 'U Invertido' },
+  { id: 'heart', name: 'Coração' },
+  { id: 'star', name: 'Estrela' },
+  { id: 'stamp_style', name: 'Carimbo / Selo' },
+  { id: 'ribbon', name: 'Faixa Banner' },
+  { id: 'bulge', name: 'Inchar / Tufado' },
+];
+
+const WORDART_2_FONTS = [
+  'Cinzel',
+  'Impact',
+  'Bangers',
+  'Bebas Neue',
+  'Pacifico',
+  'Lobster',
+  'Montserrat',
+  'Playfair Display',
+  'Anton',
+  'Great Vibes',
+  'Press Start 2P',
+  'Satisfy',
+  'Bungee',
+  'Permanent Marker',
+  'Arial Black'
+];
+
+const WORDART_2_PRESETS = [
+  {
+    id: 'gold-royalty',
+    name: 'Ouro Real Sublimático',
+    content: 'GRATIDÃO & FÉ',
+    subwords: '',
+    fontFamily: 'Cinzel',
+    warpStyle: 'straight' as TextWarpStyle,
+    warpIntensity: 0,
+    color: '#d4af37',
+    strokeColor: '#3a2e05',
+    strokeWidth: 2,
+    shadowColor: '#8a6d1b',
+    shadowBlur: 8,
+  },
+  {
+    id: 'vintage-3d',
+    name: 'Retro 3D Sublimation',
+    content: 'SUPER MÃE',
+    subwords: '',
+    fontFamily: 'Impact',
+    warpStyle: 'arc_upper' as TextWarpStyle,
+    warpIntensity: 45,
+    color: '#ff2a75',
+    strokeColor: '#2b0018',
+    strokeWidth: 4,
+    shadowColor: '#ffd700',
+    shadowBlur: 10,
+  },
+  {
+    id: 'neon-cyber',
+    name: 'Neon Cyberpunk 3D',
+    content: 'CHAMPION 2026',
+    subwords: '',
+    fontFamily: 'Bangers',
+    warpStyle: 'wave' as TextWarpStyle,
+    warpIntensity: 50,
+    color: '#00f0ff',
+    strokeColor: '#ff007f',
+    strokeWidth: 3,
+    shadowColor: '#00f0ff',
+    shadowBlur: 15,
+  },
+  {
+    id: 'mug-badge',
+    name: 'Emblema Caneca Circular',
+    content: 'CAFÉ & AMOR • 100% ARTESANAL',
+    subwords: '',
+    fontFamily: 'Bebas Neue',
+    warpStyle: 'circle' as TextWarpStyle,
+    warpIntensity: 70,
+    color: '#3d2314',
+    strokeColor: '#f5e0c3',
+    strokeWidth: 2,
+    shadowColor: 'rgba(0,0,0,0.3)',
+    shadowBlur: 4,
+  },
+  {
+    id: 'stamp-seal',
+    name: 'Selo Oficial Estampa',
+    content: 'EDITION PRO • SUBLIMATION STUDIO',
+    subwords: '',
+    fontFamily: 'Montserrat',
+    warpStyle: 'stamp_style' as TextWarpStyle,
+    warpIntensity: 65,
+    color: '#1e293b',
+    strokeColor: '#3b82f6',
+    strokeWidth: 3,
+    shadowColor: 'rgba(0,0,0,0.2)',
+    shadowBlur: 5,
+  },
+  {
+    id: 'comic-pop',
+    name: 'PopArt Quadrinhos',
+    content: 'POW! HEROI',
+    subwords: '',
+    fontFamily: 'Bungee',
+    warpStyle: 'bulge' as TextWarpStyle,
+    warpIntensity: 55,
+    color: '#facc15',
+    strokeColor: '#000000',
+    strokeWidth: 5,
+    shadowColor: '#ef4444',
+    shadowBlur: 0,
+  },
+  {
+    id: 'ribbon-banner',
+    name: 'Faixa Curva de Gala',
+    content: 'MEU PRIMEIRO AMOR',
+    subwords: '',
+    fontFamily: 'Lobster',
+    warpStyle: 'ribbon' as TextWarpStyle,
+    warpIntensity: 50,
+    color: '#8b5cf6',
+    strokeColor: '#4c1d95',
+    strokeWidth: 2,
+    shadowColor: '#c084fc',
+    shadowBlur: 8,
+  },
+  {
+    id: 'heart-cloud',
+    name: 'Nuvem Coração',
+    content: 'AMOR',
+    subwords: 'Família, Carinho, União, Afeto, Gratidão, Paz',
+    fontFamily: 'Pacifico',
+    warpStyle: 'heart' as TextWarpStyle,
+    warpIntensity: 60,
+    color: '#e11d48',
+    strokeColor: '#ffffff',
+    strokeWidth: 2,
+    shadowColor: 'rgba(225, 29, 72, 0.4)',
+    shadowBlur: 12,
+  },
+];
 
 export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
   isOpen,
@@ -47,14 +258,219 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
   allLayers = [],
   theme = 'dark',
   defaultTab = 'adjustments',
+  onOpenWordArtStudio,
 }) => {
-  const [activeTab, setActiveTab] = useState<'adjustments' | 'crop' | 'filters' | 'smart'>(defaultTab);
+  const isWordArtLayer = activeLayer
+    ? activeLayer.name.toLowerCase().includes('wordart') || activeLayer.id.toLowerCase().includes('wordart')
+    : false;
+
+  const [activeTab, setActiveTab] = useState<'adjustments' | 'crop' | 'filters' | 'smart' | 'words'>(
+    isWordArtLayer ? 'words' : defaultTab
+  );
 
   useEffect(() => {
-    if (isOpen && defaultTab) {
-      setActiveTab(defaultTab);
+    if (isOpen) {
+      if (isWordArtLayer) {
+        setActiveTab('words');
+      } else if (defaultTab) {
+        setActiveTab(defaultTab);
+      }
     }
-  }, [isOpen, defaultTab]);
+  }, [isOpen, defaultTab, isWordArtLayer]);
+
+  // Modified Layer Image Content (if WordArt regenerated or cropped)
+  const [modifiedContent, setModifiedContent] = useState<string | null>(null);
+
+  // Default fallback words matching the sample WordArt image
+  const DEFAULT_WORD_ITEMS: WordItem[] = [
+    { id: '1', text: 'IRMÃOS', weight: 8 },
+    { id: '2', text: 'PAIS', weight: 8 },
+    { id: '3', text: 'FAMÍLIA', weight: 9 },
+    { id: '4', text: 'AMOR', weight: 9 },
+    { id: '5', text: 'ABRAÇO', weight: 8 },
+    { id: '6', text: 'PROTEÇÃO', weight: 8 },
+    { id: '7', text: 'UNIÃO', weight: 7 },
+    { id: '8', text: 'CARINHO', weight: 7 },
+    { id: '9', text: 'RESPEITO', weight: 7 },
+    { id: '10', text: 'CONFIANÇA', weight: 6 },
+    { id: '11', text: 'CUIDADO', weight: 6 },
+    { id: '12', text: 'BASE', weight: 5 },
+    { id: '13', text: 'LAR', weight: 5 },
+    { id: '14', text: 'FELICIDADE', weight: 5 },
+    { id: '15', text: 'SEMPRE JUNTOS', weight: 5 },
+  ];
+
+  // WordArt Mode: 'wordart1' (Word cloud) or 'wordart2' (Curved 3D styled text)
+  const [wordArtMode, setWordArtMode] = useState<'wordart1' | 'wordart2'>('wordart1');
+
+  // WordArt 2 State Variables
+  const [w2Content, setW2Content] = useState<string>('GRATIDÃO & FÉ');
+  const [w2Subwords, setW2Subwords] = useState<string>('');
+  const [w2FontFamily, setW2FontFamily] = useState<string>('Cinzel');
+  const [w2WarpStyle, setW2WarpStyle] = useState<TextWarpStyle>('straight');
+  const [w2WarpIntensity, setW2WarpIntensity] = useState<number>(0);
+  const [w2Color, setW2Color] = useState<string>('#d4af37');
+  const [w2StrokeColor, setW2StrokeColor] = useState<string>('#3a2e05');
+  const [w2StrokeWidth, setW2StrokeWidth] = useState<number>(2);
+  const [w2ShadowColor, setW2ShadowColor] = useState<string>('#8a6d1b');
+  const [w2ShadowBlur, setW2ShadowBlur] = useState<number>(8);
+
+  // WordArt Words & Config State (WordArt 1)
+  const [wordItems, setWordItems] = useState<WordItem[]>(DEFAULT_WORD_ITEMS);
+
+  const [newWordText, setNewWordText] = useState('');
+  const [newWordWeight, setNewWordWeight] = useState<number>(7);
+  const [bulkText, setBulkText] = useState('');
+  const [showBulkInput, setShowBulkInput] = useState(false);
+
+  const [editingWordId, setEditingWordId] = useState<string | null>(null);
+  const [editingWordText, setEditingWordText] = useState<string>('');
+
+  const [wordShape, setWordShape] = useState<string>('caneca');
+  const [wordFont, setWordFont] = useState<string>('Impact');
+  const [wordPaletteId, setWordPaletteId] = useState<string>('vibrant');
+  const [wordLayout, setWordLayout] = useState<'mixed' | 'horizontal' | 'angles'>('mixed');
+  const [wordDensity, setWordDensity] = useState<number>(75);
+  const [repeatWords, setRepeatWords] = useState<boolean>(false);
+
+  // AI Theme Word Generator State
+  const [aiThemeInputModal, setAiThemeInputModal] = useState('');
+  const [isGeneratingAiWordsModal, setIsGeneratingAiWordsModal] = useState(false);
+
+  const getFallbackThemeWordsLocal = (theme: string): { text: string; weight: number }[] => {
+    const lower = theme.toLowerCase();
+    if (lower.includes('mãe') || lower.includes('mae') || lower.includes('mother')) {
+      return [
+        { text: 'MÃE', weight: 10 }, { text: 'AMOR', weight: 9 }, { text: 'CARINHO', weight: 8 },
+        { text: 'PROTEÇÃO', weight: 8 }, { text: 'RAINHA', weight: 8 }, { text: 'CUIDADO', weight: 7 },
+        { text: 'EXEMPLO', weight: 7 }, { text: 'DEDICAÇÃO', weight: 7 }, { text: 'ABRAÇO', weight: 6 },
+        { text: 'FAMÍLIA', weight: 6 }, { text: 'BASE', weight: 6 }, { text: 'GRATIDÃO', weight: 6 },
+        { text: 'LUZ', weight: 5 }, { text: 'MINHA VIDA', weight: 5 }, { text: 'ETERNA', weight: 5 }
+      ];
+    }
+    if (lower.includes('pai') || lower.includes('father')) {
+      return [
+        { text: 'PAI', weight: 10 }, { text: 'HERÓI', weight: 9 }, { text: 'AMOR', weight: 8 },
+        { text: 'FORÇA', weight: 8 }, { text: 'EXEMPLO', weight: 8 }, { text: 'SABEDORIA', weight: 7 },
+        { text: 'PROTEÇÃO', weight: 7 }, { text: 'COMPANHEIRO', weight: 7 }, { text: 'ORGULHO', weight: 6 },
+        { text: 'GUIA', weight: 6 }, { text: 'FAMÍLIA', weight: 6 }, { text: 'GRATIDÃO', weight: 6 },
+        { text: 'ABRAÇO', weight: 5 }, { text: 'MEU PORTO SEGURO', weight: 5 }
+      ];
+    }
+    if (lower.includes('futebol') || lower.includes('esporte') || lower.includes('time') || lower.includes('jogo')) {
+      return [
+        { text: 'FUTEBOL', weight: 10 }, { text: 'GOL', weight: 9 }, { text: 'PAIXÃO', weight: 8 },
+        { text: 'CAMPEÃO', weight: 8 }, { text: 'TORCIDA', weight: 8 }, { text: 'VITÓRIA', weight: 7 },
+        { text: 'GARRA', weight: 7 }, { text: 'EMOÇÃO', weight: 7 }, { text: 'TÍTULO', weight: 6 },
+        { text: 'CAMISA', weight: 6 }, { text: 'BOLA', weight: 6 }, { text: 'RAÇA', weight: 6 },
+        { text: 'ESTÁDIO', weight: 5 }, { text: 'SUPERAÇÃO', weight: 5 }
+      ];
+    }
+    if (lower.includes('aniversário') || lower.includes('aniversario') || lower.includes('fest') || lower.includes('bolo')) {
+      return [
+        { text: 'PARABÉNS', weight: 10 }, { text: 'FESTA', weight: 9 }, { text: 'ALEGRIA', weight: 8 },
+        { text: 'DOCES', weight: 8 }, { text: 'BOLO', weight: 8 }, { text: 'DIVERSÃO', weight: 7 },
+        { text: 'FELICIDADE', weight: 7 }, { text: 'SORRISOS', weight: 7 }, { text: 'AMIGOS', weight: 6 },
+        { text: 'MAGIA', weight: 6 }, { text: 'SONHOS', weight: 6 }, { text: 'VELINHAS', weight: 5 }
+      ];
+    }
+    if (lower.includes('amor') || lower.includes('namorado') || lower.includes('casal') || lower.includes('casamento')) {
+      return [
+        { text: 'AMOR', weight: 10 }, { text: 'TE AMO', weight: 9 }, { text: 'PAIXÃO', weight: 8 },
+        { text: 'CASAL', weight: 8 }, { text: 'ETERNO', weight: 8 }, { text: 'COMPLICIDADE', weight: 7 },
+        { text: 'CARINHO', weight: 7 }, { text: 'MEU BEM', weight: 7 }, { text: 'CORAÇÃO', weight: 6 },
+        { text: 'BEIJOS', weight: 6 }, { text: 'UNIDOS', weight: 6 }, { text: 'JUNTOS SEMPRE', weight: 5 }
+      ];
+    }
+    if (lower.includes('enferm') || lower.includes('médic') || lower.includes('medic') || lower.includes('saúde') || lower.includes('saude')) {
+      return [
+        { text: 'ENFERMAGEM', weight: 10 }, { text: 'CUIDADO', weight: 9 }, { text: 'COMPAIXÃO', weight: 8 },
+        { text: 'SAÚDE', weight: 8 }, { text: 'DEDICAÇÃO', weight: 8 }, { text: 'VIDA', weight: 7 },
+        { text: 'JALECO', weight: 7 }, { text: 'HEROÍNA', weight: 7 }, { text: 'EMPATIA', weight: 6 },
+        { text: 'VOCAÇÃO', weight: 6 }, { text: 'AMOR', weight: 6 }, { text: 'RESPEITO', weight: 5 }
+      ];
+    }
+    if (lower.includes('game') || lower.includes('jog') || lower.includes('cyber')) {
+      return [
+        { text: 'GAMER', weight: 10 }, { text: 'LEVEL UP', weight: 9 }, { text: 'PLAY', weight: 8 },
+        { text: 'VICTORY', weight: 8 }, { text: 'PRO PLAYER', weight: 8 }, { text: 'SKILL', weight: 7 },
+        { text: 'STREAMER', weight: 7 }, { text: 'HEADSHOT', weight: 7 }, { text: 'SETUP', weight: 6 },
+        { text: 'XP', weight: 6 }, { text: 'QUEST', weight: 6 }, { text: 'MULTIPLAYER', weight: 5 }
+      ];
+    }
+    if (lower.includes('fé') || lower.includes('fe') || lower.includes('deus') || lower.includes('religi')) {
+      return [
+        { text: 'FÉ', weight: 10 }, { text: 'DEUS', weight: 9 }, { text: 'ABENÇOADO', weight: 8 },
+        { text: 'ORAÇÃO', weight: 8 }, { text: 'PAZ', weight: 8 }, { text: 'ESPERANÇA', weight: 7 },
+        { text: 'BÊNÇÃO', weight: 7 }, { text: 'MILAGRE', weight: 7 }, { text: 'GRATIDÃO', weight: 6 },
+        { text: 'LUZ', weight: 6 }, { text: 'JESUS', weight: 6 }, { text: 'AMOR', weight: 5 }
+      ];
+    }
+    if (lower.includes('café') || lower.includes('cafe')) {
+      return [
+        { text: 'CAFÉ', weight: 10 }, { text: 'ACONCHEGO', weight: 9 }, { text: 'ENERGIA', weight: 8 },
+        { text: 'PAUSA', weight: 8 }, { text: 'AROMA', weight: 8 }, { text: 'AMOR', weight: 7 },
+        { text: 'CANECA', weight: 7 }, { text: 'QUENTINHO', weight: 7 }, { text: 'SABOR', weight: 6 },
+        { text: 'BOM DIA', weight: 6 }, { text: 'FOCO', weight: 6 }, { text: 'MOMENTO', weight: 5 }
+      ];
+    }
+
+    const cleanTheme = theme.toUpperCase().trim();
+    return [
+      { text: cleanTheme, weight: 10 },
+      { text: 'SUBLIMAÇÃO', weight: 9 },
+      { text: 'QUALIDADE', weight: 8 },
+      { text: 'ARTE', weight: 8 },
+      { text: 'PERSONALIZADO', weight: 7 },
+      { text: 'ESTAMPA', weight: 7 },
+      { text: 'EXCLUSIVO', weight: 7 },
+      { text: 'CARINHO', weight: 6 },
+      { text: 'BRILHO', weight: 6 },
+      { text: 'PRESENTE', weight: 6 },
+      { text: 'ESPECIAL', weight: 5 }
+    ];
+  };
+
+  const handleGenerateWordsFromAIModal = async (themeName?: string) => {
+    const targetTheme = (themeName || aiThemeInputModal).trim();
+    if (!targetTheme) return;
+
+    setIsGeneratingAiWordsModal(true);
+    try {
+      const res = await fetch('/api/gemini/generate-wordart-words', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: targetTheme }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.words) && data.words.length > 0) {
+          const newWordsList = data.words.map((w: any, idx: number) => ({
+            id: Date.now().toString() + idx,
+            text: String(w.text || '').trim().toUpperCase(),
+            weight: typeof w.weight === 'number' ? Math.max(1, Math.min(10, w.weight)) : 7,
+          }));
+          setWordItems(newWordsList);
+          setIsGeneratingAiWordsModal(false);
+          setTimeout(() => handleRegenerateWordArtWithList(newWordsList), 50);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('AI word generation online failed, falling back to local theme generator:', err);
+    }
+
+    const fallbackList = getFallbackThemeWordsLocal(targetTheme);
+    const newWordsList = fallbackList.map((w, idx) => ({
+      id: Date.now().toString() + idx,
+      text: w.text.toUpperCase(),
+      weight: w.weight,
+    }));
+    setWordItems(newWordsList);
+    setIsGeneratingAiWordsModal(false);
+    setTimeout(() => handleRegenerateWordArtWithList(newWordsList), 50);
+  };
 
   // Working filter state
   const [filters, setFilters] = useState<LayerFilters>({
@@ -82,28 +498,343 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
   const [cropRect, setCropRect] = useState<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 100, h: 100 });
   const [cropRotation, setCropRotation] = useState<number>(0);
 
+  // Preview canvas ref
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const sourceImageRef = useRef<HTMLImageElement | HTMLCanvasElement | null>(null);
+  const isWordArtGeneratedRef = useRef<boolean>(false);
+
+  // Crop tight transparent bounding box
+  const cropTightCanvas = (canvas: HTMLCanvasElement): HTMLCanvasElement => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const { data, width, height } = imageData;
+
+    let minX = width, minY = height, maxX = 0, maxY = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha > 5) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    if (maxX <= minX || maxY <= minY) return canvas;
+
+    const pad = 24;
+    minX = Math.max(0, minX - pad);
+    minY = Math.max(0, minY - pad);
+    maxX = Math.min(width - 1, maxX + pad);
+    maxY = Math.min(height - 1, maxY + pad);
+
+    const cropW = maxX - minX + 1;
+    const cropH = maxY - minY + 1;
+
+    const out = document.createElement('canvas');
+    out.width = cropW;
+    out.height = cropH;
+    const outCtx = out.getContext('2d');
+    if (outCtx) {
+      outCtx.drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+    }
+    return out;
+  };
+
+  // Draw WordArt 2 content onto 2D Context
+  const drawWordArt2Content = (
+    ctx: CanvasRenderingContext2D,
+    renderW: number,
+    renderH: number,
+    params: {
+      content: string;
+      subwords?: string;
+      fontFamily: string;
+      warpStyle: TextWarpStyle;
+      warpIntensity: number;
+      color: string;
+      strokeColor: string;
+      strokeWidth: number;
+      shadowColor: string;
+      shadowBlur: number;
+    }
+  ) => {
+    const {
+      content,
+      subwords,
+      fontFamily,
+      warpStyle,
+      warpIntensity,
+      color,
+      strokeColor,
+      strokeWidth,
+      shadowColor,
+      shadowBlur,
+    } = params;
+
+    const centerX = renderW / 2;
+    const centerY = renderH / 2;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const baseH = 320;
+    const scaleFactor = renderH / baseH;
+
+    if (shadowBlur > 0) {
+      ctx.shadowColor = shadowColor || 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = shadowBlur * scaleFactor;
+      ctx.shadowOffsetX = 3 * scaleFactor;
+      ctx.shadowOffsetY = 4 * scaleFactor;
+    } else {
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+    }
+
+    const fontSize = Math.max(12, Math.round(48 * scaleFactor));
+    ctx.font = `bold ${fontSize}px ${fontFamily}, sans-serif`;
+
+    if (warpStyle === 'arc_upper' || warpStyle === 'arc_lower' || warpStyle === 'smile' || warpStyle === 'frown') {
+      const radius = Math.max(80 * scaleFactor, (250 * scaleFactor) - Math.abs(warpIntensity) * 1.5 * scaleFactor);
+      const isUpper = warpStyle === 'arc_upper' || warpStyle === 'frown';
+      const factor = isUpper ? -1 : 1;
+      const angleStep = 0.08 * (Math.max(10, warpIntensity) / 50);
+
+      const chars = content.split('');
+      const totalAngle = chars.length * angleStep;
+      let startAngle = -totalAngle / 2;
+
+      chars.forEach((char, i) => {
+        const charAngle = startAngle + i * angleStep;
+        ctx.save();
+        ctx.translate(
+          centerX + Math.sin(charAngle) * radius,
+          centerY + factor * Math.cos(charAngle) * radius - factor * radius
+        );
+        ctx.rotate(factor * charAngle);
+
+        if (strokeWidth > 0) {
+          ctx.strokeStyle = strokeColor || '#000000';
+          ctx.lineWidth = strokeWidth * 1.5 * scaleFactor;
+          ctx.strokeText(char, 0, 0);
+        }
+        ctx.fillStyle = color;
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
+      });
+    } else if (warpStyle === 'circle' || warpStyle === 'stamp_style') {
+      const radius = 100 * scaleFactor;
+      const chars = (content + ' ').split('');
+      const angleStep = (2 * Math.PI) / chars.length;
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius + 25 * scaleFactor, 0, Math.PI * 2);
+      ctx.strokeStyle = strokeColor || color;
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius - 20 * scaleFactor, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1 * scaleFactor;
+      ctx.stroke();
+
+      chars.forEach((char, i) => {
+        const charAngle = i * angleStep - Math.PI / 2;
+        ctx.save();
+        ctx.translate(
+          centerX + Math.cos(charAngle) * radius,
+          centerY + Math.sin(charAngle) * radius
+        );
+        ctx.rotate(charAngle + Math.PI / 2);
+
+        if (strokeWidth > 0) {
+          ctx.strokeStyle = strokeColor || '#000000';
+          ctx.lineWidth = strokeWidth * scaleFactor;
+          ctx.strokeText(char, 0, 0);
+        }
+        ctx.fillStyle = color;
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
+      });
+    } else if (warpStyle === 'wave') {
+      const chars = content.split('');
+      const stepX = Math.min(30 * scaleFactor, (renderW - 100 * scaleFactor) / chars.length);
+      const startX = centerX - (chars.length * stepX) / 2;
+
+      chars.forEach((char, i) => {
+        const x = startX + i * stepX;
+        const offsetY = Math.sin((i / chars.length) * Math.PI * 2) * (warpIntensity * 0.5 * scaleFactor);
+        ctx.save();
+        ctx.translate(x, centerY + offsetY);
+
+        if (strokeWidth > 0) {
+          ctx.strokeStyle = strokeColor || '#000000';
+          ctx.lineWidth = strokeWidth * scaleFactor;
+          ctx.strokeText(char, 0, 0);
+        }
+        ctx.fillStyle = color;
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
+      });
+    } else if (warpStyle === 'heart' || warpStyle === 'star') {
+      ctx.save();
+      ctx.translate(centerX, centerY);
+
+      ctx.beginPath();
+      ctx.fillStyle = color + '22';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.scale(1.2 * scaleFactor, 1.2 * scaleFactor);
+      ctx.moveTo(0, -20 * scaleFactor);
+      ctx.bezierCurveTo(-40 * scaleFactor, -60 * scaleFactor, -80 * scaleFactor, 0, 0, 60 * scaleFactor);
+      ctx.bezierCurveTo(80 * scaleFactor, 0, 40 * scaleFactor, -60 * scaleFactor, 0, -20 * scaleFactor);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.font = `bold ${fontSize + Math.round(8 * scaleFactor)}px ${fontFamily}, sans-serif`;
+      if (strokeWidth > 0) {
+        ctx.strokeStyle = strokeColor || '#000000';
+        ctx.lineWidth = strokeWidth * scaleFactor;
+        ctx.strokeText(content, centerX, centerY - 10 * scaleFactor);
+      }
+      ctx.fillStyle = color;
+      ctx.fillText(content, centerX, centerY - 10 * scaleFactor);
+
+      if (subwords) {
+        ctx.font = `bold ${Math.round(14 * scaleFactor)}px ${fontFamily}, sans-serif`;
+        ctx.fillStyle = strokeColor || '#ffffff';
+        const words = subwords.split(',').map((w) => w.trim());
+        words.forEach((w, idx) => {
+          const angle = (idx / words.length) * Math.PI * 2;
+          const rx = Math.cos(angle) * 75 * scaleFactor;
+          const ry = Math.sin(angle) * 45 * scaleFactor;
+          ctx.fillText(w, centerX + rx, centerY + ry + 15 * scaleFactor);
+        });
+      }
+    } else {
+      if (strokeWidth > 0) {
+        ctx.strokeStyle = strokeColor || '#000000';
+        ctx.lineWidth = strokeWidth * 2 * scaleFactor;
+        ctx.strokeText(content, centerX, centerY);
+      }
+      ctx.fillStyle = color;
+      ctx.fillText(content, centerX, centerY);
+    }
+
+    ctx.restore();
+  };
+
+  const renderWordArt2Preview = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    drawWordArt2Content(ctx, 800, 600, {
+      content: w2Content,
+      subwords: w2Subwords,
+      fontFamily: w2FontFamily,
+      warpStyle: w2WarpStyle,
+      warpIntensity: w2WarpIntensity,
+      color: w2Color,
+      strokeColor: w2StrokeColor,
+      strokeWidth: w2StrokeWidth,
+      shadowColor: w2ShadowColor,
+      shadowBlur: w2ShadowBlur,
+    });
+
+    const cropped = cropTightCanvas(canvas);
+    sourceImageRef.current = cropped;
+    isWordArtGeneratedRef.current = true;
+    setModifiedContent(cropped.toDataURL('image/png'));
+    renderPreview();
+  };
+
   // Sync state when modal opens or activeLayer changes
   useEffect(() => {
-    if (activeLayer && activeLayer.filters) {
-      setFilters({
-        brightness: activeLayer.filters.brightness ?? 0,
-        contrast: activeLayer.filters.contrast ?? 0,
-        saturation: activeLayer.filters.saturation ?? 0,
-        hue: activeLayer.filters.hue ?? 0,
-        blur: activeLayer.filters.blur ?? 0,
-        vibrance: activeLayer.filters.vibrance ?? 0,
-        temperature: activeLayer.filters.temperature ?? 0,
-        exposure: activeLayer.filters.exposure ?? 0,
-        shadows: activeLayer.filters.shadows ?? 0,
-        highlights: activeLayer.filters.highlights ?? 0,
-        sharpen: activeLayer.filters.sharpen ?? 0,
-        gamma: activeLayer.filters.gamma ?? 1.0,
-        sepia: activeLayer.filters.sepia ?? 0,
-        invert: activeLayer.filters.invert ?? false,
-        grayscale: activeLayer.filters.grayscale ?? false,
-        presetFilter: activeLayer.filters.presetFilter ?? 'none',
-        filterIntensity: activeLayer.filters.filterIntensity ?? 100,
-      });
+    if (activeLayer) {
+      isWordArtGeneratedRef.current = false;
+
+      // Auto-detect WordArt 2 vs WordArt 1
+      const isW2 =
+        activeLayer.wordArtType === 'wordart2' ||
+        activeLayer.wordArtConfig?.wordArtType === 'wordart2' ||
+        (activeLayer.name && /wordart\s*2/i.test(activeLayer.name)) ||
+        (activeLayer.id && /wordart-?2/i.test(activeLayer.id)) ||
+        (activeLayer.name && /GRATIDÃO|SUPER MÃE|CHAMPION|OURO REAL|NEON|RETRO|EMBLEMA|SELOS/i.test(activeLayer.name));
+
+      if (isW2) {
+        setWordArtMode('wordart2');
+        const conf = activeLayer.wordArtConfig;
+        const textFromLayer = conf?.words?.[0]?.text || activeLayer.name.replace(/^WordArt\s*2?:?\s*/i, '').replace(/^Estampa:\s*/i, '').trim();
+        setW2Content(textFromLayer || 'GRATIDÃO & FÉ');
+        setW2Subwords(conf?.subwords || '');
+        setW2FontFamily(conf?.font || activeLayer.wordFont || 'Cinzel');
+        setW2WarpStyle((conf?.warpStyle as TextWarpStyle) || 'straight');
+        setW2WarpIntensity(conf?.warpIntensity ?? 0);
+        setW2Color(conf?.color || '#d4af37');
+        setW2StrokeColor(conf?.strokeColor || '#3a2e05');
+        setW2StrokeWidth(conf?.strokeWidth ?? 2);
+        setW2ShadowColor(conf?.shadowColor || '#8a6d1b');
+        setW2ShadowBlur(conf?.shadowBlur ?? 8);
+      } else {
+        setWordArtMode('wordart1');
+      }
+
+      let initialWords = DEFAULT_WORD_ITEMS;
+      if (activeLayer.wordItems && Array.isArray(activeLayer.wordItems) && activeLayer.wordItems.length > 0) {
+        initialWords = activeLayer.wordItems;
+      } else {
+        const isWordArt =
+          (activeLayer.name && activeLayer.name.toLowerCase().includes('wordart')) ||
+          (activeLayer.name && activeLayer.name.toLowerCase().includes('nuvem')) ||
+          activeLayer.wordShape !== undefined;
+        if (isWordArt) {
+          initialWords = DEFAULT_WORD_ITEMS;
+        }
+      }
+      setWordItems(initialWords);
+
+      const shape = activeLayer.wordShape || 'caneca';
+      const palette = activeLayer.wordPaletteId || 'vibrant';
+      const font = activeLayer.wordFont || 'Impact';
+      const layout = activeLayer.wordLayout || 'mixed';
+
+      setWordShape(shape);
+      setWordPaletteId(palette);
+      setWordFont(font);
+      setWordLayout(layout);
+
+      if (activeLayer.filters) {
+        setFilters({
+          brightness: activeLayer.filters.brightness ?? 0,
+          contrast: activeLayer.filters.contrast ?? 0,
+          saturation: activeLayer.filters.saturation ?? 0,
+          hue: activeLayer.filters.hue ?? 0,
+          blur: activeLayer.filters.blur ?? 0,
+          vibrance: activeLayer.filters.vibrance ?? 0,
+          temperature: activeLayer.filters.temperature ?? 0,
+          exposure: activeLayer.filters.exposure ?? 0,
+          shadows: activeLayer.filters.shadows ?? 0,
+          highlights: activeLayer.filters.highlights ?? 0,
+          sharpen: activeLayer.filters.sharpen ?? 0,
+          gamma: activeLayer.filters.gamma ?? 1.0,
+          sepia: activeLayer.filters.sepia ?? 0,
+          invert: activeLayer.filters.invert ?? false,
+          grayscale: activeLayer.filters.grayscale ?? false,
+          presetFilter: activeLayer.filters.presetFilter ?? 'none',
+          filterIntensity: activeLayer.filters.filterIntensity ?? 100,
+        });
+      }
     } else {
       setFilters({
         brightness: 0,
@@ -125,11 +856,28 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
         filterIntensity: 100,
       });
     }
-  }, [activeLayer, isOpen]);
+  }, [activeLayer, isOpen, activeTab]);
 
-  // Preview canvas ref
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const sourceImageRef = useRef<HTMLImageElement | null>(null);
+  // Re-render WordArt 2 preview when WordArt 2 controls change
+  useEffect(() => {
+    if (isOpen && activeTab === 'words' && wordArtMode === 'wordart2') {
+      renderWordArt2Preview();
+    }
+  }, [
+    isOpen,
+    activeTab,
+    wordArtMode,
+    w2Content,
+    w2Subwords,
+    w2FontFamily,
+    w2WarpStyle,
+    w2WarpIntensity,
+    w2Color,
+    w2StrokeColor,
+    w2StrokeWidth,
+    w2ShadowColor,
+    w2ShadowBlur,
+  ]);
 
   // Load image into ref
   useEffect(() => {
@@ -138,8 +886,10 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
       img.crossOrigin = 'anonymous';
       img.src = activeLayer.content;
       img.onload = () => {
-        sourceImageRef.current = img;
-        renderPreview();
+        if (!isWordArtGeneratedRef.current) {
+          sourceImageRef.current = img;
+          renderPreview();
+        }
       };
     }
   }, [activeLayer?.content, isOpen]);
@@ -156,8 +906,11 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
     const img = sourceImageRef.current;
     if (!canvas || !img) return;
 
-    canvas.width = img.naturalWidth || 600;
-    canvas.height = img.naturalHeight || 600;
+    const width = ('naturalWidth' in img && img.naturalWidth) ? img.naturalWidth : (img as HTMLCanvasElement).width || 600;
+    const height = ('naturalHeight' in img && img.naturalHeight) ? img.naturalHeight : (img as HTMLCanvasElement).height || 600;
+
+    canvas.width = width;
+    canvas.height = height;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -221,7 +974,7 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
       ctx.translate(-canvas.width / 2, -canvas.height / 2);
     }
 
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img as any, 0, 0, canvas.width, canvas.height);
     ctx.restore();
   };
 
@@ -229,19 +982,432 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
 
   // Apply Changes to Layer
   const handleApply = () => {
+    let finalContent = modifiedContent || activeLayer.content;
+    let finalName = activeLayer.name;
+    let finalWordArtType = activeLayer.wordArtType;
+    let finalWordArtConfig = activeLayer.wordArtConfig;
+
+    if (activeTab === 'words' && wordArtMode === 'wordart2') {
+      const canvas = document.createElement('canvas');
+      canvas.width = 800;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        drawWordArt2Content(ctx, 800, 600, {
+          content: w2Content,
+          subwords: w2Subwords,
+          fontFamily: w2FontFamily,
+          warpStyle: w2WarpStyle,
+          warpIntensity: w2WarpIntensity,
+          color: w2Color,
+          strokeColor: w2StrokeColor,
+          strokeWidth: w2StrokeWidth,
+          shadowColor: w2ShadowColor,
+          shadowBlur: w2ShadowBlur,
+        });
+        const cropped = cropTightCanvas(canvas);
+        finalContent = cropped.toDataURL('image/png');
+      }
+
+      finalName = w2Content || activeLayer.name;
+      finalWordArtType = 'wordart2';
+      finalWordArtConfig = {
+        words: [{ id: '1', text: w2Content, weight: 10 }],
+        subwords: w2Subwords,
+        font: w2FontFamily,
+        warpStyle: w2WarpStyle,
+        warpIntensity: w2WarpIntensity,
+        color: w2Color,
+        strokeColor: w2StrokeColor,
+        strokeWidth: w2StrokeWidth,
+        shadowColor: w2ShadowColor,
+        shadowBlur: w2ShadowBlur,
+        wordArtType: 'wordart2',
+      };
+    }
+
     const updated = {
       ...activeLayer,
+      content: finalContent,
+      name: finalName,
       filters: { ...filters },
+      wordItems: wordItems,
+      wordShape: wordShape,
+      wordPaletteId: wordPaletteId,
+      wordFont: wordFont,
+      wordLayout: wordLayout,
+      wordArtType: finalWordArtType,
+      wordArtConfig: finalWordArtConfig,
     };
 
     onUpdateLayer(updated);
 
     if (pushHistoryStep) {
       const newLayers = allLayers.map((l) => (l.id === updated.id ? updated : l));
-      pushHistoryStep('Ajustes de Imagem Aplicados', 'Filtros/Ajustes', newLayers);
+      pushHistoryStep('Edição de Elemento Aplicada', 'Ajustes', newLayers);
     }
 
     onClose();
+  };
+
+  // WordArt Handlers
+  const handleAddWord = () => {
+    if (!newWordText.trim()) return;
+    const item: WordItem = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+      text: newWordText.trim(),
+      weight: newWordWeight,
+    };
+    const updatedWords = [...wordItems, item];
+    setWordItems(updatedWords);
+    setNewWordText('');
+    handleRegenerateWordArtWithList(updatedWords);
+  };
+
+  const handleDeleteWord = (id: string) => {
+    const updatedWords = wordItems.filter((w) => w.id !== id);
+    setWordItems(updatedWords);
+    handleRegenerateWordArtWithList(updatedWords);
+  };
+
+  const handleUpdateWordWeight = (id: string, delta: number) => {
+    const updatedWords = wordItems.map((w) => {
+      if (w.id === id) {
+        const newWeight = Math.max(1, Math.min(10, w.weight + delta));
+        return { ...w, weight: newWeight };
+      }
+      return w;
+    });
+    setWordItems(updatedWords);
+    handleRegenerateWordArtWithList(updatedWords);
+  };
+
+  const handleSaveEditedWord = (id: string) => {
+    if (!editingWordText.trim()) {
+      setEditingWordId(null);
+      return;
+    }
+    const updatedWords = wordItems.map((w) => {
+      if (w.id === id) {
+        return { ...w, text: editingWordText.trim() };
+      }
+      return w;
+    });
+    setWordItems(updatedWords);
+    setEditingWordId(null);
+    handleRegenerateWordArtWithList(updatedWords);
+  };
+
+  const handleBulkInsertWords = () => {
+    if (!bulkText.trim()) return;
+    const lines = bulkText.split(/[\n,;]+/);
+    const newItems: WordItem[] = lines
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+      .map((text, idx) => ({
+        id: Date.now().toString() + idx,
+        text,
+        weight: Math.floor(Math.random() * 5) + 5,
+      }));
+
+    if (newItems.length > 0) {
+      const updatedWords = [...wordItems, ...newItems];
+      setWordItems(updatedWords);
+      setBulkText('');
+      setShowBulkInput(false);
+      handleRegenerateWordArtWithList(updatedWords);
+    }
+  };
+
+  const handleRegenerateWordArtWithList = (
+    wordsList: WordItem[] = wordItems,
+    overrideShape?: string,
+    overridePaletteId?: string,
+    overrideFont?: string,
+    overrideLayout?: 'mixed' | 'horizontal' | 'angles',
+    overrideRepeat?: boolean
+  ) => {
+    const activeShape = overrideShape !== undefined ? overrideShape : wordShape;
+    const activePaletteId = overridePaletteId !== undefined ? overridePaletteId : wordPaletteId;
+    const activeFont = overrideFont !== undefined ? overrideFont : wordFont;
+    const activeLayout = overrideLayout !== undefined ? overrideLayout : wordLayout;
+    const activeRepeat = overrideRepeat !== undefined ? overrideRepeat : repeatWords;
+
+    if (wordsList.length === 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 600;
+      canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, 600, 600);
+      }
+      const dataUrl = canvas.toDataURL('image/png');
+      setModifiedContent(dataUrl);
+
+      sourceImageRef.current = canvas;
+      isWordArtGeneratedRef.current = true;
+      renderPreview();
+      return;
+    }
+
+    const W = 1080;
+    const H = 1080;
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Mask Canvas
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = W;
+    maskCanvas.height = H;
+    const mCtx = maskCanvas.getContext('2d');
+    if (!mCtx) return;
+
+    mCtx.fillStyle = '#000000';
+    if (activeShape === 'caneca') {
+      mCtx.beginPath();
+      if ('roundRect' in mCtx && typeof mCtx.roundRect === 'function') {
+        mCtx.roundRect(W * 0.22, H * 0.2, W * 0.52, H * 0.62, 30);
+      } else {
+        mCtx.rect(W * 0.22, H * 0.2, W * 0.52, H * 0.62);
+      }
+      mCtx.fill();
+      mCtx.lineWidth = 45;
+      mCtx.strokeStyle = '#000000';
+      mCtx.beginPath();
+      mCtx.arc(W * 0.74, H * 0.51, H * 0.18, -Math.PI / 2.2, Math.PI / 2.2);
+      mCtx.stroke();
+    } else if (activeShape === 'camiseta') {
+      mCtx.beginPath();
+      mCtx.moveTo(W * 0.35, H * 0.15);
+      mCtx.quadraticCurveTo(W * 0.5, H * 0.25, W * 0.65, H * 0.15);
+      mCtx.lineTo(W * 0.88, H * 0.3);
+      mCtx.lineTo(W * 0.76, H * 0.44);
+      mCtx.lineTo(W * 0.72, H * 0.38);
+      mCtx.lineTo(W * 0.72, H * 0.88);
+      mCtx.lineTo(W * 0.28, H * 0.88);
+      mCtx.lineTo(W * 0.28, H * 0.38);
+      mCtx.lineTo(W * 0.24, H * 0.44);
+      mCtx.lineTo(W * 0.12, H * 0.3);
+      mCtx.closePath();
+      mCtx.fill();
+    } else if (activeShape === 'coracao') {
+      mCtx.beginPath();
+      mCtx.moveTo(W * 0.5, H * 0.82);
+      mCtx.bezierCurveTo(W * 0.15, H * 0.55, W * 0.1, H * 0.2, W * 0.32, H * 0.18);
+      mCtx.bezierCurveTo(W * 0.44, H * 0.18, W * 0.5, H * 0.28, W * 0.5, H * 0.32);
+      mCtx.bezierCurveTo(W * 0.5, H * 0.28, W * 0.56, H * 0.18, W * 0.68, H * 0.18);
+      mCtx.bezierCurveTo(W * 0.9, H * 0.2, W * 0.85, H * 0.55, W * 0.5, H * 0.82);
+      mCtx.closePath();
+      mCtx.fill();
+    } else if (activeShape === 'estrela') {
+      mCtx.beginPath();
+      const cx = W * 0.5, cy = H * 0.5, outerR = W * 0.42, innerR = W * 0.18;
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? outerR : innerR;
+        const a = (i * Math.PI) / 5 - Math.PI / 2;
+        const x = cx + r * Math.cos(a);
+        const y = cy + r * Math.sin(a);
+        if (i === 0) mCtx.moveTo(x, y);
+        else mCtx.lineTo(x, y);
+      }
+      mCtx.closePath();
+      mCtx.fill();
+    } else if (activeShape === 'coroa') {
+      mCtx.beginPath();
+      mCtx.moveTo(W * 0.18, H * 0.75);
+      mCtx.lineTo(W * 0.12, H * 0.32);
+      mCtx.lineTo(W * 0.32, H * 0.52);
+      mCtx.lineTo(W * 0.5, H * 0.22);
+      mCtx.lineTo(W * 0.68, H * 0.52);
+      mCtx.lineTo(W * 0.88, H * 0.32);
+      mCtx.lineTo(W * 0.82, H * 0.75);
+      mCtx.closePath();
+      mCtx.fill();
+    } else if (activeShape === 'fogo') {
+      mCtx.beginPath();
+      mCtx.moveTo(W * 0.5, H * 0.12);
+      mCtx.quadraticCurveTo(W * 0.8, H * 0.4, W * 0.8, H * 0.65);
+      mCtx.arc(W * 0.5, H * 0.65, W * 0.3, 0, Math.PI);
+      mCtx.quadraticCurveTo(W * 0.2, H * 0.4, W * 0.5, H * 0.12);
+      mCtx.closePath();
+      mCtx.fill();
+    } else if (activeShape === 'escudo') {
+      mCtx.beginPath();
+      mCtx.moveTo(W * 0.2, H * 0.2);
+      mCtx.lineTo(W * 0.8, H * 0.2);
+      mCtx.lineTo(W * 0.8, H * 0.5);
+      mCtx.quadraticCurveTo(W * 0.8, H * 0.85, W * 0.5, H * 0.92);
+      mCtx.quadraticCurveTo(W * 0.2, H * 0.85, W * 0.2, H * 0.5);
+      mCtx.closePath();
+      mCtx.fill();
+    } else {
+      mCtx.beginPath();
+      mCtx.arc(W * 0.5, H * 0.5, W * 0.42, 0, Math.PI * 2);
+      mCtx.fill();
+    }
+
+    const maskData = mCtx.getImageData(0, 0, W, H).data;
+    const isInsideMask = (px: number, py: number) => {
+      if (px < 0 || px >= W || py < 0 || py >= H) return false;
+      const idx = (Math.floor(py) * W + Math.floor(px)) * 4;
+      return maskData[idx + 3] > 100;
+    };
+
+    let processedWords = [...wordsList]
+      .filter((w) => w.text && w.text.trim().length > 0)
+      .sort((a, b) => b.weight - a.weight);
+
+    if (!activeRepeat) {
+      const seen = new Set<string>();
+      processedWords = processedWords.filter((w) => {
+        const key = w.text.trim().toUpperCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    if (processedWords.length === 0) return;
+
+    const gridSize = 12;
+    const occupied = new Set<string>();
+
+    const checkCollisionGrid = (minGX: number, maxGX: number, minGY: number, maxGY: number) => {
+      for (let gx = minGX; gx <= maxGX; gx++) {
+        for (let gy = minGY; gy <= maxGY; gy++) {
+          if (occupied.has(`${gx},${gy}`)) return true;
+        }
+      }
+      return false;
+    };
+
+    const markOccupiedGrid = (minGX: number, maxGX: number, minGY: number, maxGY: number) => {
+      for (let gx = minGX; gx <= maxGX; gx++) {
+        for (let gy = minGY; gy <= maxGY; gy++) {
+          occupied.add(`${gx},${gy}`);
+        }
+      }
+    };
+
+    const palette = COLOR_PALETTES.find((p) => p.id === activePaletteId) || COLOR_PALETTES[0];
+    const totalItemsToPlace = activeRepeat
+      ? Math.min(120, Math.floor((wordDensity / 100) * 100))
+      : processedWords.length;
+
+    let paletteIdx = 0;
+
+    for (let i = 0; i < totalItemsToPlace; i++) {
+      const item = activeRepeat
+        ? processedWords[i % processedWords.length]
+        : processedWords[i];
+      if (!item) continue;
+      const wordText = item.text.trim().toUpperCase();
+
+      let angle = 0;
+      if (activeLayout === 'mixed') {
+        angle = Math.random() < 0.3 ? -Math.PI / 2 : 0;
+      } else if (activeLayout === 'angles') {
+        const choices = [0, -Math.PI / 4, Math.PI / 4, -Math.PI / 2];
+        angle = choices[Math.floor(Math.random() * choices.length)];
+      }
+
+      let fontSize = Math.max(16, 16 + item.weight * 6);
+      let placed = false;
+
+      while (!placed && fontSize >= 11) {
+        ctx.font = `bold ${fontSize}px ${activeFont}`;
+        const textMetrics = ctx.measureText(wordText);
+        const textWidth = textMetrics.width;
+        const textHeight = fontSize * 0.85;
+
+        const hw = textWidth / 2;
+        const hh = textHeight / 2;
+
+        const cosA = Math.cos(angle);
+        const sinA = Math.sin(angle);
+
+        const cornersLocal = [
+          { x: -hw, y: -hh },
+          { x: hw, y: -hh },
+          { x: hw, y: hh },
+          { x: -hw, y: hh },
+          { x: 0, y: 0 }
+        ];
+
+        const cx = W / 2;
+        const cy = H / 2;
+        let radius = 0;
+        let spiralAngle = Math.random() * Math.PI * 2;
+
+        for (let attempt = 0; attempt < 450; attempt++) {
+          spiralAngle += 0.28;
+          radius += 1.3;
+
+          const posX = cx + radius * Math.cos(spiralAngle);
+          const posY = cy + radius * Math.sin(spiralAngle);
+
+          const rotCorners = cornersLocal.map((c) => ({
+            x: posX + (c.x * cosA - c.y * sinA),
+            y: posY + (c.x * sinA + c.y * cosA)
+          }));
+
+          const inside = rotCorners.every((c) => isInsideMask(c.x, c.y));
+          if (!inside) continue;
+
+          let minX = rotCorners[0].x;
+          let maxX = rotCorners[0].x;
+          let minY = rotCorners[0].y;
+          let maxY = rotCorners[0].y;
+          for (let k = 1; k < 4; k++) {
+            if (rotCorners[k].x < minX) minX = rotCorners[k].x;
+            if (rotCorners[k].x > maxX) maxX = rotCorners[k].x;
+            if (rotCorners[k].y < minY) minY = rotCorners[k].y;
+            if (rotCorners[k].y > maxY) maxY = rotCorners[k].y;
+          }
+
+          const minGX = Math.floor((minX - 3) / gridSize);
+          const maxGX = Math.floor((maxX + 3) / gridSize);
+          const minGY = Math.floor((minY - 3) / gridSize);
+          const maxGY = Math.floor((maxY + 3) / gridSize);
+
+          if (!checkCollisionGrid(minGX, maxGX, minGY, maxGY)) {
+            ctx.save();
+            ctx.translate(posX, posY);
+            if (angle !== 0) ctx.rotate(angle);
+
+            ctx.fillStyle = palette.colors[paletteIdx % palette.colors.length];
+            paletteIdx++;
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 2;
+
+            ctx.fillText(wordText, 0, 0);
+            ctx.restore();
+
+            markOccupiedGrid(minGX, maxGX, minGY, maxGY);
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          fontSize = Math.floor(fontSize * 0.82);
+        }
+      }
+    }
+
+    const dataUrl = canvas.toDataURL('image/png');
+    setModifiedContent(dataUrl);
+
+    sourceImageRef.current = canvas;
+    isWordArtGeneratedRef.current = true;
+    renderPreview();
   };
 
   // Reset Filters
@@ -568,6 +1734,23 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
           >
             <Wand2 className="w-4 h-4 text-amber-400" />
             <span>Ferramentas Inteligentes</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('words')}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'words'
+                ? 'border-pink-500 text-pink-400 bg-pink-500/10'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Type className="w-4 h-4 text-pink-400" />
+            <span>Editar Palavras</span>
+            {isWordArtLayer && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] bg-pink-500/20 text-pink-300 border border-pink-500/30 font-mono">
+                WordArt
+              </span>
+            )}
           </button>
         </div>
 
@@ -1019,6 +2202,655 @@ export const ImageAdjustmentModal: React.FC<ImageAdjustmentModalProps> = ({
                     </div>
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* TAB 5: EDITAR PALAVRAS / WORDART STUDIO */}
+            {activeTab === 'words' && (
+              <div className="space-y-4">
+                {/* Header & Style Selector */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-[#282a36]">
+                  <span className="font-bold text-pink-300 flex items-center gap-1.5 text-sm">
+                    <Type className="w-4 h-4 text-pink-400" />
+                    Editor de Palavras e Estilos WordArt
+                  </span>
+
+                  {/* Mode Switcher */}
+                  <div className="flex items-center gap-1 p-1 bg-[#121318] border border-[#2d2e38] rounded-xl self-stretch sm:self-auto">
+                    <button
+                      onClick={() => setWordArtMode('wordart1')}
+                      className={`flex-1 sm:flex-none px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        wordArtMode === 'wordart1'
+                          ? 'bg-purple-600 text-white shadow'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      ☁️ WordArt 1 (Nuvem)
+                    </button>
+                    <button
+                      onClick={() => setWordArtMode('wordart2')}
+                      className={`flex-1 sm:flex-none px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        wordArtMode === 'wordart2'
+                          ? 'bg-pink-600 text-white shadow'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      ✨ WordArt 2 (Texto 3D)
+                    </button>
+                  </div>
+                </div>
+
+                {/* WORDART 2 EDITING CONTROLS */}
+                {wordArtMode === 'wordart2' ? (
+                  <div className="space-y-4">
+                    {/* Primary Text & Subtext Inputs */}
+                    <div className="bg-[#181920] p-3 rounded-xl border border-[#2d2e38] space-y-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-extrabold text-pink-300 flex items-center justify-between">
+                          <span>Texto Principal do WordArt 2:</span>
+                          <span className="text-[10px] font-normal text-gray-400">ex: GRATIDÃO & FÉ, SUPER MÃE...</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={w2Content}
+                          onChange={(e) => setW2Content(e.target.value)}
+                          placeholder="Digite o Texto do WordArt (ex: GRATIDÃO & FÉ)..."
+                          className="w-full bg-[#121318] border border-pink-500/50 rounded-lg px-3 py-2 text-sm text-white font-bold placeholder-gray-500 focus:outline-none focus:border-pink-500 shadow-inner"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-gray-300 flex items-center justify-between">
+                          <span>Subpalavras / Subtexto Secundário (opcional):</span>
+                          <span className="text-[10px] text-gray-400">Separados por vírgula</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={w2Subwords}
+                          onChange={(e) => setW2Subwords(e.target.value)}
+                          placeholder="ex: Família, Carinho, União, Afeto, Gratidão..."
+                          className="w-full bg-[#121318] border border-[#383945] rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-pink-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Presets Gallery */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-pink-300 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                        Estilos Rápidos do WordArt 2 (Presets):
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {WORDART_2_PRESETS.map((preset) => (
+                          <button
+                            key={preset.id}
+                            onClick={() => {
+                              setW2Content(preset.content);
+                              if (preset.subwords !== undefined) setW2Subwords(preset.subwords);
+                              setW2FontFamily(preset.fontFamily);
+                              setW2WarpStyle(preset.warpStyle);
+                              setW2WarpIntensity(preset.warpIntensity);
+                              setW2Color(preset.color);
+                              setW2StrokeColor(preset.strokeColor);
+                              setW2StrokeWidth(preset.strokeWidth);
+                              setW2ShadowColor(preset.shadowColor);
+                              setW2ShadowBlur(preset.shadowBlur);
+                            }}
+                            className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between h-16 ${
+                              w2FontFamily === preset.fontFamily && w2WarpStyle === preset.warpStyle
+                                ? 'bg-pink-900/40 border-pink-500 shadow-lg ring-1 ring-pink-500/50'
+                                : 'bg-[#181920] border-[#2d2e38] hover:border-pink-500/40'
+                            }`}
+                          >
+                            <span className="text-[10px] font-bold text-gray-300 truncate">{preset.name}</span>
+                            <div
+                              className="text-xs font-black truncate"
+                              style={{ color: preset.color, fontFamily: preset.fontFamily }}
+                            >
+                              {preset.content}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Typography & Warp */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#181920] p-3 rounded-xl border border-[#2d2e38]">
+                      {/* Font Family */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-gray-300">Fonte Tipográfica:</label>
+                        <select
+                          value={w2FontFamily}
+                          onChange={(e) => setW2FontFamily(e.target.value)}
+                          className="w-full bg-[#121318] border border-[#383945] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-pink-500 cursor-pointer font-semibold"
+                        >
+                          {WORDART_2_FONTS.map((font) => (
+                            <option key={font} value={font} style={{ fontFamily: font }}>
+                              {font}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Warp Intensity Slider */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[11px] font-bold text-gray-300">
+                          <span>Intensidade da Curva / Arco:</span>
+                          <span className="font-mono text-pink-400">{w2WarpIntensity}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={w2WarpIntensity}
+                          onChange={(e) => setW2WarpIntensity(parseInt(e.target.value))}
+                          className="w-full accent-pink-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Warp Style Selector */}
+                      <div className="sm:col-span-2 space-y-1">
+                        <label className="text-[11px] font-bold text-gray-300">Estilo de Curvatura / Deformação:</label>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
+                          {WORDART_2_WARP_STYLES.map((ws) => (
+                            <button
+                              key={ws.id}
+                              onClick={() => setW2WarpStyle(ws.id)}
+                              className={`py-1.5 px-2 rounded-lg border text-[10px] font-bold text-center transition-all cursor-pointer truncate ${
+                                w2WarpStyle === ws.id
+                                  ? 'bg-pink-600 text-white border-pink-400 shadow'
+                                  : 'bg-[#121318] text-gray-300 border-[#2d2e38] hover:border-pink-500/40'
+                              }`}
+                            >
+                              {ws.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Colors & Effects */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#181920] p-3 rounded-xl border border-[#2d2e38]">
+                      {/* Main Color */}
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-gray-300">Cor do Texto:</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={w2Color}
+                            onChange={(e) => setW2Color(e.target.value)}
+                            className="w-8 h-8 rounded-lg border border-gray-600 bg-transparent cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={w2Color}
+                            onChange={(e) => setW2Color(e.target.value)}
+                            className="w-20 bg-[#121318] border border-[#383945] rounded-lg px-2 py-1 text-xs text-white font-mono uppercase"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Stroke Color & Width */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-bold text-gray-300">
+                          <span>Contorno:</span>
+                          <span className="font-mono text-pink-400">{w2StrokeWidth}px</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={w2StrokeColor}
+                            onChange={(e) => setW2StrokeColor(e.target.value)}
+                            className="w-8 h-8 rounded-lg border border-gray-600 bg-transparent cursor-pointer"
+                          />
+                          <input
+                            type="range"
+                            min={0}
+                            max={10}
+                            value={w2StrokeWidth}
+                            onChange={(e) => setW2StrokeWidth(parseInt(e.target.value))}
+                            className="flex-1 accent-pink-500 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Shadow Color & Blur */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[11px] font-bold text-gray-300">
+                          <span>Sombra / Glow:</span>
+                          <span className="font-mono text-pink-400">{w2ShadowBlur}px</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={w2ShadowColor.startsWith('#') ? w2ShadowColor : '#8a6d1b'}
+                            onChange={(e) => setW2ShadowColor(e.target.value)}
+                            className="w-8 h-8 rounded-lg border border-gray-600 bg-transparent cursor-pointer"
+                          />
+                          <input
+                            type="range"
+                            min={0}
+                            max={30}
+                            value={w2ShadowBlur}
+                            onChange={(e) => setW2ShadowBlur(parseInt(e.target.value))}
+                            className="flex-1 accent-pink-500 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                      <button
+                        onClick={renderWordArt2Preview}
+                        className="flex-1 py-2.5 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-extrabold rounded-xl flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-[0.98]"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Atualizar e Renderizar WordArt 2</span>
+                      </button>
+
+                      {onOpenWordArtStudio && (
+                        <button
+                          onClick={() => {
+                            onClose();
+                            onOpenWordArtStudio(activeLayer.id, 'wordart2');
+                          }}
+                          className="py-2.5 px-4 bg-[#23242e] hover:bg-[#2e2f3d] border border-pink-500/30 text-pink-300 font-bold rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Abrir Estúdio WordArt 2 Completo</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  /* WORDART 1 (WORD CLOUD) CONTROLS */
+                  <div className="space-y-4">
+                    {/* AI Theme Word Generator Box */}
+                    <div className="bg-gradient-to-r from-purple-950/40 to-pink-950/40 p-3 rounded-xl border border-purple-800/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-purple-300 flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-amber-400" />
+                          Gerar Lista de Palavras por Tema com IA
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={aiThemeInputModal}
+                          onChange={(e) => setAiThemeInputModal(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleGenerateWordsFromAIModal();
+                          }}
+                          placeholder="Digite o Tema (ex: Dia das Mães, Futebol, Enfermagem)..."
+                          className="flex-1 bg-[#121318] border border-purple-900/80 rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 font-medium"
+                        />
+                        <button
+                          onClick={() => handleGenerateWordsFromAIModal()}
+                          disabled={isGeneratingAiWordsModal || !aiThemeInputModal.trim()}
+                          className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs rounded-lg transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50 whitespace-nowrap shadow"
+                        >
+                          {isGeneratingAiWordsModal ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                              <span>Gerar Lista</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {['Dia das Mães', 'Dia dos Pais', 'Futebol', 'Aniversário', 'Enfermagem', 'Gamer', 'Fé'].map((preset) => (
+                          <button
+                            key={preset}
+                            onClick={() => {
+                              setAiThemeInputModal(preset);
+                              handleGenerateWordsFromAIModal(preset);
+                            }}
+                            className="px-2 py-0.5 text-[9px] font-semibold rounded border border-purple-800/50 bg-purple-900/30 text-purple-300 hover:bg-purple-800/50 transition cursor-pointer"
+                          >
+                            + {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Add word bar */}
+                    <div className="bg-[#181920] p-3 rounded-xl border border-[#2d2e38] space-y-2">
+                      <div className="text-[11px] font-semibold text-gray-300 flex items-center justify-between">
+                        <span>Adicionar Palavra Individual:</span>
+                        <button
+                          onClick={() => setShowBulkInput(!showBulkInput)}
+                          className="text-purple-400 hover:text-purple-300 text-[10px] underline cursor-pointer"
+                        >
+                          {showBulkInput ? 'Fechar Inserção em Lote' : 'Inserir Palavras em Lote'}
+                        </button>
+                      </div>
+
+                      {!showBulkInput ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={newWordText}
+                            onChange={(e) => setNewWordText(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddWord();
+                            }}
+                            placeholder="Digite a palavra (ex: SUBLIMAÇÃO)..."
+                            className="flex-1 bg-[#121318] border border-[#383945] rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-pink-500"
+                          />
+                          <div className="flex items-center gap-1 bg-[#121318] border border-[#383945] rounded-lg px-2 py-1">
+                            <span className="text-[10px] text-gray-400 font-mono">Peso:</span>
+                            <input
+                              type="range"
+                              min={1}
+                              max={10}
+                              value={newWordWeight}
+                              onChange={(e) => setNewWordWeight(parseInt(e.target.value))}
+                              className="w-16 accent-pink-500 cursor-pointer"
+                              title="Peso/Tamanho da Palavra"
+                            />
+                            <span className="text-[10px] font-bold text-pink-400 font-mono w-4 text-center">
+                              {newWordWeight}
+                            </span>
+                          </div>
+                          <button
+                            onClick={handleAddWord}
+                            className="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Adicionar</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <textarea
+                            value={bulkText}
+                            onChange={(e) => setBulkText(e.target.value)}
+                            placeholder="Cole aqui a lista de palavras separadas por vírgula ou por linha (ex: AMOR, FAMÍLIA, PAIS, CANECA, ESTAMPA)..."
+                            rows={3}
+                            className="w-full bg-[#121318] border border-[#383945] rounded-lg p-2 text-xs text-white focus:outline-none focus:border-pink-500"
+                          />
+                          <button
+                            onClick={handleBulkInsertWords}
+                            className="w-full py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-xs cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Importar Lista de Palavras</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Words list chips */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-gray-400 px-0.5">
+                        <span>Palavras da Nuvem ({wordItems.length}):</span>
+                        {wordItems.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setWordItems([]);
+                              handleRegenerateWordArtWithList([]);
+                            }}
+                            className="text-rose-400 hover:text-rose-300 text-[10px] cursor-pointer"
+                          >
+                            Excluir/Limpar Todas
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 max-h-[130px] overflow-y-auto custom-scrollbar p-2 bg-[#121318] border border-[#2d2e38] rounded-xl">
+                        {wordItems.length === 0 ? (
+                          <span className="text-gray-500 text-[11px] italic p-1">
+                            Nenhuma palavra adicionada. Adicione uma palavra acima ou gere uma lista por tema!
+                          </span>
+                        ) : (
+                          wordItems.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center gap-1.5 px-2 py-1 bg-[#1d1e28] border border-purple-500/30 rounded-lg text-xs font-semibold text-purple-200 group hover:border-pink-500 transition-colors"
+                            >
+                              {editingWordId === item.id ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={editingWordText}
+                                    onChange={(e) => setEditingWordText(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleSaveEditedWord(item.id);
+                                      if (e.key === 'Escape') setEditingWordId(null);
+                                    }}
+                                    autoFocus
+                                    className="bg-[#121318] border border-pink-500 text-white text-xs px-1.5 py-0.5 rounded outline-none max-w-[100px]"
+                                  />
+                                  <button
+                                    onClick={() => handleSaveEditedWord(item.id)}
+                                    className="text-emerald-400 hover:text-emerald-300 p-0.5 cursor-pointer"
+                                    title="Salvar Texto"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span
+                                  onClick={() => {
+                                    setEditingWordId(item.id);
+                                    setEditingWordText(item.text);
+                                  }}
+                                  className="truncate max-w-[120px] cursor-pointer hover:text-pink-300 hover:underline"
+                                  title="Clique para editar o texto da palavra"
+                                >
+                                  {item.text}
+                                </span>
+                              )}
+
+                              <div className="flex items-center gap-0.5 bg-[#121318] px-1 py-0.5 rounded border border-purple-500/20">
+                                <button
+                                  onClick={() => handleUpdateWordWeight(item.id, -1)}
+                                  className="w-3.5 h-3.5 rounded bg-purple-900/60 hover:bg-purple-800 text-purple-300 flex items-center justify-center text-[10px] cursor-pointer font-extrabold"
+                                  title="Diminuir Peso/Tamanho da Palavra"
+                                >
+                                  -
+                                </button>
+                                <span className="text-[9px] font-mono px-0.5 text-pink-300 font-bold min-w-3 text-center">
+                                  {item.weight}
+                                </span>
+                                <button
+                                  onClick={() => handleUpdateWordWeight(item.id, 1)}
+                                  className="w-3.5 h-3.5 rounded bg-purple-900/60 hover:bg-purple-800 text-purple-300 flex items-center justify-center text-[10px] cursor-pointer font-extrabold"
+                                  title="Aumentar Peso/Tamanho da Palavra"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteWord(item.id)}
+                                className="text-gray-400 hover:text-rose-400 transition-colors cursor-pointer ml-0.5 p-0.5 rounded hover:bg-rose-500/10"
+                                title="Excluir esta Palavra"
+                              >
+                                <X className="w-3.5 h-3.5 text-rose-400" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* WordArt Visual Options (Shape, Palette, Font, Layout) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Shape Selector */}
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-gray-300 flex items-center gap-1">
+                          <Shapes className="w-3.5 h-3.5 text-purple-400" />
+                          Formato da Estampa (Molde):
+                        </label>
+                        <div className="grid grid-cols-4 gap-1">
+                          {SHAPE_PRESETS.map((shape) => (
+                            <button
+                              key={shape.id}
+                              onClick={() => {
+                                setWordShape(shape.id);
+                                handleRegenerateWordArtWithList(wordItems, shape.id);
+                              }}
+                              className={`p-1.5 rounded-lg border text-[10px] font-bold text-center transition-all cursor-pointer ${
+                                wordShape === shape.id
+                                  ? 'bg-purple-600 text-white border-purple-400 shadow'
+                                  : 'bg-[#181920] text-gray-300 border-[#2d2e38] hover:border-purple-500/50'
+                              }`}
+                            >
+                              {shape.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Palette Selector */}
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-gray-300 flex items-center gap-1">
+                          <Palette className="w-3.5 h-3.5 text-pink-400" />
+                          Paleta de Cores:
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {COLOR_PALETTES.map((pal) => (
+                            <button
+                              key={pal.id}
+                              onClick={() => {
+                                setWordPaletteId(pal.id);
+                                handleRegenerateWordArtWithList(wordItems, undefined, pal.id);
+                              }}
+                              className={`p-1.5 rounded-lg border flex flex-col gap-1 transition-all cursor-pointer ${
+                                wordPaletteId === pal.id
+                                  ? 'bg-purple-900/30 border-pink-500 shadow'
+                                  : 'bg-[#181920] border-[#2d2e38] hover:border-gray-500'
+                              }`}
+                            >
+                              <span className="text-[10px] font-bold text-gray-200 truncate">{pal.name}</span>
+                              <div className="flex items-center gap-0.5">
+                                {pal.colors.map((c, idx) => (
+                                  <div key={idx} className="w-3 h-3 rounded-full border border-black/30" style={{ backgroundColor: c }} />
+                                ))}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Font Family Selector */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-gray-300">Fonte Tipográfica:</label>
+                        <select
+                          value={wordFont}
+                          onChange={(e) => {
+                            const newFont = e.target.value;
+                            setWordFont(newFont);
+                            handleRegenerateWordArtWithList(wordItems, undefined, undefined, newFont);
+                          }}
+                          className="w-full bg-[#181920] border border-[#2d2e38] rounded-lg p-1.5 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                        >
+                          {WORD_FONTS.map((font) => (
+                            <option key={font} value={font}>
+                              {font}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Layout Angle Selector */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-gray-300">Disposição do Texto:</label>
+                        <div className="grid grid-cols-3 gap-1">
+                          <button
+                            onClick={() => {
+                              setWordLayout('mixed');
+                              handleRegenerateWordArtWithList(wordItems, undefined, undefined, undefined, 'mixed');
+                            }}
+                            className={`py-1.5 rounded-lg border text-[10px] font-bold text-center transition-all cursor-pointer ${
+                              wordLayout === 'mixed'
+                                ? 'bg-purple-600 text-white border-purple-400'
+                                : 'bg-[#181920] text-gray-300 border-[#2d2e38]'
+                            }`}
+                          >
+                            Misto (H + V)
+                          </button>
+                          <button
+                            onClick={() => {
+                              setWordLayout('horizontal');
+                              handleRegenerateWordArtWithList(wordItems, undefined, undefined, undefined, 'horizontal');
+                            }}
+                            className={`py-1.5 rounded-lg border text-[10px] font-bold text-center transition-all cursor-pointer ${
+                              wordLayout === 'horizontal'
+                                ? 'bg-purple-600 text-white border-purple-400'
+                                : 'bg-[#181920] text-gray-300 border-[#2d2e38]'
+                            }`}
+                          >
+                            Horizontal
+                          </button>
+                          <button
+                            onClick={() => {
+                              setWordLayout('angles');
+                              handleRegenerateWordArtWithList(wordItems, undefined, undefined, undefined, 'angles');
+                            }}
+                            className={`py-1.5 rounded-lg border text-[10px] font-bold text-center transition-all cursor-pointer ${
+                              wordLayout === 'angles'
+                                ? 'bg-purple-600 text-white border-purple-400'
+                                : 'bg-[#181920] text-gray-300 border-[#2d2e38]'
+                            }`}
+                          >
+                            Multi-Ângulos
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Repeat Words Toggle */}
+                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#181920] border border-[#2d2e38]">
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-bold text-gray-200">Repetir Palavras na Nuvem</span>
+                        <span className="text-[10px] text-gray-400">
+                          {repeatWords ? 'Ativado: Palavras se repetem para preencher' : 'Desativado: Cada palavra aparece no máximo 1 vez (sem repetição)'}
+                        </span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={repeatWords}
+                          onChange={(e) => {
+                            const newRepeat = e.target.checked;
+                            setRepeatWords(newRepeat);
+                            handleRegenerateWordArtWithList(wordItems, undefined, undefined, undefined, undefined, newRepeat);
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-[#2d2e38] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
+                      </label>
+                    </div>
+
+                    {/* Quick Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                      <button
+                        onClick={() => handleRegenerateWordArtWithList()}
+                        className="flex-1 py-2.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white font-extrabold rounded-xl flex items-center justify-center gap-2 shadow-xl cursor-pointer transition-all active:scale-[0.98]"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        <span>Atualizar e Renderizar Nuvem WordArt</span>
+                      </button>
+
+                      {onOpenWordArtStudio && (
+                        <button
+                          onClick={() => {
+                            onClose();
+                            onOpenWordArtStudio(activeLayer.id, 'wordart1');
+                          }}
+                          className="py-2.5 px-4 bg-[#23242e] hover:bg-[#2e2f3d] border border-purple-500/30 text-purple-300 font-bold rounded-xl flex items-center justify-center gap-2 text-xs transition-all cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Abrir Estúdio WordArt 1 Completo</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

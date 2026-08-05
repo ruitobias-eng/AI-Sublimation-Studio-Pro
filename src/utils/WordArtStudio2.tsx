@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTheme } from '../lib/theme';
 import {
   Type,
   Plus,
@@ -24,24 +25,14 @@ import {
   Sparkles
 } from 'lucide-react';
 
+import { WordItem, WordArtConfig } from '../types';
+
 export interface WordArtStudioProps {
-  onAddWordArtImage?: (
-    dataUrl: string,
-    title?: string,
-    wordItems?: WordItem[],
-    wordShape?: string,
-    wordPaletteId?: string,
-    wordFont?: string,
-    wordLayout?: 'mixed' | 'horizontal' | 'angles'
-  ) => void;
+  onAddWordArtImage?: (dataUrl: string, title?: string, config?: WordArtConfig, wordArtType?: 'wordart1' | 'wordart2') => void;
   onClose?: () => void;
   darkMode?: boolean;
-}
-
-interface WordItem {
-  id: string;
-  text: string;
-  weight: number; // 1 to 10
+  initialConfig?: WordArtConfig;
+  isEditing?: boolean;
 }
 
 interface ColorPalette {
@@ -110,184 +101,84 @@ const FONTS = [
 export const WordArtStudio: React.FC<WordArtStudioProps> = ({
   onAddWordArtImage,
   onClose,
-  darkMode = true
+  darkMode,
+  initialConfig,
+  isEditing = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // Determine effective theme: prefer explicit prop, else read app theme via useTheme
+  let isDark: boolean;
+  try {
+    const appTheme = useTheme();
+    isDark = typeof darkMode === 'boolean' ? darkMode : appTheme.theme === 'dark';
+  } catch (e) {
+    // Not wrapped in ThemeProvider? fall back to prop or default to true
+    isDark = typeof darkMode === 'boolean' ? darkMode : true;
+  }
+
   // Words State
-  const [words, setWords] = useState<WordItem[]>([
-    { id: '1', text: 'SUBLIMAÇÃO', weight: 10 },
-    { id: '2', text: 'ESTAMPARIA', weight: 9 },
-    { id: '3', text: 'QUALIDADE', weight: 8 },
-    { id: '4', text: 'ARTE', weight: 7 },
-    { id: '5', text: 'DESIGN', weight: 7 },
-    { id: '6', text: 'DTF', weight: 6 },
-    { id: '7', text: 'CANECA', weight: 6 },
-    { id: '8', text: 'CAMISETA', weight: 6 },
-    { id: '9', text: 'ALMOFADA', weight: 5 },
-    { id: '10', text: '300 DPI', weight: 5 },
-    { id: '11', text: 'IMPRESSÃO', weight: 5 },
-    { id: '12', text: 'CORES', weight: 4 },
-    { id: '13', text: 'AMOR', weight: 4 },
-    { id: '14', text: 'CRIATIVIDADE', weight: 4 },
-    { id: '15', text: 'PERSONALIZADO', weight: 3 },
-  ]);
+  const [words, setWords] = useState<WordItem[]>(() => {
+    if (initialConfig?.words && initialConfig.words.length > 0) {
+      return initialConfig.words;
+    }
+    return [
+      { id: '1', text: 'SUBLIMAÇÃO', weight: 10 },
+      { id: '2', text: 'ESTAMPARIA', weight: 9 },
+      { id: '3', text: 'QUALIDADE', weight: 8 },
+      { id: '4', text: 'ARTE', weight: 7 },
+      { id: '5', text: 'DESIGN', weight: 7 },
+      { id: '6', text: 'DTF', weight: 6 },
+      { id: '7', text: 'CANECA', weight: 6 },
+      { id: '8', text: 'CAMISETA', weight: 6 },
+      { id: '9', text: 'ALMOFADA', weight: 5 },
+      { id: '10', text: '300 DPI', weight: 5 },
+      { id: '11', text: 'IMPRESSÃO', weight: 5 },
+      { id: '12', text: 'CORES', weight: 4 },
+      { id: '13', text: 'AMOR', weight: 4 },
+      { id: '14', text: 'CRIATIVIDADE', weight: 4 },
+      { id: '15', text: 'PERSONALIZADO', weight: 3 },
+    ];
+  });
 
   const [newWordText, setNewWordText] = useState('');
   const [bulkInput, setBulkInput] = useState('');
   const [showBulkModal, setShowBulkModal] = useState(false);
 
-  // AI Theme Word Generator State
-  const [aiThemeInput, setAiThemeInput] = useState('');
-  const [isGeneratingAiWords, setIsGeneratingAiWords] = useState(false);
-
   // Settings
-  const [selectedShape, setSelectedShape] = useState<string>('caneca');
-  const [selectedFont, setSelectedFont] = useState<string>('Impact');
-  const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(COLOR_PALETTES[0]);
-  const [layoutMode, setLayoutMode] = useState<'horizontal' | 'mixed' | 'angles'>('mixed');
-  const [density, setDensity] = useState<number>(75);
-  const [repeatWords, setRepeatWords] = useState<boolean>(false);
+  const [selectedShape, setSelectedShape] = useState<string>(initialConfig?.shape || 'caneca');
+  const [selectedFont, setSelectedFont] = useState<string>(initialConfig?.font || 'Impact');
+  const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(() => {
+    if (initialConfig?.paletteId) {
+      const found = COLOR_PALETTES.find((p) => p.id === initialConfig.paletteId);
+      if (found) return found;
+    }
+    return COLOR_PALETTES[0];
+  });
+  const [layoutMode, setLayoutMode] = useState<'horizontal' | 'mixed' | 'angles'>(
+    initialConfig?.layoutMode || 'mixed'
+  );
+  const [density, setDensity] = useState<number>(initialConfig?.density ?? 75);
   const [textCasing] = useState<'uppercase' | 'lowercase' | 'original'>('uppercase');
   const [bgColor] = useState<string>('transparent');
   const [isRendering, setIsRendering] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
-  // Helper for Fallback Theme Words
-  const getFallbackThemeWords = (theme: string): { text: string; weight: number }[] => {
-    const lower = theme.toLowerCase();
-    if (lower.includes('mãe') || lower.includes('mae') || lower.includes('mother')) {
-      return [
-        { text: 'MÃE', weight: 10 }, { text: 'AMOR', weight: 9 }, { text: 'CARINHO', weight: 8 },
-        { text: 'PROTEÇÃO', weight: 8 }, { text: 'RAINHA', weight: 8 }, { text: 'CUIDADO', weight: 7 },
-        { text: 'EXEMPLO', weight: 7 }, { text: 'DEDICAÇÃO', weight: 7 }, { text: 'ABRAÇO', weight: 6 },
-        { text: 'FAMÍLIA', weight: 6 }, { text: 'BASE', weight: 6 }, { text: 'GRATIDÃO', weight: 6 },
-        { text: 'LUZ', weight: 5 }, { text: 'MINHA VIDA', weight: 5 }, { text: 'ETERNA', weight: 5 }
-      ];
-    }
-    if (lower.includes('pai') || lower.includes('father')) {
-      return [
-        { text: 'PAI', weight: 10 }, { text: 'HERÓI', weight: 9 }, { text: 'AMOR', weight: 8 },
-        { text: 'FORÇA', weight: 8 }, { text: 'EXEMPLO', weight: 8 }, { text: 'SABEDORIA', weight: 7 },
-        { text: 'PROTEÇÃO', weight: 7 }, { text: 'COMPANHEIRO', weight: 7 }, { text: 'ORGULHO', weight: 6 },
-        { text: 'GUIA', weight: 6 }, { text: 'FAMÍLIA', weight: 6 }, { text: 'GRATIDÃO', weight: 6 },
-        { text: 'ABRAÇO', weight: 5 }, { text: 'MEU PORTO SEGURO', weight: 5 }
-      ];
-    }
-    if (lower.includes('futebol') || lower.includes('esporte') || lower.includes('time') || lower.includes('jogo')) {
-      return [
-        { text: 'FUTEBOL', weight: 10 }, { text: 'GOL', weight: 9 }, { text: 'PAIXÃO', weight: 8 },
-        { text: 'CAMPEÃO', weight: 8 }, { text: 'TORCIDA', weight: 8 }, { text: 'VITÓRIA', weight: 7 },
-        { text: 'GARRA', weight: 7 }, { text: 'EMOÇÃO', weight: 7 }, { text: 'TÍTULO', weight: 6 },
-        { text: 'CAMISA', weight: 6 }, { text: 'BOLA', weight: 6 }, { text: 'RAÇA', weight: 6 },
-        { text: 'ESTÁDIO', weight: 5 }, { text: 'SUPERAÇÃO', weight: 5 }
-      ];
-    }
-    if (lower.includes('aniversário') || lower.includes('aniversario') || lower.includes('fest') || lower.includes('bolo')) {
-      return [
-        { text: 'PARABÉNS', weight: 10 }, { text: 'FESTA', weight: 9 }, { text: 'ALEGRIA', weight: 8 },
-        { text: 'DOCES', weight: 8 }, { text: 'BOLO', weight: 8 }, { text: 'DIVERSÃO', weight: 7 },
-        { text: 'FELICIDADE', weight: 7 }, { text: 'SORRISOS', weight: 7 }, { text: 'AMIGOS', weight: 6 },
-        { text: 'MAGIA', weight: 6 }, { text: 'SONHOS', weight: 6 }, { text: 'VELINHAS', weight: 5 }
-      ];
-    }
-    if (lower.includes('amor') || lower.includes('namorado') || lower.includes('casal') || lower.includes('casamento')) {
-      return [
-        { text: 'AMOR', weight: 10 }, { text: 'TE AMO', weight: 9 }, { text: 'PAIXÃO', weight: 8 },
-        { text: 'CASAL', weight: 8 }, { text: 'ETERNO', weight: 8 }, { text: 'COMPLICIDADE', weight: 7 },
-        { text: 'CARINHO', weight: 7 }, { text: 'MEU BEM', weight: 7 }, { text: 'CORAÇÃO', weight: 6 },
-        { text: 'BEIJOS', weight: 6 }, { text: 'UNIDOS', weight: 6 }, { text: 'JUNTOS SEMPRE', weight: 5 }
-      ];
-    }
-    if (lower.includes('enferm') || lower.includes('médic') || lower.includes('medic') || lower.includes('saúde') || lower.includes('saude')) {
-      return [
-        { text: 'ENFERMAGEM', weight: 10 }, { text: 'CUIDADO', weight: 9 }, { text: 'COMPAIXÃO', weight: 8 },
-        { text: 'SAÚDE', weight: 8 }, { text: 'DEDICAÇÃO', weight: 8 }, { text: 'VIDA', weight: 7 },
-        { text: 'JALECO', weight: 7 }, { text: 'HEROÍNA', weight: 7 }, { text: 'EMPATIA', weight: 6 },
-        { text: 'VOCAÇÃO', weight: 6 }, { text: 'AMOR', weight: 6 }, { text: 'RESPEITO', weight: 5 }
-      ];
-    }
-    if (lower.includes('game') || lower.includes('jog') || lower.includes('cyber')) {
-      return [
-        { text: 'GAMER', weight: 10 }, { text: 'LEVEL UP', weight: 9 }, { text: 'PLAY', weight: 8 },
-        { text: 'VICTORY', weight: 8 }, { text: 'PRO PLAYER', weight: 8 }, { text: 'SKILL', weight: 7 },
-        { text: 'STREAMER', weight: 7 }, { text: 'HEADSHOT', weight: 7 }, { text: 'SETUP', weight: 6 },
-        { text: 'XP', weight: 6 }, { text: 'QUEST', weight: 6 }, { text: 'MULTIPLAYER', weight: 5 }
-      ];
-    }
-    if (lower.includes('fé') || lower.includes('fe') || lower.includes('deus') || lower.includes('religi')) {
-      return [
-        { text: 'FÉ', weight: 10 }, { text: 'DEUS', weight: 9 }, { text: 'ABENÇOADO', weight: 8 },
-        { text: 'ORAÇÃO', weight: 8 }, { text: 'PAZ', weight: 8 }, { text: 'ESPERANÇA', weight: 7 },
-        { text: 'BÊNÇÃO', weight: 7 }, { text: 'MILAGRE', weight: 7 }, { text: 'GRATIDÃO', weight: 6 },
-        { text: 'LUZ', weight: 6 }, { text: 'JESUS', weight: 6 }, { text: 'AMOR', weight: 5 }
-      ];
-    }
-    if (lower.includes('café') || lower.includes('cafe')) {
-      return [
-        { text: 'CAFÉ', weight: 10 }, { text: 'ACONCHEGO', weight: 9 }, { text: 'ENERGIA', weight: 8 },
-        { text: 'PAUSA', weight: 8 }, { text: 'AROMA', weight: 8 }, { text: 'AMOR', weight: 7 },
-        { text: 'CANECA', weight: 7 }, { text: 'QUENTINHO', weight: 7 }, { text: 'SABOR', weight: 6 },
-        { text: 'BOM DIA', weight: 6 }, { text: 'FOCO', weight: 6 }, { text: 'MOMENTO', weight: 5 }
-      ];
-    }
-
-    const cleanTheme = theme.toUpperCase().trim();
-    return [
-      { text: cleanTheme, weight: 10 },
-      { text: 'SUBLIMAÇÃO', weight: 9 },
-      { text: 'QUALIDADE', weight: 8 },
-      { text: 'ARTE', weight: 8 },
-      { text: 'PERSONALIZADO', weight: 7 },
-      { text: 'ESTAMPA', weight: 7 },
-      { text: 'EXCLUSIVO', weight: 7 },
-      { text: 'CARINHO', weight: 6 },
-      { text: 'BRILHO', weight: 6 },
-      { text: 'PRESENTE', weight: 6 },
-      { text: 'ESPECIAL', weight: 5 }
-    ];
-  };
-
-  const handleGenerateWordsFromAI = async (themeName?: string) => {
-    const targetTheme = (themeName || aiThemeInput).trim();
-    if (!targetTheme) return;
-
-    setIsGeneratingAiWords(true);
-    try {
-      const res = await fetch('/api/gemini/generate-wordart-words', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: targetTheme }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.words) && data.words.length > 0) {
-          const newWordsList: WordItem[] = data.words.map((w: any, idx: number) => ({
-            id: Date.now().toString() + idx,
-            text: String(w.text || '').trim().toUpperCase(),
-            weight: typeof w.weight === 'number' ? Math.max(1, Math.min(10, w.weight)) : 7,
-          }));
-          setWords(newWordsList);
-          setStatusMsg(`✨ ${newWordsList.length} palavras geradas por IA para o tema "${targetTheme}"!`);
-          setIsGeneratingAiWords(false);
-          return;
-        }
+  useEffect(() => {
+    if (initialConfig) {
+      if (initialConfig.words && initialConfig.words.length > 0) {
+        setWords(initialConfig.words);
       }
-    } catch (err) {
-      console.warn('AI word generation online failed, falling back to smart local generator:', err);
+      if (initialConfig.shape) setSelectedShape(initialConfig.shape);
+      if (initialConfig.font) setSelectedFont(initialConfig.font);
+      if (initialConfig.paletteId) {
+        const found = COLOR_PALETTES.find((p) => p.id === initialConfig.paletteId);
+        if (found) setSelectedPalette(found);
+      }
+      if (initialConfig.layoutMode) setLayoutMode(initialConfig.layoutMode);
+      if (initialConfig.density !== undefined) setDensity(initialConfig.density);
     }
-
-    const fallbackList = getFallbackThemeWords(targetTheme);
-    const newWordsList: WordItem[] = fallbackList.map((w, idx) => ({
-      id: Date.now().toString() + idx,
-      text: w.text.toUpperCase(),
-      weight: w.weight,
-    }));
-    setWords(newWordsList);
-    setStatusMsg(`✨ ${newWordsList.length} palavras geradas para o tema "${targetTheme}"!`);
-    setIsGeneratingAiWords(false);
-  };
+  }, [initialConfig]);
 
   // Generate Word Art onto Canvas
   const generateWordArt = () => {
@@ -415,19 +306,9 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
     };
 
     // 2. Prepare Formatted Words List sorted by Weight Descending
-    let processedWords = [...words]
+    const processedWords = [...words]
       .filter((w) => w.text.trim().length > 0)
       .sort((a, b) => b.weight - a.weight);
-
-    if (!repeatWords) {
-      const seen = new Set<string>();
-      processedWords = processedWords.filter((w) => {
-        const key = w.text.trim().toUpperCase();
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-    }
 
     if (processedWords.length === 0) {
       setIsRendering(false);
@@ -476,17 +357,11 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
     };
 
     // 3. Placement Loop
-    const totalItemsToPlace = repeatWords
-      ? Math.min(120, Math.floor((density / 100) * 100))
-      : processedWords.length;
-
+    const totalItemsToPlace = Math.min(120, Math.floor((density / 100) * 100));
     let paletteIdx = 0;
 
     for (let i = 0; i < totalItemsToPlace; i++) {
-      const item = repeatWords
-        ? processedWords[i % processedWords.length]
-        : processedWords[i];
-      if (!item) continue;
+      const item = processedWords[i % processedWords.length];
       let wordText = item.text.trim();
 
       if (textCasing === 'uppercase') wordText = wordText.toUpperCase();
@@ -607,71 +482,20 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Create a small thumbnail to send to the canvas area to reduce memory/decoding cost
-    const getThumbnailMaxDim = () => {
-      try {
-        const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
-        const isMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
-        const hasTouch = typeof navigator !== 'undefined' && (navigator as any).maxTouchPoints && (navigator as any).maxTouchPoints > 0;
-        const deviceMemory = typeof navigator !== 'undefined' ? (navigator as any).deviceMemory : undefined;
-
-        const isMobile = isMobileUA || (hasTouch && !/Windows/i.test(ua));
-
-        if (typeof deviceMemory === 'number') {
-          if (deviceMemory <= 1) return 256;
-          if (deviceMemory <= 2) return isMobile ? 256 : 384;
-          if (deviceMemory <= 4) return isMobile ? 320 : 512;
-          return isMobile ? 384 : 640;
-        }
-
-        return isMobile ? 256 : 512;
-      } catch (e) {
-        return 256;
-      }
+    const currentConfig: WordArtConfig = {
+      words,
+      shape: selectedShape,
+      font: selectedFont,
+      paletteId: selectedPalette.id,
+      layoutMode,
+      density,
+      wordArtType: 'wordart2',
     };
 
-    const targetMaxDim = getThumbnailMaxDim();
-    const srcW = Math.max(1, canvas.width);
-    const srcH = Math.max(1, canvas.height);
-    const scale = Math.min(1, targetMaxDim / Math.max(srcW, srcH));
-
-    if (scale < 1) {
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = Math.max(1, Math.round(srcW * scale));
-      exportCanvas.height = Math.max(1, Math.round(srcH * scale));
-      const ectx = exportCanvas.getContext('2d');
-      if (ectx) {
-        ectx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-        // draw the original canvas into the smaller canvas
-        ectx.drawImage(canvas, 0, 0, exportCanvas.width, exportCanvas.height);
-        const dataUrl = exportCanvas.toDataURL('image/png');
-        if (onAddWordArtImage) {
-          onAddWordArtImage(
-            dataUrl,
-            `WordArt ${selectedShape.toUpperCase()}`,
-            words,
-            selectedShape,
-            selectedPalette.id,
-            selectedFont,
-            layoutMode
-          );
-        }
-      }
-    } else {
-      const dataUrl = canvas.toDataURL('image/png');
-      if (onAddWordArtImage) {
-        onAddWordArtImage(
-          dataUrl,
-          `WordArt ${selectedShape.toUpperCase()}`,
-          words,
-          selectedShape,
-          selectedPalette.id,
-          selectedFont,
-          layoutMode
-        );
-      }
+    const dataUrl = canvas.toDataURL('image/png');
+    if (onAddWordArtImage) {
+      onAddWordArtImage(dataUrl, `WordArt 2 ${selectedShape.toUpperCase()}`, currentConfig, 'wordart2');
     }
-
     setStatusMsg('Word Art adicionado com sucesso à área de trabalho!');
     setTimeout(() => setStatusMsg(null), 4000);
   };
@@ -686,9 +510,9 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
   };
 
   return (
-    <div className={`w-full h-full flex flex-col select-none overflow-hidden ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+    <div className={`w-full h-full flex flex-col select-none overflow-hidden ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
       {/* TOP HEADER CONTROL BAR */}
-      <div className={`px-4 py-3 flex items-center justify-between shrink-0 border-b shadow-md ${darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+      <div className={`px-4 py-3 flex items-center justify-between shrink-0 border-b shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 via-indigo-500 to-purple-600 flex items-center justify-center font-bold text-white shadow-md">
             <FileType className="w-5 h-5" />
@@ -711,8 +535,8 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           <button
             onClick={generateWordArt}
             className={`px-3 py-1.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer ${
-              darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-            }`}
+              isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+            }`} 
             title="Recalcular posição das palavras"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-indigo-400 ${isRendering ? 'animate-spin' : ''}`} />
@@ -722,8 +546,8 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           <button
             onClick={handleDownloadPNG}
             className={`px-3 py-1.5 rounded-xl border font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer ${
-              darkMode ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
-            }`}
+              isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+            }` }
           >
             <Download className="w-3.5 h-3.5 text-emerald-400" />
             <span className="hidden md:inline">Baixar PNG</span>
@@ -742,7 +566,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              className={`p-1.5 rounded-xl transition ${darkMode ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
+              className={`p-1.5 rounded-xl transition ${isDark ? 'text-slate-400 hover:text-white hover:bg-slate-800' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -765,7 +589,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
       <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden min-h-0">
         {/* LEFT PANEL: WORDS LIST & WEIGHTS */}
         <aside className={`w-full md:w-[320px] shrink-0 border-r p-3.5 flex flex-col gap-3 md:h-full overflow-hidden ${
-          darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
         }`}>
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-extrabold uppercase tracking-wider text-purple-400 flex items-center gap-2">
@@ -781,63 +605,6 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
             </button>
           </div>
 
-          {/* AI Theme Generator Box */}
-          <div className={`p-2.5 rounded-xl border space-y-2 ${
-            darkMode ? 'bg-purple-950/30 border-purple-800/50' : 'bg-purple-50 border-purple-200'
-          }`}>
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-[11px] text-purple-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                Gerar Lista por Tema com IA
-              </span>
-            </div>
-            <div className="flex gap-1.5">
-              <input
-                type="text"
-                value={aiThemeInput}
-                onChange={(e) => setAiThemeInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleGenerateWordsFromAI()}
-                placeholder="Digite o Tema (ex: Dia das Mães, Futebol)..."
-                className={`flex-1 border rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-purple-500 ${
-                  darkMode ? 'bg-slate-950 border-purple-900/60 text-white placeholder-slate-500' : 'bg-white border-purple-300 text-slate-800'
-                }`}
-              />
-              <button
-                onClick={() => handleGenerateWordsFromAI()}
-                disabled={isGeneratingAiWords || !aiThemeInput.trim()}
-                className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs flex items-center gap-1 transition cursor-pointer disabled:opacity-50 whitespace-nowrap shadow"
-              >
-                {isGeneratingAiWords ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <>
-                    <Sparkles className="w-3 h-3 text-amber-300" />
-                    <span>Gerar IA</span>
-                  </>
-                )}
-              </button>
-            </div>
-            {/* Theme Presets */}
-            <div className="flex flex-wrap gap-1">
-              {['Dia das Mães', 'Dia dos Pais', 'Futebol', 'Aniversário', 'Enfermagem', 'Gamer', 'Fé'].map((preset) => (
-                <button
-                  key={preset}
-                  onClick={() => {
-                    setAiThemeInput(preset);
-                    handleGenerateWordsFromAI(preset);
-                  }}
-                  className={`px-1.5 py-0.5 text-[9px] font-semibold rounded border transition cursor-pointer ${
-                    darkMode
-                      ? 'bg-purple-900/30 border-purple-800/40 text-purple-300 hover:bg-purple-800/50'
-                      : 'bg-purple-100 border-purple-300 text-purple-800 hover:bg-purple-200'
-                  }`}
-                >
-                  + {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Quick Add Word Form */}
           <div className="flex gap-1.5">
             <input
@@ -847,7 +614,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               onKeyDown={(e) => e.key === 'Enter' && handleAddWord()}
               placeholder="Nova palavra..."
               className={`flex-1 border rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-rose-500 ${
-                darkMode ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-800'
+                isDark ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-500' : 'bg-slate-50 border-slate-300 text-slate-800'
               }`}
             />
             <button
@@ -864,7 +631,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               <div
                 key={item.id}
                 className={`border p-2 rounded-xl flex items-center justify-between gap-2 text-xs ${
-                  darkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
+                  isDark ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'
                 }`}
               >
                 <input
@@ -910,10 +677,10 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
 
         {/* CENTER CANVAS DISPLAY */}
         <main className={`flex-1 flex flex-col items-center justify-center p-4 relative overflow-hidden ${
-          darkMode ? 'bg-slate-950' : 'bg-slate-200'
+          isDark ? 'bg-slate-950' : 'bg-slate-200'
         }`}>
           <div className={`relative border-2 rounded-2xl p-2 shadow-2xl flex items-center justify-center max-w-full ${
-            darkMode ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-300'
+            isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-300'
           }`}>
             <canvas
               ref={canvasRef}
@@ -931,7 +698,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
 
         {/* RIGHT PANEL: SHAPES, FONTS, PALETTES & LAYOUT CONTROLS */}
         <aside className={`w-full md:w-[300px] shrink-0 border-l p-3.5 flex flex-col gap-4 overflow-y-auto custom-scrollbar text-xs ${
-          darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
+          isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
         }`}>
           {/* 1. Shape Silhouette Selector */}
           <div className="space-y-1.5">
@@ -950,7 +717,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                     className={`p-2 rounded-xl border flex items-center gap-1.5 transition cursor-pointer text-xs ${
                       active
                         ? 'bg-purple-950/80 border-purple-500 text-white font-bold shadow-sm'
-                        : darkMode
+                      : isDark
                         ? 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-800'
                         : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                     }`}
@@ -979,7 +746,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                     className={`w-full p-1.5 rounded-xl border flex items-center justify-between transition cursor-pointer ${
                       active
                         ? 'bg-purple-950/40 border-purple-500 shadow-sm'
-                        : darkMode
+                        : isDark
                         ? 'bg-slate-950/50 border-slate-800 hover:bg-slate-800'
                         : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
                     }`}
@@ -1010,7 +777,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               value={selectedFont}
               onChange={(e) => setSelectedFont(e.target.value)}
               className={`w-full border rounded-xl px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:border-purple-500 cursor-pointer ${
-                darkMode ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'
+                isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-slate-50 border-slate-300 text-slate-800'
               }`}
             >
               {FONTS.map((f) => (
@@ -1020,7 +787,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
           </div>
 
           {/* 4. Layout Angles & Density */}
-          <div className={`space-y-2.5 border-t pt-2.5 ${darkMode ? 'border-slate-800' : 'border-slate-200'}`}>
+          <div className={`space-y-2.5 border-t pt-2.5 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
             <label className="font-extrabold uppercase text-emerald-400 flex items-center gap-1.5 text-[11px]">
               <Layout className="w-3.5 h-3.5" />
               4. Orientação & Densidade
@@ -1032,7 +799,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className={`py-1.5 px-1 rounded-xl font-bold border transition text-[10px] cursor-pointer ${
                   layoutMode === 'horizontal'
                     ? 'bg-purple-600 text-white border-purple-500'
-                    : darkMode
+                  : isDark
                     ? 'bg-slate-950 text-slate-400 border-slate-800'
                     : 'bg-slate-100 text-slate-700 border-slate-300'
                 }`}
@@ -1044,7 +811,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className={`py-1.5 px-1 rounded-xl font-bold border transition text-[10px] cursor-pointer ${
                   layoutMode === 'mixed'
                     ? 'bg-purple-600 text-white border-purple-500'
-                    : darkMode
+                  : isDark
                     ? 'bg-slate-950 text-slate-400 border-slate-800'
                     : 'bg-slate-100 text-slate-700 border-slate-300'
                 }`}
@@ -1056,7 +823,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className={`py-1.5 px-1 rounded-xl font-bold border transition text-[10px] cursor-pointer ${
                   layoutMode === 'angles'
                     ? 'bg-purple-600 text-white border-purple-500'
-                    : darkMode
+                  : isDark
                     ? 'bg-slate-950 text-slate-400 border-slate-800'
                     : 'bg-slate-100 text-slate-700 border-slate-300'
                 }`}
@@ -1080,24 +847,6 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
                 className="w-full accent-purple-500 cursor-pointer"
               />
             </div>
-
-            {/* Repeat Words Toggle */}
-            <label className={`flex items-center justify-between p-2 rounded-xl border transition cursor-pointer ${
-              darkMode ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100 border-slate-200'
-            }`}>
-              <div className="flex flex-col">
-                <span className="font-bold text-xs text-slate-200">Repetir Palavras na Nuvem</span>
-                <span className="text-[10px] text-slate-400">
-                  {repeatWords ? 'Ativado: Repete palavras' : 'Desativado: Sem repetição (1x por palavra)'}
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={repeatWords}
-                onChange={(e) => setRepeatWords(e.target.checked)}
-                className="w-4 h-4 accent-purple-500 rounded cursor-pointer"
-              />
-            </label>
           </div>
         </aside>
       </div>
@@ -1106,7 +855,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
       {showBulkModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`border rounded-2xl p-5 w-full max-w-lg space-y-4 shadow-2xl ${
-            darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+            isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
           }`}>
             <h3 className="text-sm font-extrabold flex items-center gap-2 text-purple-400">
               <Sparkles className="w-4 h-4" />
@@ -1122,7 +871,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               onChange={(e) => setBulkInput(e.target.value)}
               placeholder="AMOR, FAMÍLIA, GRATIDÃO, SUCESSO, FÉ, CORAGEM..."
               className={`w-full border rounded-xl p-3 text-xs focus:outline-none focus:border-purple-500 font-mono ${
-                darkMode ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-300 text-slate-800'
+                isDark ? 'bg-slate-950 border-slate-800 text-white placeholder-slate-600' : 'bg-slate-50 border-slate-300 text-slate-800'
               }`}
             />
 
@@ -1130,7 +879,7 @@ export const WordArtStudio: React.FC<WordArtStudioProps> = ({
               <button
                 onClick={() => setShowBulkModal(false)}
                 className={`px-3 py-1.5 rounded-xl font-bold text-xs cursor-pointer ${
-                  darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                  isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
                 }`}
               >
                 Cancelar
